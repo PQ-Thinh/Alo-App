@@ -1,6 +1,5 @@
-package com.example.alo.presentation.auth
+package com.example.alo.presentation.view.auth
 
-import android.credentials.GetCredentialException
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -11,17 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.alo.BuildConfig
 import com.example.alo.domain.model.UserState
+import com.example.alo.presentation.auth.GoogleAuthUiClient
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 @Composable
 fun LoginScreen(
@@ -33,7 +29,7 @@ fun LoginScreen(
     val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val credentialManager = CredentialManager.create(context)
+    val googleAuthUiClient = remember { GoogleAuthUiClient(context) }
 
     LaunchedEffect(userState) {
         when (userState) {
@@ -101,27 +97,14 @@ fun LoginScreen(
             onClick = {
                 coroutineScope.launch {
                     try {
-                        val webClientId = BuildConfig.APPLICATION_ID
+                        val idToken = googleAuthUiClient.signIn()
 
-                        val googleIdOption = GetGoogleIdOption.Builder()
-                            .setFilterByAuthorizedAccounts(false)
-                            .setServerClientId(webClientId)
-                            .setAutoSelectEnabled(true)
-                            .build()
-
-                        val request = GetCredentialRequest.Builder()
-                            .addCredentialOption(googleIdOption)
-                            .build()
-
-                        val result = credentialManager.getCredential(context, request)
-                        val credential = result.credential
-
-                        if (credential is GoogleIdTokenCredential) {
-                            val idToken = credential.idToken
+                        if (idToken != null) {
                             viewModel.loginWithGoogleToken(idToken)
+                        } else {
+                            Toast.makeText(context, "Không trích xuất được Token", Toast.LENGTH_SHORT).show()
                         }
-
-                    } catch (e: GetCredentialException) {
+                    } catch (e: CancellationException) {
                         Toast.makeText(context, "Đã hủy đăng nhập Google", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Toast.makeText(context, "Lỗi Google: ${e.message}", Toast.LENGTH_SHORT).show()

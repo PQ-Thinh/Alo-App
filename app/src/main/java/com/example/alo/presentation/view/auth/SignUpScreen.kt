@@ -1,4 +1,4 @@
-package com.example.alo.presentation.auth
+package com.example.alo.presentation.view.auth
 
 import android.util.Patterns
 import android.widget.Toast

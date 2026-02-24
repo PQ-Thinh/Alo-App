@@ -12,8 +12,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.alo.presentation.auth.LoginScreen
-import com.example.alo.presentation.auth.SignUpScreen
+import com.example.alo.presentation.view.auth.LoginScreen
+import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SplashViewModel
