@@ -15,7 +15,7 @@ class SupabaseAuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _userState = MutableStateFlow<UserState>(UserState.Loading)
+    private val _userState = MutableStateFlow<UserState>(UserState.Idle)
     val userState: StateFlow<UserState> = _userState
 
     fun signUp(userEmail: String, userPassword: String) {
@@ -36,6 +36,17 @@ class SupabaseAuthViewModel @Inject constructor(
                 _userState.value = UserState.Success("Đăng nhập thành công")
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
+    fun loginWithGoogleToken(idToken: String) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            try {
+                authRepository.loginWithGoogle(idToken)
+                _userState.value = UserState.Success("Đăng nhập thành công")
+            } catch (e: Exception) {
+                _userState.value = UserState.Error(e.message ?: "Lỗi đăng nhập Google")
             }
         }
     }

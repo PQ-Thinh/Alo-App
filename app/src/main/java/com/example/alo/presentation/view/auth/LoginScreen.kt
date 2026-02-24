@@ -1,5 +1,6 @@
 package com.example.alo.presentation.auth
 
+import android.credentials.GetCredentialException
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -10,11 +11,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.alo.BuildConfig
 import com.example.alo.domain.model.UserState
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -25,13 +32,13 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = CredentialManager.create(context)
 
-    // Lắng nghe trạng thái để chuyển màn hình hoặc báo lỗi
     LaunchedEffect(userState) {
         when (userState) {
             is UserState.Success -> {
                 Toast.makeText(context, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
-                // Chuyển sang Dashboard và xóa Login khỏi BackStack
                 navController.navigate(Screen.Dashboard.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
@@ -71,7 +78,6 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                // VALIDATE FORM
                 if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                     Toast.makeText(context, "Email không hợp lệ!", Toast.LENGTH_SHORT).show()
                     return@Button
@@ -91,7 +97,41 @@ fun LoginScreen(
                 Text("Đăng Nhập")
             }
         }
+        OutlinedButton(
+            onClick = {
+                coroutineScope.launch {
+                    try {
+                        val webClientId = BuildConfig.APPLICATION_ID
 
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(webClientId)
+                            .setAutoSelectEnabled(true)
+                            .build()
+
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+
+                        val result = credentialManager.getCredential(context, request)
+                        val credential = result.credential
+
+                        if (credential is GoogleIdTokenCredential) {
+                            val idToken = credential.idToken
+                            viewModel.loginWithGoogleToken(idToken)
+                        }
+
+                    } catch (e: GetCredentialException) {
+                        Toast.makeText(context, "Đã hủy đăng nhập Google", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Lỗi Google: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        ) {
+            Text("Đăng nhập bằng Google")
+        }
         Spacer(modifier = Modifier.height(16.dp))
         TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
             Text("Chưa có tài khoản? Đăng ký ngay")

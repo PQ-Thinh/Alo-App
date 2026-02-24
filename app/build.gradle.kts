@@ -17,6 +17,8 @@ android {
         .getProperty("supabaseKey") ?: ""
     val url: String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
         .getProperty("supabaseUrl") ?: ""
+    val id : String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("webClientId") ?: ""
 
     defaultConfig {
         applicationId = "com.example.alo"
@@ -31,6 +33,7 @@ android {
         }
         buildConfigField("String", "SUPABASE_URL", "\"$url\"")
         buildConfigField("String", "SUPABASE_KEY", "\"$key\"")
+        buildConfigField("String", "WEB_CLIENT_ID", "\"$id\"")
     }
 
     buildTypes {
@@ -97,5 +100,6 @@ dependencies {
     implementation("androidx.credentials:credentials:1.6.0-rc01")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0-rc01")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
 }
