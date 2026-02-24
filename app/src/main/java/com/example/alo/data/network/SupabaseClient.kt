@@ -1,16 +1,14 @@
 package com.example.alo.data.network
 
-import io.github.jan.supabase.BuildConfig
+import com.example.alo.BuildConfig
 import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.gotrue.GoTrue
-
-
+import io.github.jan.supabase.auth.Auth
 
 object SupabaseClient {
-    val = createSupabaseClient(
-        supabaseUrl = BuildConfig.supabaseUrl,
-        supabaseKey = BuildConfig.supabaseKey
-    ){
-        install(GoTrue)
+    val client = createSupabaseClient(
+        supabaseUrl = BuildConfig.SUPABASE_URL,
+        supabaseKey = BuildConfig.SUPABASE_KEY
+    ) {
+        install(Auth)
     }
 }
