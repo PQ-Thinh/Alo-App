@@ -13,6 +13,10 @@ android {
     compileSdk {
         version = release(36)
     }
+    val key: String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("supabaseKey") ?: ""
+    val url: String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("supabaseUrl") ?: ""
 
     defaultConfig {
         applicationId = "com.example.alo"
@@ -22,6 +26,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+        buildConfigField("String", "SUPABASE_URL", "\"$url\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"$key\"")
     }
 
     buildTypes {
@@ -42,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig=true
     }
 }
 
@@ -72,7 +82,8 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-work:1.2.0")
 
-
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.recyclerview.selection)
     // add datastore preferences dependency
     implementation(libs.androidx.datastore.preferences)
     // Supabase
@@ -80,4 +91,10 @@ dependencies {
     implementation(libs.supabase.postgrest)
     // Ktor
     implementation(libs.ktor.client.android)
+
+    //auth gg
+    implementation("androidx.credentials:credentials:1.6.0-rc01")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0-rc01")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
+
 }

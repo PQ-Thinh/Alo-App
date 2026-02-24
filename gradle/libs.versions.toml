@@ -14,9 +14,12 @@ constraintlayout = "2.2.1"
 dataStore = "1.1.2"
 supabase = "3.0.0"
 ktor = "3.0.0"
-
+recyclerview = "1.4.0"
+recyclerviewSelection = "1.2.0"
 
 [libraries]
+androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+androidx-recyclerview-selection = { module = "androidx.recyclerview:recyclerview-selection", version.ref = "recyclerviewSelection" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
