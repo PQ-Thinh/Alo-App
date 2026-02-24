@@ -1,9 +1,12 @@
 package com.example.alo.data.utils
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
-class SharedPreferenceHelper(private val context: Context)
-{
+class SharedPreferenceHelper @Inject constructor(
+    @ApplicationContext private val context: Context
+){
     companion object{
         private const val PREF_NAME = "MyPrefs"
     }

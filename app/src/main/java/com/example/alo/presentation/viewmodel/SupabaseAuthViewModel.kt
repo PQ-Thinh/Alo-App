@@ -22,7 +22,29 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 authRepository.signUp(userEmail, userPassword)
+                _userState.value = UserState.Success("Đăng ký thành công")
 
+            } catch (e: Exception) {
+                _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
+    fun login(userEmail: String, userPassword: String) {
+        viewModelScope.launch {
+            try {
+                authRepository.login(userEmail, userPassword)
+                _userState.value = UserState.Success("Đăng nhập thành công")
+            } catch (e: Exception) {
+                _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            try {
+                authRepository.logout()
+                _userState.value = UserState.Success("Đăng xuất thành công")
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }

@@ -20,5 +20,21 @@ class AuthRepositoryImpl @Inject constructor(
 
         val accessToken = supabaseClient.auth.currentAccessTokenOrNull() ?: ""
         sharedPref.saveStringData("accessToken", accessToken)
+        //sharedPref.getStringData("accessToken")
+
     }
+
+    override suspend fun login(email: String, password: String) {
+        supabaseClient.auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+        sharedPref.getStringData("accessToken")
+    }
+
+    override suspend fun logout() {
+
+
+    }
+
 }
