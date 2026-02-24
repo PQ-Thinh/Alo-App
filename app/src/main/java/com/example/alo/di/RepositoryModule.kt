@@ -1,7 +1,7 @@
 package com.example.alo.di
 
 import com.example.alo.data.repository.AuthRepositoryImpl
-import com.example.alo.domain.responsitories.AuthRepository
+import com.example.alo.domain.repositories.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

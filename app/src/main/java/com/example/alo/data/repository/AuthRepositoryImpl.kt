@@ -1,7 +1,7 @@
 package com.example.alo.data.repository
 
-import com.example.alo.data.utils.SharedPreferenceHelper
-import com.example.alo.domain.responsitories.AuthRepository
+import com.example.alo.data.utils.DataStoreHelper
+import com.example.alo.domain.repositories.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
-    private val sharedPref: SharedPreferenceHelper
+    private val dataStoreHelper: DataStoreHelper
 ) : AuthRepository {
 
     override suspend fun signUp(email: String, password: String) {
@@ -17,11 +17,8 @@ class AuthRepositoryImpl @Inject constructor(
             this.email = email
             this.password = password
         }
-
         val accessToken = supabaseClient.auth.currentAccessTokenOrNull() ?: ""
-        sharedPref.saveStringData("accessToken", accessToken)
-        //sharedPref.getStringData("accessToken")
-
+        dataStoreHelper.saveToken(accessToken)
     }
 
     override suspend fun login(email: String, password: String) {
@@ -29,12 +26,12 @@ class AuthRepositoryImpl @Inject constructor(
             this.email = email
             this.password = password
         }
-        sharedPref.getStringData("accessToken")
+        val accessToken = supabaseClient.auth.currentAccessTokenOrNull() ?: ""
+        dataStoreHelper.saveToken(accessToken)
     }
 
     override suspend fun logout() {
-
-
+        supabaseClient.auth.signOut()
+        dataStoreHelper.clearAll()
     }
-
 }

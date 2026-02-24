@@ -3,7 +3,7 @@ package com.example.alo.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.model.UserState
-import com.example.alo.domain.responsitories.AuthRepository
+import com.example.alo.domain.repositories.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
