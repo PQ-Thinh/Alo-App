@@ -1,4 +1,4 @@
-package com.example.alo.domain.usecase
+package com.example.alo.data.utils
 
 import android.content.Context
 
