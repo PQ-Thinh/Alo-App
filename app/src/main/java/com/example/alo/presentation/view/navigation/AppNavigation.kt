@@ -19,6 +19,7 @@ import com.example.alo.presentation.view.auth.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.home.DashBoard
 import com.example.alo.presentation.viewmodel.SplashViewModel
+import androidx.navigation.navigation
 
 @Composable
 fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
@@ -30,51 +31,72 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
             CircularProgressIndicator()
         }
     } else {
-        val initialRoute = if (startDestination == "dashboard") Screen.Dashboard.route else Screen.Login.route
+        // Tự động quyết định Graph nào sẽ được load đầu tiên
+        val initialGraph = if (startDestination?.startsWith("dashboard") == true) {
+            Graph.Main.route
+        } else {
+            Graph.Auth.route
+        }
 
         NavHost(
             navController = navController,
-            startDestination = initialRoute
+            route = Graph.Root.route,
+            startDestination = initialGraph
         ) {
-            composable(route = Screen.Intro.route) {
 
+            // ==========================================
+            // CỤM 1: AUTH GRAPH (CHƯA ĐĂNG NHẬP)
+            // ==========================================
+            navigation(
+                route = Graph.Auth.route,
+                startDestination = Screen.Login.route
+            ) {
+                composable(route = Screen.Intro.route) { /* Intro */ }
+
+                composable(route = Screen.Login.route) {
+                    LoginScreen(navController = navController)
+                }
+
+                composable(route = Screen.SignUp.route) {
+                    SignUpScreen(navController = navController)
+                }
+
+                composable(
+                    route = Screen.ProfileSetup.route,
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType },
+                        navArgument("email") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    ProfileSetupScreen(navController, userId, email)
+                }
             }
-            composable(route = Screen.Login.route) {
-                 LoginScreen(navController = navController)
-            }
 
-            composable(route = Screen.SignUp.route) {
-                SignUpScreen(navController = navController)
-            }
+            // ==========================================
+            // CỤM 2: MAIN GRAPH (ĐÃ ĐĂNG NHẬP)
+            // ==========================================
+            navigation(
+                route = Graph.Main.route,
+                startDestination = startDestination ?: Screen.Dashboard.route
+            ) {
+                composable(
+                    route = Screen.Dashboard.route,
+                    arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                    DashBoard(navController = navController, userId = userId)
+                }
 
-            composable(
-                route = Screen.ProfileSetup.route,
-                arguments = listOf(
-                    navArgument("userId") { type = NavType.StringType },
-                    navArgument("email") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                val email = backStackEntry.arguments?.getString("email") ?: ""
 
-                ProfileSetupScreen(
-                    navController = navController,
-                    userId = userId,
-                    email = email
-                )
-            }
-            composable(
-                route = Screen.Dashboard.route,
-                arguments = listOf(
-                    navArgument("userId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-
-                DashBoard(
-                    navController = navController,
-                    userId = userId
-                )
+//                composable(
+//                    route = Screen.Chat.route,
+//                    arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+//                ) { backStackEntry ->
+//                    val conversationId = backStackEntry.arguments?.getString("conversationId") ?: ""
+//                    // ChatScreen(navController, conversationId)
+//                }
             }
         }
     }

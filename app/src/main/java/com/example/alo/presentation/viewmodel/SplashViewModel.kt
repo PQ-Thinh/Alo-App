@@ -2,6 +2,8 @@ package com.example.alo.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.alo.domain.repositories.UserRepository
+import com.example.alo.presentation.view.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -12,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _startDestination = MutableStateFlow<String?>(null)
@@ -27,9 +30,17 @@ class SplashViewModel @Inject constructor(
             val session = supabaseClient.auth.currentSessionOrNull()
 
             if (session != null) {
-                _startDestination.value = "dashboard"
-            }else{
-                _startDestination.value = "login"
+                val userId = session.user?.id ?: ""
+                val userProfile = userRepository.getCurrentUser(userId)
+
+                if (userProfile != null) {
+                    _startDestination.value = Screen.Dashboard.createRoute(userId)
+                } else {
+                    val email = session.user?.email ?: ""
+                    _startDestination.value = Screen.ProfileSetup.createRoute(userId, email)
+                }
+            } else {
+                _startDestination.value = Screen.Login.route
             }
         }
     }

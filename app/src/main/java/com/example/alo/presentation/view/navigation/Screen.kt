@@ -12,3 +12,8 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String, email: String) = "profile_setup/$userId/$email"
     }
 }
+sealed class Graph(val route: String) {
+    object Root : Graph("root_graph")
+    object Auth : Graph("auth_graph")
+    object Main : Graph("main_graph")
+}

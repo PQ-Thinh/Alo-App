@@ -22,7 +22,7 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 authRepository.signUp(userEmail, userPassword)
-                _userState.value = UserState.Success("Đăng ký thành công")
+                _userState.value = UserState.Success("Đăng ký thành công",)
 
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
