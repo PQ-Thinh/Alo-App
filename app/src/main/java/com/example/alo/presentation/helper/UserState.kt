@@ -1,4 +1,4 @@
-package com.example.alo.domain.model
+package com.example.alo.presentation.helper
 
 sealed class UserState {
     object Idle : UserState()

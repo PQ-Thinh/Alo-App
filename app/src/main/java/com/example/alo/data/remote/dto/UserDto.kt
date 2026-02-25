@@ -34,4 +34,19 @@ data class UserDto(
             updatedAt = updatedAt
         )
     }
+    fun User.toDto(): UserDto {
+        return UserDto(
+            id = this.id,
+            username = this.username,
+            displayName = this.displayName,
+            email = this.email,
+            bio = this.bio,
+            phone = this.phone,
+            avatarId = this.avatarId,
+            avatarUrl = this.avatarUrl,
+            publicKey = this.publicKey,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt
+        )
+    }
 }

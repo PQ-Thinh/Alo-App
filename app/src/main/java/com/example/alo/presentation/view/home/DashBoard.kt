@@ -1,59 +1,52 @@
 package com.example.alo.presentation.view.home
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.alo.domain.model.UserState
-import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.viewmodel.UserViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(
+fun DashBoard(
     navController: NavController,
-    viewModel: SupabaseAuthViewModel = hiltViewModel() // Tái sử dụng để gọi hàm Logout
+    userId: String,
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
-    val userState by viewModel.userState.collectAsState()
+    val userState by userViewModel.userState.collectAsState()
 
-    LaunchedEffect(userState) {
-        if (userState is UserState.Success) { // Giả sử logout gán về Success
-            navController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Dashboard.route) { inclusive = true }
-            }
-        }
+    LaunchedEffect(key1 = userId) {
+        userViewModel.fetchUserProfile(userId)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Trang chủ OTT") },
-                actions = {
-                    IconButton(onClick = { viewModel.logout() }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Đăng xuất")
-                    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        when (userState) {
+            is UserProfileState.Idle, is UserProfileState.Loading -> {
+                CircularProgressIndicator()
+            }
+            is UserProfileState.Success -> {
+                val user = (userState as UserProfileState.Success).user
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Xin chào, ${user.displayName}!",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Email: ${user.email}")
+                    Text(text = "Username: @${user.username}")
+                    Text(text = "Bio: ${user.bio ?: "Chưa cập nhật"}")
                 }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Chào mừng bạn đã đăng nhập thành công!",
-                style = MaterialTheme.typography.titleLarge
-            )
+            }
+            is UserProfileState.Error -> {
+                Text(
+                    text = (userState as UserProfileState.Error).message,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

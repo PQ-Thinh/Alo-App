@@ -28,4 +28,15 @@ class UserRepositoryImpl @Inject constructor(
             null
         }
     }
+
+    override suspend fun saveUserProfile(user: User): Boolean {
+        return try {
+            val userDto = user.id
+            supabaseClient.postgrest["users"].upsert(userDto)
+            true
+        } catch (e: Exception) {
+            Log.e("UserRepo", "Lỗi lưu Profile: ${e.message}")
+            false
+        }
+    }
 }

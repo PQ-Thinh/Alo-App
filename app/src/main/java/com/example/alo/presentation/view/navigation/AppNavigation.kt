@@ -1,4 +1,4 @@
-package com.example.alo.presentation.navigation
+package com.example.alo.presentation.view.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,13 +9,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.alo.presentation.view.auth.LoginScreen
+import com.example.alo.presentation.view.auth.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
-import com.example.alo.presentation.view.home.DashboardScreen
-import com.example.alo.presentation.view.navigation.Screen
+import com.example.alo.presentation.view.home.DashBoard
 import com.example.alo.presentation.viewmodel.SplashViewModel
 
 @Composable
@@ -45,8 +47,34 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
                 SignUpScreen(navController = navController)
             }
 
-            composable(route = Screen.Dashboard.route) {
-                DashboardScreen(navController = navController)
+            composable(
+                route = Screen.ProfileSetup.route,
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType },
+                    navArgument("email") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                val email = backStackEntry.arguments?.getString("email") ?: ""
+
+                ProfileSetupScreen(
+                    navController = navController,
+                    userId = userId,
+                    email = email
+                )
+            }
+            composable(
+                route = Screen.Dashboard.route,
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+
+                DashBoard(
+                    navController = navController,
+                    userId = userId
+                )
             }
         }
     }
