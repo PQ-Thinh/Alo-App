@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.domain.model.UserState
-import com.example.alo.presentation.auth.GoogleAuthUiClient
+import com.example.alo.presentation.helper.GoogleAuthUiClient
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
 import kotlinx.coroutines.launch
