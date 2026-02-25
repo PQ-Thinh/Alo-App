@@ -1,6 +1,7 @@
 package com.example.alo.data.utils
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -25,6 +26,7 @@ class DataStoreHelper @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[ACCESS_TOKEN] = token
         }
+        Log.d("DataStoreHelper", "Token saved: $token")
     }
 
     val getAccessToken: Flow<String?> = context.dataStore.data.map { preferences ->

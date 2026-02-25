@@ -1,4 +1,4 @@
-package com.example.alo.presentation.view.navigation
+package com.example.alo.presentation.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,8 +14,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.alo.presentation.view.auth.LoginScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
+import com.example.alo.presentation.view.home.DashboardScreen
+import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SplashViewModel
-import androidx.navigation.navigation
 
 @Composable
 fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
@@ -27,38 +28,28 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
             CircularProgressIndicator()
         }
     } else {
-        // Tự động quyết định Graph nào sẽ được load đầu tiên
-        val initialGraph = if (startDestination?.startsWith("dashboard") == true) {
-            Graph.Main.route
-        } else {
-            Graph.Auth.route
-        }
+        val initialRoute = if (startDestination == "dashboard") Screen.Dashboard.route else Screen.Login.route
 
         NavHost(
             navController = navController,
-            route = Graph.Root.route,
-            startDestination = initialGraph
+            startDestination = initialRoute
         ) {
-
-            // ==========================================
-            // CỤM 1: AUTH GRAPH (CHƯA ĐĂNG NHẬP)
-            // ==========================================
-            navigation(
-                route = Graph.Auth.route,
-                startDestination = Screen.Login.route
-            ) {
-                composable(route = Screen.Intro.route) { /* Intro */ }
-
-                composable(route = Screen.Login.route) {
-                    LoginScreen(navController = navController)
-                }
-
-                composable(route = Screen.SignUp.route) {
-                    SignUpScreen(navController = navController)
-                }
-
+            composable(route = Screen.Intro.route) {
 
             }
+            composable(route = Screen.Login.route) {
+                 LoginScreen(navController = navController)
+            }
+
+            composable(route = Screen.SignUp.route) {
+                SignUpScreen(navController = navController)
+            }
+
+            composable(route = Screen.Dashboard.route) {
+                DashboardScreen(navController = navController)
+            }
+
+
 
         }
     }

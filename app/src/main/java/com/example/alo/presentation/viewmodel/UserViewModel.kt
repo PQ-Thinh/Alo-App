@@ -21,7 +21,6 @@ class UserViewModel @Inject constructor(
     private val _userState = MutableStateFlow<UserProfileState>(UserProfileState.Idle)
     val userState: StateFlow<UserProfileState> = _userState
 
-    // Lấy thông tin user
     fun fetchUserProfile(userId: String) {
         viewModelScope.launch {
             _userState.value = UserProfileState.Loading
@@ -34,7 +33,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // Lưu thông tin user
     fun saveUserProfile(user: User, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _userState.value = UserProfileState.Loading
