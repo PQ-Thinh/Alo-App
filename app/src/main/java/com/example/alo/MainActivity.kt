@@ -3,30 +3,34 @@ package com.example.alo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.alo.presentation.navigation.AppNavigation
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.alo.presentation.view.navigation.AppNavigation
 import com.example.alo.presentation.theme.AloTheme
+import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            LaunchedEffect(Unit) {
+    private val splashViewModel: SplashViewModel by viewModels()
 
-            }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        super.onCreate(savedInstanceState)
+
+        splashScreen.setKeepOnScreenCondition {
+            splashViewModel.isLoading.value
+        }
+
+        setContent {
             AloTheme {
-                AppNavigation()
+                val startDestination by splashViewModel.startDestination.collectAsState()
+
+                if (startDestination != null) {
+                    AppNavigation(startDestination = startDestination!!)
+                }
             }
         }
     }

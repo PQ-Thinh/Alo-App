@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,15 +18,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage // Lưu ý nếu báo đỏ hãy kiểm tra lại thư viện Coil
+import coil3.compose.AsyncImage
 import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.view.navigation.Screen
+import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: UserViewModel = hiltViewModel()
+    viewModel: UserViewModel = hiltViewModel(),
+    authViewModel: SupabaseAuthViewModel = hiltViewModel()
 ) {
     val profileState by viewModel.profileState.collectAsState()
 
@@ -35,11 +39,16 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Hồ sơ cá nhân") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+            TopAppBarProfile(
+                title = "Hồ sơ cá nhân",
+                onNavigationClick = {
+                    navController.popBackStack()
+                },
+                onLogoutClick = {
+                    authViewModel.logout()
+
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -66,7 +75,6 @@ fun ProfileScreen(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Avatar
                         if (user.avatarUrl != null) {
                             AsyncImage(
                                 model = user.avatarUrl,
@@ -94,11 +102,10 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Card hiển thị chi tiết
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 ProfileDetailRow("Email", user.email)
-                                ProfileDetailRow("Số điện thoại", user.phone ?: "Chưa cập nhật")
+                                ProfileDetailRow("Số ĐT", user.phone ?: "Chưa cập nhật")
                                 ProfileDetailRow("Ngày sinh", user.birthday ?: "Chưa cập nhật")
                                 ProfileDetailRow("Giới tính", if (user.gender == true) "Nam" else if (user.gender == false) "Nữ" else "Chưa cập nhật")
                                 ProfileDetailRow("Tiểu sử", user.bio ?: "Chưa cập nhật")
@@ -122,4 +129,32 @@ fun ProfileDetailRow(label: String, value: String) {
         Text(text = label, fontWeight = FontWeight.Medium, color = Color.Gray)
         Text(text = value, fontWeight = FontWeight.SemiBold)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopAppBarProfile(
+    title: String,
+    onNavigationClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+) {
+    TopAppBar(
+        title = {
+            Text(text = title, fontWeight = FontWeight.Bold)
+        },
+        navigationIcon = {
+            IconButton(onClick = { onNavigationClick() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+            }
+        },
+        actions = {
+            IconButton(onClick = { onLogoutClick() }) {
+                Icon(
+                    imageVector = Icons.Filled.ExitToApp,
+                    contentDescription = "Đăng xuất",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    )
 }

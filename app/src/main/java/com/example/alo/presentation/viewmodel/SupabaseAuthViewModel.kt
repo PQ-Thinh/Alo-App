@@ -104,7 +104,6 @@ class SupabaseAuthViewModel @Inject constructor(
             }
         }
     }
-
     fun logout() {
         viewModelScope.launch {
             _userState.value = UserState.Loading
