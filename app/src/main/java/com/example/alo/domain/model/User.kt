@@ -9,7 +9,7 @@ data class User(
     val phone: String?,
     val birthday: String?,
     val gender: Boolean?,
-    val avatarId: String,
+    val avatarId: String?,
     val avatarUrl: String?,
     val publicKey: String,
     val createdAt: String,

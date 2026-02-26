@@ -3,7 +3,6 @@ package com.example.alo.data.remote.dto
 import com.example.alo.domain.model.User
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.util.Date
 
 @Serializable
 data class UserDto(
@@ -13,9 +12,10 @@ data class UserDto(
     @SerialName("email") val email: String,
     @SerialName("bio") val bio: String? = null,
     @SerialName("phone") val phone: String? = null,
-    @SerialName("birthday") val birthday: String,
+    @SerialName("birthday") val birthday: String?,
     @SerialName("gender") val gender: Boolean?,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("avatar_id") val avatarId: String? = null,
     @SerialName("public_key") val publicKey: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String
@@ -48,6 +48,8 @@ data class UserDto(
             phone = this.phone,
             avatarId = this.avatarId,
             avatarUrl = this.avatarUrl,
+            birthday = this.birthday,
+            gender = this.gender,
             publicKey = this.publicKey,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt
