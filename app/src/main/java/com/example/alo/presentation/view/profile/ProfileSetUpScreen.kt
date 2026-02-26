@@ -67,7 +67,6 @@ fun ProfileSetupScreen(
             }
         }
 
-        // Thanh nút điều hướng
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween

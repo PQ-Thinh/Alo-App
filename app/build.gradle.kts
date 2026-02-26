@@ -100,6 +100,8 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0-rc01")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 
 }
 secrets {

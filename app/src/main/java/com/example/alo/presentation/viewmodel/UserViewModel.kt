@@ -1,5 +1,6 @@
 package com.example.alo.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.remote.dto.UserDto
@@ -7,6 +8,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repositories.UserRepository
 import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.ProfileSetupState
+import com.example.alo.presentation.helper.UserProfileState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -28,6 +30,9 @@ class UserViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(ProfileSetupState())
     val state: StateFlow<ProfileSetupState> = _state.asStateFlow()
+
+    private val _profileState = MutableStateFlow<UserProfileState>(UserProfileState.Idle)
+    val profileState: StateFlow<UserProfileState> = _profileState.asStateFlow()
 
     fun onEvent(event: ProfileSetupEvent) {
         when (event) {
@@ -76,9 +81,25 @@ class UserViewModel @Inject constructor(
                     _state.update { it.copy(isLoading = false, isSuccess = true) }
                 } else {
                     _state.update { it.copy(isLoading = false, error = "Lỗi lưu thông tin người dùng") }
+
                 }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+    fun fetchUserProfile(userId: String) {
+        viewModelScope.launch {
+            _profileState.value = UserProfileState.Loading
+            try {
+                val user = userRepository.getCurrentUser(userId)
+                if (user != null) {
+                    _profileState.value = UserProfileState.Success(user)
+                } else {
+                    _profileState.value = UserProfileState.Error("Không tìm thấy thông tin người dùng")
+                }
+            } catch (e: Exception) {
+                _profileState.value = UserProfileState.Error(e.message ?: "Đã xảy ra lỗi không xác định")
             }
         }
     }
