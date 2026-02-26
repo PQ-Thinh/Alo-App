@@ -6,6 +6,10 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repositories.UserRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.UUID
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
@@ -37,6 +41,16 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("UserRepo", "Lỗi lưu Profile: ${e.message}")
             false
+        }
+    }
+    override suspend fun uploadAvatar(imageBytes: ByteArray, extension: String): String {
+        return withContext(Dispatchers.IO) {
+            val fileName = "${UUID.randomUUID()}.$extension"
+            val bucket = supabaseClient.storage.from("avatars")
+
+            bucket.upload(fileName, imageBytes)
+
+            bucket.publicUrl(fileName)
         }
     }
 }

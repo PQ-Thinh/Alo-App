@@ -2,12 +2,18 @@ package com.example.alo.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.alo.data.remote.dto.UserDto
 import com.example.alo.domain.model.User
 import com.example.alo.domain.repositories.UserRepository
-import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.helper.ProfileSetupEvent
+import com.example.alo.presentation.helper.ProfileSetupState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,33 +21,63 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
-    private val _userState = MutableStateFlow<UserProfileState>(UserProfileState.Idle)
-    val userState: StateFlow<UserProfileState> = _userState
+    private val _state = MutableStateFlow(ProfileSetupState())
+    val state: StateFlow<ProfileSetupState> = _state.asStateFlow()
 
-    fun fetchUserProfile(userId: String) {
-        viewModelScope.launch {
-            _userState.value = UserProfileState.Loading
-            val user = userRepository.getCurrentUser(userId)
-            if (user != null) {
-                _userState.value = UserProfileState.Success(user)
-            } else {
-                _userState.value = UserProfileState.Error("Không tìm thấy thông tin người dùng")
-            }
+    fun onEvent(event: ProfileSetupEvent) {
+        when (event) {
+            is ProfileSetupEvent.EnteredUsername -> _state.update { it.copy(username = event.value) }
+            is ProfileSetupEvent.EnteredDisplayName -> _state.update { it.copy(displayName = event.value) }
+            is ProfileSetupEvent.EnteredPhone -> _state.update { it.copy(phone = event.value) }
+            is ProfileSetupEvent.EnteredBirthday -> _state.update { it.copy(birthday = event.value) }
+            is ProfileSetupEvent.SelectedGender -> _state.update { it.copy(gender = event.value) }
+            is ProfileSetupEvent.EnteredBio -> _state.update { it.copy(bio = event.value) }
+            is ProfileSetupEvent.SelectedAvatar -> _state.update { it.copy(avatarBytes = event.bytes) }
+            is ProfileSetupEvent.Submit -> submitProfile()
         }
     }
 
-    fun saveUserProfile(user: User, onSuccess: () -> Unit) {
+    private fun submitProfile() {
         viewModelScope.launch {
-            _userState.value = UserProfileState.Loading
-            val isSuccess = userRepository.saveUserProfile(user)
-            if (isSuccess) {
-                _userState.value = UserProfileState.Success(user)
-                onSuccess()
-            } else {
-                _userState.value = UserProfileState.Error("Lỗi khi lưu thông tin")
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                val currentState = _state.value
+
+                var uploadedUrl = ""
+                var avatarId = "default_id"
+
+                if (currentState.avatarBytes != null) {
+                    uploadedUrl = userRepository.uploadAvatar(currentState.avatarBytes, "jpg")
+                    avatarId = uploadedUrl.substringAfterLast("/")
+                }
+
+                val user = User(
+                    id = supabaseClient.auth.currentSessionOrNull()?.user?.id ?: "TEMP_ID",
+                    email = supabaseClient.auth.currentSessionOrNull()?.user?.email ?: "TEMP_EMAIL",
+                    username = currentState.username,
+                    displayName = currentState.displayName,
+                    phone = currentState.phone,
+                    birthday = currentState.birthday,
+                    gender = currentState.gender,
+                    bio = currentState.bio,
+                    avatarId = avatarId,
+                    avatarUrl = uploadedUrl.ifEmpty { null },
+                    publicKey = "TEMP_PUBLIC_KEY",
+                    createdAt = "TEMP_CREATED_AT",
+                    updatedAt = "TEMP_UPDATED_AT"
+                )
+                val result = userRepository.saveUserProfile(user)
+                if (result) {
+                    _state.update { it.copy(isLoading = false, isSuccess = true) }
+                } else {
+                    _state.update { it.copy(isLoading = false, error = "Lỗi lưu thông tin người dùng") }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }

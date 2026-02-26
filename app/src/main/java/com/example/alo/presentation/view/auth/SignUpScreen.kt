@@ -31,7 +31,7 @@ fun SignUpScreen(
         when (userState) {
             is UserState.Success -> {
                 Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                navController.navigate(Screen.Dashboard.route) {
+                navController.navigate(Screen.ProfileSetup.route) {
                     popUpTo(Screen.SignUp.route) { inclusive = true }
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }

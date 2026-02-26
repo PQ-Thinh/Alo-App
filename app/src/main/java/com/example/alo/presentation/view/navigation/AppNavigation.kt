@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.alo.presentation.view.auth.LoginScreen
+import com.example.alo.presentation.view.auth.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.navigation.Screen
@@ -49,8 +50,13 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
                 DashboardScreen(navController = navController)
             }
 
-
-
+            composable(route = Screen.ProfileSetup.route) {
+                ProfileSetupScreen(navController = navController,onSetupComplete = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.ProfileSetup.route) { inclusive = true }
+                    }
+                })
+            }
         }
     }
 }
