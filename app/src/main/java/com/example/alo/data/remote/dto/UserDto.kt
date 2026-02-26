@@ -15,7 +15,7 @@ data class UserDto(
     @SerialName("birthday") val birthday: String? = null,
     @SerialName("gender") val gender: Boolean? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
-    @SerialName("avatarid") val avatarId: String?,
+    @SerialName("avatarid") val avatarId: String,
     @SerialName("public_key") val publicKey: String,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null

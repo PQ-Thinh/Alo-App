@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.util.Locale
 import javax.inject.Inject
 
 
@@ -51,6 +53,11 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
+                val sessionUser = supabaseClient.auth.currentSessionOrNull()?.user
+                if (sessionUser == null) {
+                    _state.update { it.copy(isLoading = false, error = "Lỗi bảo mật: Bạn chưa đăng nhập!") }
+                    return@launch
+                }
                 val currentState = _state.value
 
                 var uploadedUrl = ""
@@ -60,16 +67,28 @@ class UserViewModel @Inject constructor(
                     uploadedUrl = userRepository.uploadAvatar(currentState.avatarBytes, "jpg")
                     avatarId = uploadedUrl.substringAfterLast("/")
                 }
+                val formattedBirthday = if (currentState.birthday.isNotBlank()) {
+                    try {
+                        val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val date = inputFormat.parse(currentState.birthday)
+                        outputFormat.format(date!!)
+                    } catch (e: Exception) {
+                        currentState.birthday
+                    }
+                } else {
+                    null
+                }
 
                 val user = User(
-                    id = supabaseClient.auth.currentSessionOrNull()?.user?.id ?: "TEMP_ID",
-                    email = supabaseClient.auth.currentSessionOrNull()?.user?.email ?: "TEMP_EMAIL",
+                    id = sessionUser.id,
+                    email = sessionUser.email ?: "",
                     username = currentState.username,
                     displayName = currentState.displayName,
-                    phone = currentState.phone,
-                    birthday = currentState.birthday,
+                    phone = currentState.phone.ifBlank { null },
+                    birthday = formattedBirthday,
                     gender = currentState.gender,
-                    bio = currentState.bio,
+                    bio = currentState.bio.ifBlank{ null},
                     avatarId = avatarId,
                     avatarUrl = uploadedUrl.ifEmpty { null },
                     publicKey = "TEMP_PUBLIC_KEY",

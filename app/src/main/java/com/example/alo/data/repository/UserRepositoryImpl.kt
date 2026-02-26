@@ -39,10 +39,13 @@ class UserRepositoryImpl @Inject constructor(
         return try {
             val currentUtcTime = Instant.now().toString()
             val userDto = user.copy(updatedAt = currentUtcTime).toDto()
+
+            Log.d("UserRepository", "Đang gửi dữ liệu: $userDto")
+
             supabaseClient.postgrest["users"].upsert(userDto)
             true
         } catch (e: Exception) {
-            Log.e("UserRepository", "Lỗi lưu Profile: ${e.message}")
+            Log.e("UserRepository", "Lỗi Supabase chi tiết: ${e.message}")
             false
         }
     }
