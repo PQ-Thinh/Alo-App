@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
+import coil3.compose.AsyncImage // Lưu ý nếu báo đỏ hãy kiểm tra lại thư viện Coil
 import com.example.alo.presentation.helper.UserProfileState
 import com.example.alo.presentation.viewmodel.UserViewModel
 
@@ -25,13 +25,12 @@ import com.example.alo.presentation.viewmodel.UserViewModel
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    userId: String,
     viewModel: UserViewModel = hiltViewModel()
 ) {
     val profileState by viewModel.profileState.collectAsState()
 
-    LaunchedEffect(userId) {
-        viewModel.fetchUserProfile(userId)
+    LaunchedEffect(Unit) {
+        viewModel.fetchCurrentUserProfile()
     }
 
     Scaffold(

@@ -21,7 +21,6 @@ import com.example.alo.presentation.view.navigation.Screen
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    userId: String 
 ) {
     Scaffold(
         bottomBar = {
@@ -36,9 +35,9 @@ fun DashboardScreen(
                 )
 
                 NavigationBarItem(
-                    selected = false,
+                    selected = true,
                     onClick = {
-                        navController.navigate(Screen.Profile.createRoute(userId))
+                        navController.navigate(Screen.Profile.route)
                     },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Hồ sơ") },
                     label = { Text("Cá nhân") }
@@ -53,7 +52,7 @@ fun DashboardScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Đây là Dashboard\n(Nơi hiển thị danh sách Chat sau này)",
+                text = "Hello Wold!!!!",
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )

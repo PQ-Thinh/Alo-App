@@ -2,7 +2,6 @@ package com.example.alo.presentation.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,23 +38,18 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
             navController = navController,
             startDestination = initialRoute
         ) {
-            composable(route = Screen.Intro.route) {
+            composable(route = Screen.Intro.route) {}
 
-            }
             composable(route = Screen.Login.route) {
-                 LoginScreen(navController = navController)
+                LoginScreen(navController = navController)
             }
 
             composable(route = Screen.SignUp.route) {
                 SignUpScreen(navController = navController)
             }
 
-            composable(
-                route = Screen.Dashboard.route,
-                arguments = listOf(navArgument("userId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                DashboardScreen(navController = navController, userId = userId)
+            composable(route = Screen.Dashboard.route) {
+                DashboardScreen(navController = navController)
             }
 
             composable(
@@ -69,20 +63,16 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
                 ProfileSetupScreen(
                     navController = navController,
                     onSetupComplete = {
-                        navController.navigate(Screen.Dashboard.createRoute(userId)) {
+                        navController.navigate(Screen.Dashboard.route) {
                             popUpTo(Screen.ProfileSetup.route) { inclusive = true }
                         }
                     }
                 )
             }
-            composable(
-                route = Screen.Profile.route,
-                arguments = listOf(navArgument("userId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                ProfileScreen(navController = navController, userId = userId)
+
+            composable(route = Screen.Profile.route) {
+                ProfileScreen(navController = navController)
             }
         }
-
     }
 }

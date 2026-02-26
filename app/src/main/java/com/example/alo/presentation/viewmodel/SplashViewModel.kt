@@ -34,7 +34,7 @@ class SplashViewModel @Inject constructor(
                 val userProfile = userRepository.getCurrentUser(userId)
 
                 if (userProfile != null) {
-                    _startDestination.value = Screen.Dashboard.createRoute(userId)
+                    _startDestination.value = Screen.Dashboard.route
                 } else {
                     val email = session.user?.email ?: ""
                     _startDestination.value = Screen.ProfileSetup.createRoute(userId, email)

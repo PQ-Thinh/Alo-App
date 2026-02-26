@@ -107,11 +107,17 @@ class UserViewModel @Inject constructor(
             }
         }
     }
-    fun fetchUserProfile(userId: String) {
+    fun fetchCurrentUserProfile() {
         viewModelScope.launch {
             _profileState.value = UserProfileState.Loading
             try {
-                val user = userRepository.getCurrentUser(userId)
+                val currentUserId = supabaseClient.auth.currentSessionOrNull()?.user?.id
+                if (currentUserId == null) {
+                    _profileState.value = UserProfileState.Error("Bạn chưa đăng nhập!")
+                    return@launch
+                }
+
+                val user = userRepository.getCurrentUser(currentUserId)
                 if (user != null) {
                     _profileState.value = UserProfileState.Success(user)
                 } else {
