@@ -50,8 +50,12 @@ fun AppNavigation(splashViewModel: SplashViewModel = hiltViewModel()) {
                 SignUpScreen(navController = navController)
             }
 
-            composable(route = Screen.Dashboard.route) {
-                DashboardScreen(navController = navController)
+            composable(
+                route = Screen.Dashboard.route,
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                DashboardScreen(navController = navController, userId = userId)
             }
 
             composable(
