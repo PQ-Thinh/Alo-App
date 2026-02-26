@@ -3,6 +3,8 @@ package com.example.alo.presentation.view.auth
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,7 +100,6 @@ fun LoginScreen(
                 coroutineScope.launch {
                     try {
                         val idToken = googleAuthUiClient.signIn()
-
                         if (idToken != null) {
                             viewModel.loginWithGoogleToken(idToken)
                         } else {
@@ -113,6 +114,7 @@ fun LoginScreen(
             },
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
         ) {
+            Icon(Icons.Default.AccountBox, contentDescription = "Login with Google")
             Text("Đăng nhập bằng Google")
         }
         Spacer(modifier = Modifier.height(16.dp))

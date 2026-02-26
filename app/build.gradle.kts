@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.secrets.gradle.plugin)
 }
 
 android {
@@ -13,13 +14,6 @@ android {
     compileSdk {
         version = release(36)
     }
-    val key: String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
-        .getProperty("supabaseKey") ?: ""
-    val url: String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
-        .getProperty("supabaseUrl") ?: ""
-    val id : String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
-        .getProperty("webClientId") ?: ""
-
     defaultConfig {
         applicationId = "com.example.alo"
         minSdk = 31
@@ -31,9 +25,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        buildConfigField("String", "SUPABASE_URL", "\"$url\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"$key\"")
-        buildConfigField("String", "WEB_CLIENT_ID", "\"$id\"")
     }
 
     buildTypes {
@@ -54,7 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig=true
+        buildConfig= true
     }
 }
 
@@ -102,4 +93,8 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+}
+secrets {
+    propertiesFileName = "local.properties"
+    ignoreList.add("sdk.*")
 }
