@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.remote.dto.UserDto
+import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
 import com.example.alo.domain.repositories.UserRepository
 import com.example.alo.presentation.helper.ProfileSetupEvent
@@ -91,7 +92,7 @@ class UserViewModel @Inject constructor(
                     bio = currentState.bio.ifBlank{ null},
                     avatarId = avatarId,
                     avatarUrl = uploadedUrl.ifEmpty { null },
-                    publicKey = "TEMP_PUBLIC_KEY",
+                    publicKey = CryptoHelper.getOrGeneratePublicKey(),
                     createdAt = Instant.now().toString(),
                     updatedAt = ""
                 )

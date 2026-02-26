@@ -101,7 +101,7 @@ fun LoginScreen(
                     try {
                         val idToken = googleAuthUiClient.signIn()
                         if (idToken != null) {
-                            viewModel.loginWithGoogleToken(idToken)
+                            viewModel.loginWithGoogle(idToken)
                         } else {
                             Toast.makeText(context, "Không trích xuất được Token", Toast.LENGTH_SHORT).show()
                         }
