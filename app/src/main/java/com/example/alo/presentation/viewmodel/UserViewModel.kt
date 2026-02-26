@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 import javax.inject.Inject
 
 
@@ -67,8 +68,8 @@ class UserViewModel @Inject constructor(
                     avatarId = avatarId,
                     avatarUrl = uploadedUrl.ifEmpty { null },
                     publicKey = "TEMP_PUBLIC_KEY",
-                    createdAt = "TEMP_CREATED_AT",
-                    updatedAt = "TEMP_UPDATED_AT"
+                    createdAt = Instant.now().toString(),
+                    updatedAt = ""
                 )
                 val result = userRepository.saveUserProfile(user)
                 if (result) {

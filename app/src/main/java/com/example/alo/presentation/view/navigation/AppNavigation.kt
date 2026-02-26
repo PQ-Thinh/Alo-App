@@ -13,7 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.alo.presentation.view.auth.LoginScreen
-import com.example.alo.presentation.view.auth.ProfileSetupScreen
+import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.navigation.Screen

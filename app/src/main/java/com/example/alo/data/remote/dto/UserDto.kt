@@ -12,47 +12,46 @@ data class UserDto(
     @SerialName("email") val email: String,
     @SerialName("bio") val bio: String? = null,
     @SerialName("phone") val phone: String? = null,
-    @SerialName("birthday") val birthday: String?,
-    @SerialName("gender") val gender: Boolean?,
+    @SerialName("birthday") val birthday: String? = null,
+    @SerialName("gender") val gender: Boolean? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
-    @SerialName("avatar_id") val avatarId: String? = null,
+    @SerialName("avatarid") val avatarId: String?,
     @SerialName("public_key") val publicKey: String,
-    @SerialName("created_at") val createdAt: String,
-    @SerialName("updated_at") val updatedAt: String
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
 ) {
-    // Hàm chuyển đổi (Mapper) từ DTO của tầng Data sang Model của tầng Domain
-    fun toDomain(): User {
-        return User(
-            id = id,
-            username = username,
-            displayName = displayName,
-            email = email,
-            bio = bio,
-            phone = phone,
-            avatarId = avatarId,
-            birthday = birthday,
-            gender = gender,
-            avatarUrl = avatarUrl,
-            publicKey = publicKey,
-            createdAt = createdAt,
-            updatedAt = updatedAt
-        )
-    }
-    fun User.toDto(): UserDto {
-        return UserDto(
-            id = this.id,
-            username = this.username,
-            displayName = this.displayName,
-            email = this.email,
-            bio = this.bio,
-            phone = this.phone,
-            avatarId = this.avatarId,
-            avatarUrl = this.avatarUrl,
-            birthday = this.birthday,
-            gender = this.gender,
-            publicKey = this.publicKey,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
+    // Chuyển từ DTO (Data) sang Model (Domain)
+    fun toDomain(): User = User(
+        id = id,
+        username = username,
+        displayName = displayName,
+        email = email,
+        bio = bio,
+        phone = phone,
+        avatarId = avatarId,
+        birthday = birthday,
+        gender = gender,
+        avatarUrl = avatarUrl,
+        publicKey = publicKey,
+        createdAt = createdAt ?: "",
+        updatedAt = updatedAt ?: ""
+    )
+
+    // Chuyển từ Model (Domain) sang DTO (Data)
+
 }
+fun User.toDto(): UserDto = UserDto(
+    id = this.id,
+    username = this.username,
+    displayName = this.displayName,
+    email = this.email,
+    bio = this.bio,
+    phone = this.phone,
+    avatarId = this.avatarId,
+    avatarUrl = this.avatarUrl,
+    birthday = this.birthday,
+    gender = this.gender,
+    publicKey = this.publicKey,
+    createdAt = this.createdAt.ifEmpty { null },
+    updatedAt = this.updatedAt.ifEmpty { null }
+)

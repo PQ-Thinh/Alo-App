@@ -1,4 +1,4 @@
-package com.example.alo.presentation.view.auth
+package com.example.alo.presentation.view.profile
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
@@ -124,10 +124,9 @@ fun StepTwoDetails(state: ProfileSetupState, viewModel: UserViewModel) {
             label = { Text("Tiểu sử (Bio)") },
             modifier = Modifier.fillMaxWidth()
         )
-        // Bạn có thể tự thêm UI chọn Ngày sinh và Giới tính (ví dụ dùng RadioButton) ở đây
+
     }
 }
-
 @Composable
 fun StepThreeAvatar(state: ProfileSetupState, viewModel: UserViewModel) {
 
