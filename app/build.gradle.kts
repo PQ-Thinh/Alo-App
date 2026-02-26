@@ -70,6 +70,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.10")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
     //room database
     implementation("androidx.room:room-runtime:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
