@@ -15,6 +15,11 @@ sealed class Screen(val route: String) {
     object OtpVerification : Screen("otp_verification/{email}") {
         fun createRoute(email: String) = "otp_verification/$email"
     }
+    object ForgotPassword : Screen("forgot_password")
+    object ResetPasswordOtp : Screen("reset_password_otp/{email}") {
+        fun createRoute(email: String) = "reset_password_otp/$email"
+    }
+    object CreateNewPassword : Screen("create_new_password")
 }
 sealed class Graph(val route: String) {
     object Root : Graph("root_graph")

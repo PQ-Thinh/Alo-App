@@ -1,0 +1,204 @@
+package com.example.alo.presentation.view.auth
+
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.example.alo.presentation.helper.UserState
+import com.example.alo.presentation.view.navigation.Screen
+import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import kotlinx.coroutines.delay
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResetPasswordOtpScreen(
+    navController: NavController,
+    email: String,
+    viewModel: SupabaseAuthViewModel = hiltViewModel()
+) {
+    var otpValue by remember { mutableStateOf("") }
+
+    var timeLeft by remember { mutableStateOf(60) }
+    var isTimerRunning by remember { mutableStateOf(true) }
+
+    val userState by viewModel.userState.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(userState) {
+        when (userState) {
+            is UserState.PasswordResetOtpVerified -> {
+                navController.navigate(Screen.CreateNewPassword.route) {
+                    popUpTo(Screen.ForgotPassword.route) { inclusive = true }
+                }
+            }
+            is UserState.Error -> Toast.makeText(context, (userState as UserState.Error).message, Toast.LENGTH_LONG).show()
+            else -> {}
+        }
+    }
+    // LOGIC ĐỒNG HỒ ĐẾM NGƯỢC
+    LaunchedEffect(isTimerRunning, timeLeft) {
+        if (isTimerRunning && timeLeft > 0) {
+            delay(1000L) // Chờ 1 giây
+            timeLeft--
+        } else if (timeLeft == 0) {
+            isTimerRunning = false // Hết giờ -> Tắt timer, bật nút gửi lại
+        }
+    }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Xác thực Email",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Chúng tôi đã gửi mã gồm 6 chữ số đến\n$email",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // 6 Ô NHẬP MÃ (Hỗ trợ Paste)
+            BasicTextField(
+                value = otpValue,
+                onValueChange = {
+                    val text = it.filter { char -> char.isDigit() }
+                    if (text.length <= 6) {
+                        otpValue = text
+                    }
+                    if (text.length == 6) {
+                        viewModel.verifyOtp(email, text) // Đủ 6 số -> Tự Call API
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                decorationBox = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        repeat(6) { index ->
+                            val char = when {
+                                index >= otpValue.length -> ""
+                                else -> otpValue[index].toString()
+                            }
+                            val isFocused = otpValue.length == index
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .border(
+                                        width = if (isFocused) 2.dp else 1.dp,
+                                        color = if (isFocused) Color(0xFF6C63FF) else MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = char,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // GIAO DIỆN ĐẾM NGƯỢC & GỬI LẠI MÃ
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Chưa nhận được mã? ",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                TextButton(
+                    onClick = {
+                        viewModel.resendOtp(email) // Gọi API gửi lại
+                        timeLeft = 60              // Reset đồng hồ
+                        isTimerRunning = true      // Bắt đầu đếm lại
+                        Toast.makeText(context, "Đã gửi lại mã xác nhận!", Toast.LENGTH_SHORT).show()
+                    },
+                    enabled = !isTimerRunning // Chỉ cho bấm khi hết giờ
+                ) {
+                    val formatTime = timeLeft.toString().padStart(2, '0')
+                    Text(
+                        text = if (isTimerRunning) "Gửi lại sau 00:$formatTime" else "Gửi lại ngay",
+                        color = if (isTimerRunning) Color.Gray else Color(0xFF6C63FF),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // NÚT XÁC NHẬN CHÍNH
+            Button(
+                onClick = { viewModel.verifyOtp(email, otpValue) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                enabled = otpValue.length == 6 && userState !is UserState.Loading
+            ) {
+                if (userState is UserState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Xác nhận", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}

@@ -132,6 +132,47 @@ class SupabaseAuthViewModel @Inject constructor(
             }
         }
     }
+    fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            try {
+                supabaseClient.auth.resetPasswordForEmail(email)
+                _userState.value = UserState.PasswordResetOtpSent(email)
+            } catch (e: Exception) {
+                _userState.value = UserState.Error("Không tìm thấy email hoặc có lỗi xảy ra.")
+            }
+        }
+    }
+
+    fun verifyPasswordResetOtp(email: String, otp: String) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            try {
+                supabaseClient.auth.verifyEmailOtp(
+                    type = OtpType.Email.RECOVERY,
+                    email = email,
+                    token = otp
+                )
+                _userState.value = UserState.PasswordResetOtpVerified
+            } catch (e: Exception) {
+                _userState.value = UserState.Error("Mã xác nhận không đúng hoặc đã hết hạn.")
+            }
+        }
+    }
+
+    fun updateNewPassword(newPassword: String) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            try {
+                supabaseClient.auth.updateUser {
+                    password = newPassword
+                }
+                _userState.value = UserState.PasswordChangedSuccess
+            } catch (e: Exception) {
+                _userState.value = UserState.Error("Lỗi cập nhật mật khẩu: ${e.message}")
+            }
+        }
+    }
     fun logout() {
         viewModelScope.launch {
             _userState.value = UserState.Loading

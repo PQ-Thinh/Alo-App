@@ -6,9 +6,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.alo.presentation.view.auth.CreateNewPasswordScreen
+import com.example.alo.presentation.view.auth.ForgotPasswordScreen
 import com.example.alo.presentation.view.home.IntroScreen
 import com.example.alo.presentation.view.auth.LoginScreen
 import com.example.alo.presentation.view.auth.OtpVerificationScreen
+import com.example.alo.presentation.view.auth.ResetPasswordOtpScreen
 import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.home.DashboardScreen
@@ -58,6 +61,21 @@ fun AppNavigation(startDestination: String) {
                     }
                 }
             )
+        }
+        composable(route = Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.ResetPasswordOtp.route,
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            ResetPasswordOtpScreen(navController = navController, email = email)
+        }
+
+        composable(route = Screen.CreateNewPassword.route) {
+            CreateNewPasswordScreen(navController = navController)
         }
 
         composable(route = Screen.Profile.route) {
