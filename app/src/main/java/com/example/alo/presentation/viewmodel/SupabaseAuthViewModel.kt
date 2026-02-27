@@ -120,6 +120,18 @@ class SupabaseAuthViewModel @Inject constructor(
             }
         }
     }
+    fun resendOtp(email: String) {
+        viewModelScope.launch {
+            try {
+                supabaseClient.auth.resendEmail(
+                    email = email,
+                    type = OtpType.Email.SIGNUP
+                )
+            } catch (e: Exception) {
+                _userState.value = UserState.Error("Không thể gửi lại mã. Vui lòng thử lại sau!")
+            }
+        }
+    }
     fun logout() {
         viewModelScope.launch {
             _userState.value = UserState.Loading

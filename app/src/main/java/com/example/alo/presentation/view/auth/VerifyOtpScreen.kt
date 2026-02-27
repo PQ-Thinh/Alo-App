@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,14 +35,28 @@ fun OtpVerificationScreen(
     viewModel: SupabaseAuthViewModel = hiltViewModel()
 ) {
     var otpValue by remember { mutableStateOf("") }
+
+    var timeLeft by remember { mutableStateOf(60) }
+    var isTimerRunning by remember { mutableStateOf(true) }
+
     val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
+
+    // LOGIC ĐỒNG HỒ ĐẾM NGƯỢC
+    LaunchedEffect(isTimerRunning, timeLeft) {
+        if (isTimerRunning && timeLeft > 0) {
+            delay(1000L) // Chờ 1 giây
+            timeLeft--
+        } else if (timeLeft == 0) {
+            isTimerRunning = false // Hết giờ -> Tắt timer, bật nút gửi lại
+        }
+    }
 
     LaunchedEffect(userState) {
         when (userState) {
             is UserState.VerificationSuccess -> {
                 Toast.makeText(context, "Xác thực thành công!", Toast.LENGTH_SHORT).show()
-                navController.navigate(Screen.ProfileSetup.route) {
+                navController.navigate(Screen.ProfileSetup.createRoute("new_user", email)) {
                     popUpTo(Screen.SignUp.route) { inclusive = true }
                     popUpTo("otp_verification") { inclusive = true }
                 }
@@ -92,17 +107,16 @@ fun OtpVerificationScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // TRICK: Giao diện 6 ô nhập mã hỗ trợ Paste
+            // 6 Ô NHẬP MÃ (Hỗ trợ Paste)
             BasicTextField(
                 value = otpValue,
                 onValueChange = {
-                    val text = it.filter { char -> char.isDigit() } // Chỉ cho nhập số
+                    val text = it.filter { char -> char.isDigit() }
                     if (text.length <= 6) {
                         otpValue = text
                     }
-                    // Tự động gọi API nếu nhập đủ 6 số
                     if (text.length == 6) {
-                        viewModel.verifyOtp(email, text)
+                        viewModel.verifyOtp(email, text) // Đủ 6 số -> Tự Call API
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -116,13 +130,12 @@ fun OtpVerificationScreen(
                                 index >= otpValue.length -> ""
                                 else -> otpValue[index].toString()
                             }
-
                             val isFocused = otpValue.length == index
 
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .aspectRatio(1f) // Tạo hình vuông
+                                    .aspectRatio(1f)
                                     .border(
                                         width = if (isFocused) 2.dp else 1.dp,
                                         color = if (isFocused) Color(0xFF6C63FF) else MaterialTheme.colorScheme.surfaceVariant,
@@ -143,8 +156,40 @@ fun OtpVerificationScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // GIAO DIỆN ĐẾM NGƯỢC & GỬI LẠI MÃ
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Chưa nhận được mã? ",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                TextButton(
+                    onClick = {
+                        viewModel.resendOtp(email) // Gọi API gửi lại
+                        timeLeft = 60              // Reset đồng hồ
+                        isTimerRunning = true      // Bắt đầu đếm lại
+                        Toast.makeText(context, "Đã gửi lại mã xác nhận!", Toast.LENGTH_SHORT).show()
+                    },
+                    enabled = !isTimerRunning // Chỉ cho bấm khi hết giờ
+                ) {
+                    val formatTime = timeLeft.toString().padStart(2, '0')
+                    Text(
+                        text = if (isTimerRunning) "Gửi lại sau 00:$formatTime" else "Gửi lại ngay",
+                        color = if (isTimerRunning) Color.Gray else Color(0xFF6C63FF),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // NÚT XÁC NHẬN CHÍNH
             Button(
                 onClick = { viewModel.verifyOtp(email, otpValue) },
                 modifier = Modifier
