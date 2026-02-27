@@ -68,7 +68,7 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues),
-            contentAlignment = Alignment.TopCenter // Chuyển từ Center sang TopCenter
+            contentAlignment = Alignment.TopCenter
         ) {
             when (val state = profileState) {
                 is UserProfileState.Idle, is UserProfileState.Loading -> {

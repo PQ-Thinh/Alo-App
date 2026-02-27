@@ -12,6 +12,9 @@ sealed class Screen(val route: String) {
     object ProfileSetup : Screen("profile_setup/{userId}/{email}") {
         fun createRoute(userId: String, email: String) = "profile_setup/$userId/$email"
     }
+    object OtpVerification : Screen("otp_verification/{email}") {
+        fun createRoute(email: String) = "otp_verification/$email"
+    }
 }
 sealed class Graph(val route: String) {
     object Root : Graph("root_graph")

@@ -199,6 +199,7 @@ fun LoginScreen(
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground)
         ) {
+            Icon(painter = painterResource(id = R.drawable.ic_google), contentDescription = "Google Icon", modifier = Modifier.size(24.dp))
             Text("Đăng nhập với Google", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
 

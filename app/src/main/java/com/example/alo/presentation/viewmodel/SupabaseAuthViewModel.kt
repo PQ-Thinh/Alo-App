@@ -9,6 +9,7 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +33,7 @@ class SupabaseAuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.signUp(userEmail, userPassword)
-                _userState.value = UserState.Success("Đăng ký thành công")
+                _userState.value = UserState.NeedsOtpVerification(userEmail)
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
@@ -101,6 +102,21 @@ class SupabaseAuthViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Đăng nhập Google thất bại")
+            }
+        }
+    }
+    fun verifyOtp(email: String, otp: String) {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            try {
+                supabaseClient.auth.verifyEmailOtp(
+                    type = OtpType.Email.SIGNUP,
+                    email = email,
+                    token = otp
+                )
+                _userState.value = UserState.VerificationSuccess
+            } catch (e: Exception) {
+                _userState.value = UserState.Error("Mã xác nhận không hợp lệ hoặc đã hết hạn")
             }
         }
     }

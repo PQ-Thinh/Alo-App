@@ -50,15 +50,11 @@ fun SignUpScreen(
     val context = LocalContext.current
     var passwordVisible by remember { mutableStateOf(false) }
 
-
     LaunchedEffect(userState) {
         when (userState) {
-            is UserState.Success -> {
-                Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                navController.navigate(Screen.ProfileSetup.route) {
-                    popUpTo(Screen.SignUp.route) { inclusive = true }
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                }
+            is UserState.NeedsOtpVerification -> {
+                Toast.makeText(context, "Vui lòng kiểm tra email!", Toast.LENGTH_SHORT).show()
+                navController.navigate(Screen.OtpVerification.createRoute(email))
             }
             is UserState.Error -> {
                 Toast.makeText(context, "Lỗi: ${(userState as UserState.Error).message}", Toast.LENGTH_LONG).show()
@@ -66,6 +62,7 @@ fun SignUpScreen(
             else -> {}
         }
     }
+
 
     val handleSignUp = {
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
