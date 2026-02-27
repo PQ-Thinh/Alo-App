@@ -18,6 +18,8 @@ recyclerview = "1.4.0"
 recyclerviewSelection = "1.2.0"
 secrets = "2.0.1"
 ksp = "2.2.10-2.0.2"
+appcompat = "1.6.1"
+playServicesAds = "21.5.0"
 
 [libraries]
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
@@ -44,6 +46,8 @@ supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt", ve
 supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 supabase-storage = { group = "io.github.jan-tennert.supabase", name = "storage-kt" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
