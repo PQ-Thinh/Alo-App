@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.profile
 
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +57,7 @@ fun ProfileSetupScreen(
     val state by viewModel.state.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
@@ -67,19 +69,17 @@ fun ProfileSetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding() // Tránh tai thỏ/thanh trạng thái
-            .navigationBarsPadding() // Tránh thanh điều hướng dưới
-            .imePadding() // Đẩy UI lên khi hiện bàn phím
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // Thanh tiến trình
         StepIndicator(pageCount = 3, currentPage = pagerState.currentPage)
 
-        // Pager chứa 3 màn hình trượt
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f),
-            userScrollEnabled = false // Bắt buộc dùng nút để chuyển trang
+            userScrollEnabled = false
         ) { page ->
             when (page) {
                 0 -> StepOneBasicInfo(state, viewModel)
@@ -88,7 +88,6 @@ fun ProfileSetupScreen(
             }
         }
 
-        // Thanh nút điều hướng dưới cùng
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,7 +109,34 @@ fun ProfileSetupScreen(
 
             if (pagerState.currentPage < 2) {
                 Button(
-                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                    onClick = {
+                        // LOGIC VALIDATION TRƯỚC KHI CHUYỂN TRANG
+                        var isValid = true
+
+                        if (pagerState.currentPage == 0) {
+                            if (state.username.isBlank()) {
+                                Toast.makeText(context, "Username không được để trống!", Toast.LENGTH_SHORT).show()
+                                isValid = false
+                            } else if (state.displayName.isBlank()) {
+                                Toast.makeText(context, "Tên hiển thị không được để trống!", Toast.LENGTH_SHORT).show()
+                                isValid = false
+                            }
+                        } else if (pagerState.currentPage == 1) {
+                            // Validation: Số điện thoại phải đúng 10 số
+                            if (state.phone.length != 10 || !state.phone.all { it.isDigit() }) {
+                                Toast.makeText(context, "Số điện thoại phải gồm đúng 10 chữ số!", Toast.LENGTH_SHORT).show()
+                                isValid = false
+                            } else if (state.birthday.isBlank()) {
+                                Toast.makeText(context, "Vui lòng chọn ngày sinh!", Toast.LENGTH_SHORT).show()
+                                isValid = false
+                            }
+                        }
+
+                        // Nếu hợp lệ mới cho phép cuộn sang trang tiếp theo
+                        if (isValid) {
+                            coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        }
+                    },
                     modifier = Modifier.height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF))
@@ -170,7 +196,11 @@ fun StepOneBasicInfo(state: ProfileSetupState, viewModel: UserViewModel) {
 
         OutlinedTextField(
             value = state.username,
-            onValueChange = { viewModel.onEvent(ProfileSetupEvent.EnteredUsername(it)) },
+            onValueChange = {
+                // Không cho phép nhập dấu cách (khoảng trắng) vào username
+                val filtered = it.filter { char -> !char.isWhitespace() }
+                viewModel.onEvent(ProfileSetupEvent.EnteredUsername(filtered))
+            },
             label = { Text("Username (Định danh)") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             singleLine = true,
@@ -227,7 +257,12 @@ fun StepTwoDetails(state: ProfileSetupState, viewModel: UserViewModel) {
 
         OutlinedTextField(
             value = state.phone,
-            onValueChange = { viewModel.onEvent(ProfileSetupEvent.EnteredPhone(it)) },
+            onValueChange = {
+                // CHỈ CHO PHÉP NHẬP SỐ VÀ TỐI ĐA 10 KÝ TỰ
+                if (it.length == 10 && it.all { char -> char.isDigit() }) {
+                    viewModel.onEvent(ProfileSetupEvent.EnteredPhone(it))
+                }
+            },
             label = { Text("Số điện thoại") },
             leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
             singleLine = true,
@@ -239,7 +274,6 @@ fun StepTwoDetails(state: ProfileSetupState, viewModel: UserViewModel) {
 
         Spacer(Modifier.height(16.dp))
 
-        // Chọn ngày sinh
         OutlinedTextField(
             value = if (state.birthday.isNotEmpty()) "${state.birthday} ($ageText)" else "",
             onValueChange = {},
