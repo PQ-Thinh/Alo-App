@@ -9,7 +9,7 @@ import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.model.Conversation
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.model.Participant
-import com.example.alo.domain.repositories.ChatRepository
+import com.example.alo.domain.repository.ChatRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns

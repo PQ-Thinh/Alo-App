@@ -4,7 +4,7 @@ import android.util.Log
 import com.example.alo.data.remote.dto.UserDto
 import com.example.alo.data.remote.dto.toDto
 import com.example.alo.domain.model.User
-import com.example.alo.domain.repositories.UserRepository
+import com.example.alo.domain.repository.UserRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage

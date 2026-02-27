@@ -1,4 +1,4 @@
-package com.example.alo.domain.repositories
+package com.example.alo.domain.repository
 
 interface AuthRepository {
     suspend fun signUp(email: String, password: String)

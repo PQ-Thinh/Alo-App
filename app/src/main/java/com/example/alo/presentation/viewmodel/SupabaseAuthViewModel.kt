@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
 import com.example.alo.presentation.helper.UserState
-import com.example.alo.domain.repositories.AuthRepository
-import com.example.alo.domain.repositories.UserRepository
+import com.example.alo.domain.repository.AuthRepository
+import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth

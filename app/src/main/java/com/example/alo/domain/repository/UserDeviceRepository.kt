@@ -1,4 +1,4 @@
-package com.example.alo.domain.repositories
+package com.example.alo.domain.repository
 
 interface UserDeviceRepository {
     suspend fun registerDevice(userId: String, fcmToken: String, deviceName: String?)

@@ -1,7 +1,7 @@
 package com.example.alo.data.repository
 
 import com.example.alo.data.utils.DataStoreHelper
-import com.example.alo.domain.repositories.AuthRepository
+import com.example.alo.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google

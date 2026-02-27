@@ -5,7 +5,7 @@ import com.example.alo.data.remote.dto.FriendDto
 import com.example.alo.data.remote.dto.FriendRequestDto
 import com.example.alo.domain.model.Friend
 import com.example.alo.domain.model.FriendRequest
-import com.example.alo.domain.repositories.FriendRepository
+import com.example.alo.domain.repository.FriendRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import javax.inject.Inject

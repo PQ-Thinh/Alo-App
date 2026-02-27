@@ -1,4 +1,4 @@
-package com.example.alo.domain.repositories
+package com.example.alo.domain.repository
 
 import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.model.Conversation

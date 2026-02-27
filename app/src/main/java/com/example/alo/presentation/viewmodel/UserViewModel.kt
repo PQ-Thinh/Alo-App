@@ -1,12 +1,10 @@
 package com.example.alo.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.alo.data.remote.dto.UserDto
 import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
-import com.example.alo.domain.repositories.UserRepository
+import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.ProfileSetupState
 import com.example.alo.presentation.helper.UserProfileState
