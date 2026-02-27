@@ -110,7 +110,7 @@ fun ResetPasswordOtpScreen(
                         otpValue = text
                     }
                     if (text.length == 6) {
-                        viewModel.verifyOtp(email, text) // Đủ 6 số -> Tự Call API
+                        viewModel.verifyPasswordResetOtp(email,otpValue) // Đủ 6 số -> Tự Call API
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -165,7 +165,7 @@ fun ResetPasswordOtpScreen(
                 )
                 TextButton(
                     onClick = {
-                        viewModel.resendOtp(email) // Gọi API gửi lại
+                        viewModel.sendPasswordResetEmail(email) // Gọi API gửi lại
                         timeLeft = 60              // Reset đồng hồ
                         isTimerRunning = true      // Bắt đầu đếm lại
                         Toast.makeText(context, "Đã gửi lại mã xác nhận!", Toast.LENGTH_SHORT).show()

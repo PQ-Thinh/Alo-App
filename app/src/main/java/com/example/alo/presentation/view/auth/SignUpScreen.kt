@@ -46,9 +46,14 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
     val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
-    var passwordVisible by remember { mutableStateOf(false) }
+
+    val passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$".toRegex()
 
     LaunchedEffect(userState) {
         when (userState) {
@@ -63,13 +68,14 @@ fun SignUpScreen(
         }
     }
 
-
     val handleSignUp = {
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             Toast.makeText(context, "Email không hợp lệ!", Toast.LENGTH_SHORT).show()
-        } else if (password.length < 6) {
-            Toast.makeText(context, "Mật khẩu phải từ 6 ký tự!", Toast.LENGTH_SHORT).show()
-        } else if (password != confirmPassword) {
+        }
+        else if (!passwordPattern.matches(password)) {
+            Toast.makeText(context, "Mật khẩu chưa đủ độ mạnh!", Toast.LENGTH_SHORT).show()
+        }
+        else if (password != confirmPassword) {
             Toast.makeText(context, "Mật khẩu xác nhận không khớp!", Toast.LENGTH_SHORT).show()
         } else {
             viewModel.signUp(email, password)
@@ -81,7 +87,7 @@ fun SignUpScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()), // Thêm cuộn để tránh bàn phím che khuất UI
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(40.dp))
@@ -90,11 +96,7 @@ fun SignUpScreen(
             modifier = Modifier
                 .size(80.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(Color(0xFF6C63FF), Color(0xFF9D95FF))
-                    )
-                ),
+                .background(Brush.linearGradient(colors = listOf(Color(0xFF6C63FF), Color(0xFF9D95FF)))),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -106,21 +108,8 @@ fun SignUpScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "Tạo tài khoản mới",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-
-        Text(
-            text = "Đăng ký để bắt đầu trải nghiệm",
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        Text("Tạo tài khoản mới", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground))
+        Text("Đăng ký để bắt đầu trải nghiệm", style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.padding(top = 8.dp))
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -130,16 +119,10 @@ fun SignUpScreen(
             placeholder = { Text("Nhập email của bạn") },
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email Icon") },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedBorderColor = Color(0xFF6C63FF)
-            )
+            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -151,78 +134,58 @@ fun SignUpScreen(
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
             trailingIcon = {
                 val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                val description = if (passwordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
-
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
+                    Icon(imageVector = image, contentDescription = "Toggle password")
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Next
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedBorderColor = Color(0xFF6C63FF)
-            )
+            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Ít nhất 8 ký tự, gồm chữ hoa, thường, số và ký tự đặc biệt (@,$,!,%,*,?,&).",
+            color = Color.Gray,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, start = 8.dp, bottom = 12.dp)
+        )
 
-        // INPUT: CONFIRM PASSWORD
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             placeholder = { Text("Xác nhận mật khẩu") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirm Password Icon") },
             trailingIcon = {
-                val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                val description = if (passwordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
-
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
+                val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    Icon(imageVector = image, contentDescription = "Toggle confirm password")
                 }
             },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { handleSignUp() }
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { handleSignUp() }),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedBorderColor = Color(0xFF6C63FF)
-            )
+            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = { handleSignUp() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF6C63FF)
-            ),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
             enabled = userState !is UserState.Loading
         ) {
             if (userState is UserState.Loading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
                 Text("Đăng Ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -230,20 +193,10 @@ fun SignUpScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(
-            modifier = Modifier.padding(bottom = 32.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Đã có tài khoản?",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(modifier = Modifier.padding(bottom = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Đã có tài khoản?", color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = { navController.popBackStack() }) {
-                Text(
-                    text = "Đăng nhập",
-                    color = Color(0xFF6C63FF),
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Đăng nhập", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold)
             }
         }
     }

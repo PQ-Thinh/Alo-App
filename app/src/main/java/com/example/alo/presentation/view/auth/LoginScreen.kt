@@ -149,7 +149,9 @@ fun LoginScreen(
         )
 
         TextButton(
-            onClick = { },
+            onClick = {
+                navController.navigate(Screen.ForgotPassword.route)
+            },
             modifier = Modifier.align(Alignment.End)
         ) {
             Text("Quên mật khẩu?", color = Color(0xFF6C63FF), fontWeight = FontWeight.SemiBold)
