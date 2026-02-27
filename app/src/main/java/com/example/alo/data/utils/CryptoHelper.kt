@@ -32,7 +32,8 @@ object CryptoHelper {
             KEY_ALIAS,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
         )
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)//Optimal Asymmetric Encryption Padding) kết hợp với SHA-256
+            .setDigests(KeyProperties.DIGEST_SHA256)
             .setKeySize(2048)
             .build()
 

@@ -94,6 +94,10 @@ class UserViewModel @Inject constructor(
                     createdAt = Instant.now().toString(),
                     updatedAt = ""
                 )
+                if (currentState.username.isBlank() || currentState.displayName.isBlank()) {
+                    _state.update { it.copy(error = "Vui lòng nhập đầy đủ tên và username") }
+                    return@launch
+                }
                 val result = userRepository.saveUserProfile(user)
                 if (result) {
                     _state.update { it.copy(isLoading = false, isSuccess = true) }
