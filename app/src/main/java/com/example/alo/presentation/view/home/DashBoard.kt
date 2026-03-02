@@ -150,7 +150,11 @@ fun DashboardScreen(
                         onNavigateToChatRoom(conversationId)
                        Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
                     })
-                1 -> Contact()
+                1 -> Contact(
+                    onNavigateToChatRoom = { conversationId ->
+                        onNavigateToChatRoom(conversationId)
+                    }
+                )
                 2 -> ProfileScreen(
                     onNavigateToProfile = { userId ->
                         onNavigateToProfile(userId)

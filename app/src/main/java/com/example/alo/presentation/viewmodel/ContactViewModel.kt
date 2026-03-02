@@ -3,6 +3,7 @@ package com.example.alo.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
+import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.presentation.helper.ContactState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ContactViewModel @Inject constructor(
     private val friendRepository: FriendRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val conversationRepository: ConversationRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ContactState())
@@ -24,6 +26,7 @@ class ContactViewModel @Inject constructor(
 
     init {
         fetchPendingRequests()
+        fetchFriendsList()
     }
 
     fun fetchPendingRequests() {
@@ -90,7 +93,49 @@ class ContactViewModel @Inject constructor(
             }
         }
     }
+    // Hàm lấy danh sách bạn bè
+    fun fetchFriendsList() {
+        viewModelScope.launch {
+            try {
+                val currentUserId = authRepository.getCurrentAuthUser()?.id ?: return@launch
+                val friends = friendRepository.getFriendsList(currentUserId)
+                _state.update { it.copy(friends = friends) }
+            } catch (e: Exception) {
+                android.util.Log.e("ContactVM", "Lỗi tải bạn bè: ${e.message}")
+            }
+        }
+    }
+    fun onFriendClicked(targetUserId: String, onNavigateToChat: (String) -> Unit) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
 
+            try {
+                val currentUserId = authRepository.getCurrentAuthUser()?.id
+                if (currentUserId == null) {
+                    _state.update { it.copy(isLoading = false, error = "Lỗi: Bạn chưa đăng nhập!") }
+                    return@launch
+                }
+
+                val conversationId = conversationRepository.getOrCreateDirectConversation(
+                    currentUserId = currentUserId,
+                    targetUserId = targetUserId
+                )
+
+                _state.update { it.copy(isLoading = false) }
+
+                if (conversationId != null) {
+                    onNavigateToChat(conversationId)
+                } else {
+                    _state.update { it.copy(error = "Không thể khởi tạo cuộc trò chuyện.") }
+                }
+
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(isLoading = false, error = "Đã xảy ra lỗi: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
     fun clearMessages() {
         _state.update { it.copy(error = null, successMessage = null) }
     }

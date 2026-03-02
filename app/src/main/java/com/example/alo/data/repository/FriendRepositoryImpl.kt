@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.alo.data.remote.dto.FriendDto
 import com.example.alo.data.remote.dto.FriendRequestDto
 import com.example.alo.data.remote.dto.UserDto
-import com.example.alo.domain.model.Friend
 import com.example.alo.domain.model.FriendRequest
 import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.FriendRepository
@@ -43,22 +42,6 @@ class FriendRepositoryImpl @Inject constructor(
             false
         }
     }
-
-    override suspend fun getFriends(userId: String): List<Friend> {
-        return try {
-            val dtos = supabaseClient.postgrest["friends"]
-                .select { filter { or {
-                    eq("user_id_1", userId)
-                    eq("user_id_2", userId)
-                } } }
-                .decodeList<FriendDto>()
-            dtos.map { it.toDomain() }
-        } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
-            emptyList()
-        }
-    }
-
     override suspend fun checkFriendStatus(
         currentUserId: String,
         targetUserId: String
@@ -156,4 +139,38 @@ class FriendRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    override suspend fun getFriendsList(currentUserId: String): List<User> {
+        return try {
+            val friendsData = supabaseClient.postgrest["friends"]
+                .select {
+                    filter {
+                        or {
+                            eq("user_id_1", currentUserId)
+                            eq("user_id_2", currentUserId)
+                        }
+                    }
+                }.decodeList<FriendDto>()
+
+            if (friendsData.isEmpty()) return emptyList()
+
+            val friendIds = friendsData.map {
+                if (it.userId1 == currentUserId) it.userId2 else it.userId1
+            }
+
+            val friendsProfiles = supabaseClient.postgrest["users"]
+                .select {
+                    filter {
+                        isIn("id", friendIds)
+                    }
+                }.decodeList<UserDto>()
+
+            friendsProfiles.map { it.toDomain() }
+        } catch (e: Exception) {
+         Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
+            emptyList()
+        }
+    }
+
+
 }

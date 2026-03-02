@@ -2,6 +2,7 @@ package com.example.alo.presentation.view.chat
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,11 +31,11 @@ import com.example.alo.presentation.viewmodel.ContactViewModel
 @Composable
 fun Contact(
     viewModel: ContactViewModel = hiltViewModel(),
+    onNavigateToChatRoom: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
-    // Lắng nghe để hiển thị Toast thông báo
     LaunchedEffect(state.error, state.successMessage) {
         state.error?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -45,34 +47,34 @@ fun Contact(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Tiêu đề danh sách lời mời
-        Text(
-            text = "Lời mời kết bạn (${state.pendingRequests.size})",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            // --- PHẦN 1: LỜI MỜI KẾT BẠN ---
+            item {
+                Text(
+                    text = "Lời mời kết bạn (${state.pendingRequests.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
 
-        // Hiển thị trạng thái
-        if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF6C63FF))
-            }
-        } else if (state.pendingRequests.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text(text = "Bạn không có lời mời kết bạn nào mới.", color = Color.Gray)
-            }
-        } else {
-            // Hiển thị danh sách lời mời
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(state.pendingRequests, key = { it.id }) { user ->
+            if (state.pendingRequests.isEmpty()) {
+                item {
+                    Text(
+                        text = "Không có lời mời kết bạn mới.",
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                items(state.pendingRequests, key = { "req_${it.id}" }) { user ->
                     RequestItem(
                         user = user,
                         onAccept = { viewModel.acceptRequest(user.id) },
@@ -80,8 +82,121 @@ fun Contact(
                     )
                 }
             }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(
+                    thickness = 8.dp,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+
+            // --- PHẦN 2: DANH SÁCH BẠN BÈ ---
+            item {
+                Text(
+                    text = "Bạn bè (${state.friends.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            if (state.friends.isEmpty()) {
+                item {
+                    Text(
+                        text = "Bạn chưa có người bạn nào.",
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                items(state.friends, key = { "friend_${it.id}" }) { friend ->
+                    FriendItem(
+                        user = friend,
+                        onClick = {
+                            viewModel.onFriendClicked(friend.id) { conversationId ->
+                                onNavigateToChatRoom(conversationId)
+                            }
+                        }
+                    )
+                }
+            }
         }
 
+        if (state.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color(0xFF6C63FF)
+            )
+        }
+    }
+}
+
+@Composable
+fun FriendItem(
+    user: User,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (user.avatarUrl != null) {
+                AsyncImage(
+                    model = user.avatarUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text(
+                    text = user.displayName.firstOrNull()?.uppercase() ?: "?",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Name & Bio/Username
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = user.displayName,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = user.bio ?: "@${user.username}",
+                fontSize = 13.sp,
+                color = Color.Gray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Icon Nhắn tin
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Default.Message,
+                contentDescription = "Nhắn tin",
+                tint = Color(0xFF6C63FF)
+            )
+        }
     }
 }
 
@@ -97,7 +212,6 @@ fun RequestItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Avatar
         Box(
             modifier = Modifier
                 .size(56.dp)
@@ -124,7 +238,6 @@ fun RequestItem(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // 2. Thông tin (Tên + Username)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = user.displayName,
@@ -144,7 +257,6 @@ fun RequestItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-
         Row {
             IconButton(
                 onClick = onAccept,
@@ -156,7 +268,6 @@ fun RequestItem(
             }
 
             Spacer(modifier = Modifier.width(8.dp))
-
 
             IconButton(
                 onClick = onDecline,

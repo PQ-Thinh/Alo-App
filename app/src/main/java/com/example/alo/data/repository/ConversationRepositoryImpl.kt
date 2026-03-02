@@ -10,6 +10,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
 import javax.inject.Inject
 
 class ConversationRepositoryImpl @Inject constructor(
@@ -37,6 +38,23 @@ class ConversationRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Lỗi lấy danh sách phòng chat: ${e.message}")
             emptyList()
+        }
+    }
+    override suspend fun getOrCreateDirectConversation(currentUserId: String, targetUserId: String): String? {
+        return try {
+            val params = mapOf(
+                "p_user_id_1" to currentUserId,
+                "p_user_id_2" to targetUserId
+            )
+            val response = supabaseClient.postgrest.rpc("get_or_create_direct_conversation", params)
+
+            val conversationId = response.decodeAs<String>()
+
+            Log.d("ConversationRepo", "Đã lấy/tạo phòng chat ID: $conversationId")
+            conversationId
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi tạo phòng chat: ${e.message}")
+            null
         }
     }
 }
