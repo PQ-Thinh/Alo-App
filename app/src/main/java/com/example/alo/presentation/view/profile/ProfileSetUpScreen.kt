@@ -259,7 +259,7 @@ fun StepTwoDetails(state: ProfileSetupState, viewModel: UserViewModel) {
             value = state.phone,
             onValueChange = {
                 // CHỈ CHO PHÉP NHẬP SỐ VÀ TỐI ĐA 10 KÝ TỰ
-                if (it.length == 10 && it.all { char -> char.isDigit() }) {
+                if (it.length <= 10 && it.all { char -> char.isDigit() }) {
                     viewModel.onEvent(ProfileSetupEvent.EnteredPhone(it))
                 }
             },
