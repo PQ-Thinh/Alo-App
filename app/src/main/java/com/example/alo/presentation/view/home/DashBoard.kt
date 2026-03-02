@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.alo.presentation.view.chat.Message
 import com.example.alo.presentation.view.component.SearchTopBar
+import com.example.alo.presentation.view.chat.Contact
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.profile.ProfileScreen
 import kotlinx.coroutines.launch
@@ -149,7 +150,7 @@ fun DashboardScreen(
                         onNavigateToChatRoom(conversationId)
                        Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
                     })
-                1 -> ContactTabPlaceholder()
+                1 -> Contact()
                 2 -> ProfileScreen(
                     onNavigateToProfile = { userId ->
                         onNavigateToProfile(userId)
@@ -162,19 +163,5 @@ fun DashboardScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ContactTabPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Giao diện Danh bạ (Bạn bè, Lời mời)", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-@Composable
-fun ProfileTabPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Giao diện Hồ sơ cá nhân", style = MaterialTheme.typography.titleMedium)
     }
 }

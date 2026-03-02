@@ -125,7 +125,6 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun acceptFriendRequest(senderId: String, receiverId: String): Boolean {
         return try {
-
             supabaseClient.postgrest["friend_requests"].update(
                 { set("status", "accepted") }
             ) {

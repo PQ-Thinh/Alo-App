@@ -158,7 +158,6 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Avatar (Sử dụng thư viện Coil để load ảnh từ URL)
         Box(
             modifier = Modifier
                 .size(56.dp)
