@@ -3,8 +3,10 @@ package com.example.alo.data.repository
 import android.util.Log
 import com.example.alo.data.remote.dto.FriendDto
 import com.example.alo.data.remote.dto.FriendRequestDto
+import com.example.alo.data.remote.dto.UserDto
 import com.example.alo.domain.model.Friend
 import com.example.alo.domain.model.FriendRequest
+import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.FriendRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -91,6 +93,77 @@ class FriendRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
          Log.e("FriendRepo", "Lỗi check status: ${e.message}")
             "none"
+        }
+    }
+
+    override suspend fun getPendingFriendRequests(currentUserId: String): List<User> {
+        return try {
+            val requests = supabaseClient.postgrest["friend_requests"]
+                .select {
+                    filter {
+                        eq("receiver_id", currentUserId)
+                        eq("status", "pending")
+                    }
+                }.decodeList<FriendRequestDto>()
+
+            if (requests.isEmpty()) return emptyList()
+
+            val senderIds = requests.map { it.senderId }
+            val senders = supabaseClient.postgrest["users"]
+                .select {
+                    filter {
+                        isIn("id", senderIds)
+                    }
+                }.decodeList<UserDto>()
+
+            senders.map { it.toDomain() }
+        } catch (e: Exception) {
+           Log.e("FriendRepo", "Lỗi lấy danh sách lời mời: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun acceptFriendRequest(senderId: String, receiverId: String): Boolean {
+        return try {
+
+            supabaseClient.postgrest["friend_requests"].update(
+                { set("status", "accepted") }
+            ) {
+                filter {
+                    eq("sender_id", senderId)
+                    eq("receiver_id", receiverId)
+                }
+            }
+            val user1 = if (senderId < receiverId) senderId else receiverId
+            val user2 = if (senderId < receiverId) receiverId else senderId
+
+            supabaseClient.postgrest["friends"].insert(
+                mapOf(
+                    "user_id_1" to user1,
+                    "user_id_2" to user2
+                )
+            )
+            true
+        } catch (e: Exception) {
+            Log.e("FriendRepo", "Lỗi chấp nhận kết bạn: ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun declineFriendRequest(senderId: String, receiverId: String): Boolean {
+        return try {
+            supabaseClient.postgrest["friend_requests"].update(
+                { set("status", "declined") }
+            ) {
+                filter {
+                    eq("sender_id", senderId)
+                    eq("receiver_id", receiverId)
+                }
+            }
+            true
+        } catch (e: Exception) {
+           Log.e("FriendRepo", "Lỗi từ chối kết bạn: ${e.message}")
+            false
         }
     }
 }
