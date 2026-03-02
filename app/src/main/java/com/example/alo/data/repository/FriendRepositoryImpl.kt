@@ -10,6 +10,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.FriendRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import javax.inject.Inject
 
 class FriendRepositoryImpl @Inject constructor(
@@ -85,7 +86,7 @@ class FriendRepositoryImpl @Inject constructor(
                     }
                 }.data
 
-            return when {
+             when {
                 requestData.contains("\"sender_id\":\"$currentUserId\"") -> "request_sent"
                 requestData.contains("\"receiver_id\":\"$currentUserId\"") -> "request_received"
                 else -> "none"
@@ -125,26 +126,16 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun acceptFriendRequest(senderId: String, receiverId: String): Boolean {
         return try {
-            supabaseClient.postgrest["friend_requests"].update(
-                { set("status", "accepted") }
-            ) {
-                filter {
-                    eq("sender_id", senderId)
-                    eq("receiver_id", receiverId)
-                }
-            }
-            val user1 = if (senderId < receiverId) senderId else receiverId
-            val user2 = if (senderId < receiverId) receiverId else senderId
-
-            supabaseClient.postgrest["friends"].insert(
-                mapOf(
-                    "user_id_1" to user1,
-                    "user_id_2" to user2
-                )
+            val params = mapOf(
+                "p_sender_id" to senderId,
+                "p_receiver_id" to receiverId
             )
+
+            supabaseClient.postgrest.rpc("accept_friend_request", params)
+
             true
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi chấp nhận kết bạn: ${e.message}")
+            Log.e("FriendRepo", "Lỗi chấp nhận kết bạn qua RPC: ${e.message}")
             false
         }
     }
