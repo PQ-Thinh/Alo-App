@@ -1,5 +1,6 @@
 package com.example.alo.presentation.view.home
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.alo.presentation.view.chat.Message
+import com.example.alo.presentation.view.component.SearchTopBar
 import com.example.alo.presentation.view.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -23,12 +26,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun DashboardScreen(
     navController: NavController,
+    onNavigateToChatRoom: (String) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
 
     var expandedMenu by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -36,61 +41,59 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .statusBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Thanh tìm kiếm
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tìm kiếm...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Tìm kiếm") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                Box(modifier = if (isSearchActive) Modifier.fillMaxWidth() else Modifier.weight(1f)) {
+                    SearchTopBar(
+                        active = isSearchActive,
+                        onActiveChange = { isSearchActive = it }
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                if (!isSearchActive) {
+                    Box(modifier = Modifier.padding(end = 16.dp)) {
+                        IconButton(
+                            onClick = { expandedMenu = true },
+                            modifier = Modifier.background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(12.dp)
+                            )
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Tùy chọn")
+                        }
 
-                // Action Menu (Dropdown)
-                Box {
-                    IconButton(
-                        onClick = { expandedMenu = true },
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Tùy chọn")
-                    }
-
-                    DropdownMenu(
-                        expanded = expandedMenu,
-                        onDismissRequest = { expandedMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Thêm bạn") },
-                            onClick = {
-                                expandedMenu = false
-                                // TODO: Mở popup hoặc chuyển màn hình Thêm bạn
-                            },
-                            leadingIcon = { Icon(Icons.Default.PersonAdd, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Tạo nhóm") },
-                            onClick = {
-                                expandedMenu = false
-                                // TODO: Mở popup hoặc chuyển màn hình Tạo nhóm
-                            },
-                            leadingIcon = { Icon(Icons.Default.GroupAdd, contentDescription = null) }
-                        )
+                        DropdownMenu(
+                            expanded = expandedMenu,
+                            onDismissRequest = { expandedMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Thêm bạn") },
+                                onClick = {
+                                    expandedMenu = false
+                                    // TODO: Mở popup hoặc chuyển màn hình Thêm bạn
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.PersonAdd,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Tạo nhóm") },
+                                onClick = {
+                                    expandedMenu = false
+                                    // TODO: Mở popup hoặc chuyển màn hình Tạo nhóm
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.GroupAdd,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -139,19 +142,16 @@ fun DashboardScreen(
                 .padding(paddingValues)
         ) { page ->
             when (page) {
-                0 -> MessageTabPlaceholder()
+                0 -> Message(
+                    onNavigateToChatRoom = { conversationId ->
+                        onNavigateToChatRoom(conversationId)
+                       Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
+                    })
                 1 -> ContactTabPlaceholder()
                 2 -> ProfileTabPlaceholder()
 
             }
         }
-    }
-}
-
-@Composable
-fun MessageTabPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Giao diện danh sách Tin nhắn", style = MaterialTheme.typography.titleMedium)
     }
 }
 

@@ -4,8 +4,6 @@ sealed class Screen(val route: String) {
     object Login : Screen("login_screen")
     object Intro : Screen("intro_screen")
     object SignUp : Screen("signup_screen")
-
-    object ChatRoom : Screen("chat_room_screen")
     object Dashboard : Screen("dashboard")
     object Profile : Screen("profile")
 
@@ -20,6 +18,9 @@ sealed class Screen(val route: String) {
         fun createRoute(email: String) = "reset_password_otp/$email"
     }
     object CreateNewPassword : Screen("create_new_password")
+    object ChatRoom : Screen("chat_room_screen/{conversationId}") {
+        fun createRoute(conversationId: String) = "chat_room_screen/$conversationId"
+    }
 }
 sealed class Graph(val route: String) {
     object Root : Graph("root_graph")

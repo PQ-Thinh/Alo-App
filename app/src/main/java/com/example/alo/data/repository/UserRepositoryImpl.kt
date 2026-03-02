@@ -7,6 +7,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.UserRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.filter.TextSearchType
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +58,27 @@ class UserRepositoryImpl @Inject constructor(
             bucket.upload(fileName, imageBytes)
 
             bucket.publicUrl(fileName)
+        }
+    }
+
+    override suspend fun searchUsers(query: String): List<User> {
+        return try {
+
+            val formattedQuery = query.trim()
+                .split("\\s+".toRegex())
+                .joinToString(" & ") { "$it:*" }
+
+            val dtos = supabaseClient.postgrest["users"]
+                .select {
+                    filter {
+                        textSearch("fts_search", formattedQuery, TextSearchType.NONE)
+                    }
+                }
+                .decodeList<UserDto>()
+            dtos.map { it.toDomain() }
+        } catch (e: Exception) {
+            Log.e("UserRepo", "Lỗi tìm kiếm người dùng: ${e.message}")
+            emptyList()
         }
     }
 }

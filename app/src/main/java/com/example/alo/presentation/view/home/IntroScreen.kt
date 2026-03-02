@@ -25,12 +25,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun IntroScreen(navController: NavController) {
-    // Khởi tạo các biến Animation cho Logo và Text
     val logoScale = remember { Animatable(0f) }
     val contentAlpha = remember { Animatable(0f) }
     val buttonOffsetY = remember { Animatable(50f) }
 
-    // Hàm tạo vòng lặp sóng lan tỏa (Ripple Effect)
     @Composable
     fun waveProgress(delayMillis: Int): State<Float> {
         val infiniteTransition = rememberInfiniteTransition(label = "wave_$delayMillis")

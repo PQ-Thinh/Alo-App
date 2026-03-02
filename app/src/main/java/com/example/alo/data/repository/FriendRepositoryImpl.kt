@@ -26,19 +26,23 @@ class FriendRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun sendFriendRequest(senderId: String, receiverId: String) {
-        try {
-            // Gửi dữ liệu không cần hứng về
-            val requestBody = mapOf("sender_id" to senderId, "receiver_id" to receiverId)
+    override suspend fun sendFriendRequest(senderId: String, receiverId: String): Boolean {
+        return try {
+            val requestBody = mapOf(
+                "sender_id" to senderId,
+                "receiver_id" to receiverId,
+                "status" to "pending"
+            )
             supabaseClient.postgrest["friend_requests"].insert(requestBody)
+            true
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi gửi kết bạn: ${e.message}")
+         Log.e("FriendRepo", "Lỗi gửi lời mời: ${e.message}")
+            false
         }
     }
 
     override suspend fun getFriends(userId: String): List<Friend> {
         return try {
-            // Tìm bạn bè dựa trên OR condition (userId1 = me OR userId2 = me)
             val dtos = supabaseClient.postgrest["friends"]
                 .select { filter { or {
                     eq("user_id_1", userId)
@@ -49,6 +53,44 @@ class FriendRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
             emptyList()
+        }
+    }
+
+    override suspend fun checkFriendStatus(
+        currentUserId: String,
+        targetUserId: String
+    ): String {
+        return try {
+            val friendsData = supabaseClient.postgrest["friends"]
+                .select {
+                    filter {
+                        or {
+                            and { eq("user_id_1", currentUserId); eq("user_id_2", targetUserId) }
+                            and { eq("user_id_1", targetUserId); eq("user_id_2", currentUserId) }
+                        }
+                    }
+                }.data
+
+            if (friendsData != "[]") return "friends"
+
+            val requestData = supabaseClient.postgrest["friend_requests"]
+                .select {
+                    filter {
+                        or {
+                            and { eq("sender_id", currentUserId); eq("receiver_id", targetUserId) }
+                            and { eq("sender_id", targetUserId); eq("receiver_id", currentUserId) }
+                        }
+                    }
+                }.data
+
+            return when {
+                requestData.contains("\"sender_id\":\"$currentUserId\"") -> "request_sent"
+                requestData.contains("\"receiver_id\":\"$currentUserId\"") -> "request_received"
+                else -> "none"
+            }
+        } catch (e: Exception) {
+         Log.e("FriendRepo", "Lỗi check status: ${e.message}")
+            "none"
         }
     }
 }

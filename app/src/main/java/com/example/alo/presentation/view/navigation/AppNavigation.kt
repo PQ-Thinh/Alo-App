@@ -14,6 +14,7 @@ import com.example.alo.presentation.view.auth.OtpVerificationScreen
 import com.example.alo.presentation.view.auth.ResetPasswordOtpScreen
 import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
+import com.example.alo.presentation.view.chat.ChatRoomScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.profile.ProfileScreen
 
@@ -42,10 +43,6 @@ fun AppNavigation(startDestination: String) {
             val email = backStackEntry.arguments?.getString("email") ?: ""
             OtpVerificationScreen(navController = navController, email = email)
         }
-        composable(route = Screen.Dashboard.route) {
-            DashboardScreen(navController = navController)
-        }
-
         composable(
             route = Screen.ProfileSetup.route,
             arguments = listOf(
@@ -80,6 +77,26 @@ fun AppNavigation(startDestination: String) {
 
         composable(route = Screen.Profile.route) {
             ProfileScreen(navController = navController)
+        }
+
+        composable(Screen.Dashboard.route) {
+            DashboardScreen(
+                navController = navController,
+                onNavigateToChatRoom = { conversationId ->
+                    navController.navigate(Screen.ChatRoom.createRoute(conversationId))
+                }
+            )
+        }
+
+
+        composable(
+            route = Screen.ChatRoom.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType }
+            )
+        ) {
+
+            ChatRoomScreen(navController = navController)
         }
     }
 }

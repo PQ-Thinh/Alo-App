@@ -6,4 +6,5 @@ interface UserRepository {
     suspend fun getCurrentUser(userId: String): User?
     suspend fun saveUserProfile(user: User): Boolean
     suspend fun uploadAvatar(imageBytes: ByteArray, extension: String): String
+    suspend fun searchUsers(query: String): List<User>
 }
