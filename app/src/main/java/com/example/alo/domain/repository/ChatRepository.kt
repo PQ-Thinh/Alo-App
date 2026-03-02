@@ -1,6 +1,7 @@
 package com.example.alo.domain.repository
 
 import com.example.alo.domain.model.Attachment
+import com.example.alo.domain.model.ChatList
 import com.example.alo.domain.model.Conversation
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.model.Participant
@@ -21,4 +22,6 @@ interface ChatRepository {
     // --- Bảng Participants ---
     suspend fun getParticipants(conversationId: String): List<Participant>
     suspend fun addParticipant(conversationId: String, userId: String, role: String = "member")
+
+    suspend fun getChatList(currentUserId: String): List<ChatList>
 }

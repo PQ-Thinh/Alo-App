@@ -2,10 +2,12 @@ package com.example.alo.data.repository
 
 import android.util.Log
 import com.example.alo.data.remote.dto.AttachmentDto
+import com.example.alo.data.remote.dto.ChatListDto
 import com.example.alo.data.remote.dto.ConversationDto
 import com.example.alo.data.remote.dto.MessageDto
 import com.example.alo.data.remote.dto.ParticipantDto
 import com.example.alo.domain.model.Attachment
+import com.example.alo.domain.model.ChatList
 import com.example.alo.domain.model.Conversation
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.model.Participant
@@ -20,6 +22,17 @@ class ChatRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : ChatRepository {
 
+    override suspend fun getChatList(currentUserId: String): List<ChatList> {
+        return supabaseClient.postgrest["chat_list_view"]
+            .select {
+                filter {
+                    eq("current_user_id", currentUserId)
+                }
+                order("last_message_time", Order.DESCENDING)
+            }
+            .decodeList<ChatListDto>()
+            .map { it.toDomain() }
+    }
     override suspend fun getConversations(userId: String): List<Conversation> {
         return try {
             val dtos = supabaseClient.postgrest["conversations"]
