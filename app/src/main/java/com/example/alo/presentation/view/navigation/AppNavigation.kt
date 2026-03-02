@@ -75,8 +75,22 @@ fun AppNavigation(startDestination: String) {
             CreateNewPasswordScreen(navController = navController)
         }
 
-        composable(route = Screen.Profile.route) {
-            ProfileScreen(navController = navController)
+        composable(
+            route = Screen.Profile.route,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) {
+            ProfileScreen(
+                onNavigateToProfile = { userId ->
+                    navController.navigate(Screen.Profile.createRoute(userId))
+                },
+                onLogoutSuccess = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Screen.Dashboard.route) {
@@ -84,6 +98,9 @@ fun AppNavigation(startDestination: String) {
                 navController = navController,
                 onNavigateToChatRoom = { conversationId ->
                     navController.navigate(Screen.ChatRoom.createRoute(conversationId))
+                },
+                onNavigateToProfile = { currentUserId ->
+                    navController.navigate(Screen.Profile.createRoute(currentUserId))
                 }
             )
         }

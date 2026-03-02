@@ -20,13 +20,15 @@ import androidx.navigation.NavController
 import com.example.alo.presentation.view.chat.Message
 import com.example.alo.presentation.view.component.SearchTopBar
 import com.example.alo.presentation.view.navigation.Screen
+import com.example.alo.presentation.view.profile.ProfileScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    onNavigateToChatRoom: (String) -> Unit
+    onNavigateToChatRoom: (String) -> Unit,
+    onNavigateToProfile: (String) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
@@ -148,8 +150,16 @@ fun DashboardScreen(
                        Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
                     })
                 1 -> ContactTabPlaceholder()
-                2 -> ProfileTabPlaceholder()
-
+                2 -> ProfileScreen(
+                    onNavigateToProfile = { userId ->
+                        onNavigateToProfile(userId)
+                    },
+                    onLogoutSuccess = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }

@@ -34,6 +34,7 @@ import com.example.alo.presentation.viewmodel.ChatListViewModel
 fun Message(
     viewModel: ChatListViewModel = hiltViewModel(),
     onNavigateToChatRoom: (String) -> Unit
+
 ) {
     val state by viewModel.state.collectAsState()
 
