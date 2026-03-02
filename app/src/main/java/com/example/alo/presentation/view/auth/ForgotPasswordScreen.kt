@@ -19,13 +19,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
     navController: NavController,
-    viewModel: SupabaseAuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     val userState by viewModel.userState.collectAsState()

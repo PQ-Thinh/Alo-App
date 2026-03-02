@@ -24,7 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,7 +32,7 @@ import kotlinx.coroutines.delay
 fun ResetPasswordOtpScreen(
     navController: NavController,
     email: String,
-    viewModel: SupabaseAuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var otpValue by remember { mutableStateOf("") }
 

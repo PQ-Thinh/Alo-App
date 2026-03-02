@@ -33,7 +33,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.alo.presentation.helper.UserProfileState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,7 +41,7 @@ import com.example.alo.presentation.viewmodel.UserViewModel
 fun ProfileScreen(
     navController: NavController,
     viewModel: UserViewModel = hiltViewModel(),
-    authViewModel: SupabaseAuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val profileState by viewModel.profileState.collectAsState()
 

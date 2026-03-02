@@ -15,12 +15,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun CreateNewPasswordScreen(
     navController: NavController,
-    viewModel: SupabaseAuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }

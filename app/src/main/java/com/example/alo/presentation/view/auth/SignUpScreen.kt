@@ -36,12 +36,12 @@ import androidx.navigation.NavController
 import com.example.alo.R
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun SignUpScreen(
     navController: NavController,
-    viewModel: SupabaseAuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

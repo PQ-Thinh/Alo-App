@@ -8,9 +8,7 @@ import com.example.alo.presentation.helper.UserState
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.OtpType
-import io.github.jan.supabase.auth.auth
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,10 +17,9 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class SupabaseAuthViewModel @Inject constructor(
+class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -57,33 +54,28 @@ class SupabaseAuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.loginWithGoogle(credential as String)
-                val sessionUser = supabaseClient.auth.currentSessionOrNull()?.user
+                val authUser = authRepository.getCurrentAuthUser()
 
-                if (sessionUser != null) {
-                    val existingProfile = userRepository.getCurrentUser(sessionUser.id)
+                if (authUser != null) {
+                    val existingProfile = userRepository.getCurrentUser(authUser.id)
 
                     if (existingProfile != null) {
                         _userState.value = UserState.Success("Đăng nhập Google thành công")
                     } else {
-                        val email = sessionUser.email ?: ""
-                        val metadata = sessionUser.userMetadata
-
-                        val fullName = metadata?.get("full_name")?.toString()?.trim('"') ?: email.substringBefore("@")
-                        val avatarUrl = metadata?.get("avatar_url")?.toString()?.trim('"')
-
-
+                        val defaultUsername = authUser.email.substringBefore("@")
+                        val displayName = authUser.fullName ?: defaultUsername
 
                         val autoProfile = User(
-                            id = sessionUser.id,
-                            username = email.substringBefore("@"),
-                            displayName = fullName,
-                            email = email,
+                            id = authUser.id,
+                            username = defaultUsername,
+                            displayName = displayName,
+                            email = authUser.email,
                             bio = null,
                             phone = null,
                             birthday = null,
                             gender = null,
                             avatarId = "google_oauth_avatar",
-                            avatarUrl = avatarUrl,
+                            avatarUrl = authUser.avatarUrl,
                             publicKey = CryptoHelper.getOrGeneratePublicKey(),
                             createdAt = Instant.now().toString(),
                             updatedAt = Instant.now().toString()
@@ -109,11 +101,7 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             _userState.value = UserState.Loading
             try {
-                supabaseClient.auth.verifyEmailOtp(
-                    type = OtpType.Email.SIGNUP,
-                    email = email,
-                    token = otp
-                )
+                authRepository.verifyOtp(email, otp)
                 _userState.value = UserState.VerificationSuccess
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Mã xác nhận không hợp lệ hoặc đã hết hạn")
@@ -123,10 +111,7 @@ class SupabaseAuthViewModel @Inject constructor(
     fun resendOtp(email: String) {
         viewModelScope.launch {
             try {
-                supabaseClient.auth.resendEmail(
-                    email = email,
-                    type = OtpType.Email.SIGNUP
-                )
+              authRepository.resendOtp(email)
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Không thể gửi lại mã. Vui lòng thử lại sau!")
             }
@@ -136,7 +121,7 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             _userState.value = UserState.Loading
             try {
-                supabaseClient.auth.resetPasswordForEmail(email)
+                authRepository.sendPasswordResetEmail(email)
                 _userState.value = UserState.PasswordResetOtpSent(email)
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Không tìm thấy email hoặc có lỗi xảy ra.")
@@ -148,11 +133,7 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             _userState.value = UserState.Loading
             try {
-                supabaseClient.auth.verifyEmailOtp(
-                    type = OtpType.Email.RECOVERY,
-                    email = email,
-                    token = otp
-                )
+                authRepository.verifyPasswordResetOtp(email, otp)
                 _userState.value = UserState.PasswordResetOtpVerified
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Mã xác nhận không đúng hoặc đã hết hạn.")
@@ -164,9 +145,7 @@ class SupabaseAuthViewModel @Inject constructor(
         viewModelScope.launch {
             _userState.value = UserState.Loading
             try {
-                supabaseClient.auth.updateUser {
-                    password = newPassword
-                }
+                authRepository.updateNewPassword(newPassword)
                 _userState.value = UserState.PasswordChangedSuccess
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Lỗi cập nhật mật khẩu: ${e.message}")

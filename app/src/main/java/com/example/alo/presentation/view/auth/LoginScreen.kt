@@ -35,14 +35,14 @@ import com.example.alo.R
 import com.example.alo.presentation.helper.GoogleAuthUiClient
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.view.navigation.Screen
-import com.example.alo.presentation.viewmodel.SupabaseAuthViewModel
+import com.example.alo.presentation.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: SupabaseAuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
