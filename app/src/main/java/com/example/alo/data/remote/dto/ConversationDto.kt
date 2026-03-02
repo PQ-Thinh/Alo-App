@@ -9,12 +9,17 @@ data class ConversationDto(
     @SerialName("id") val id: String,
     @SerialName("is_group") val isGroup: Boolean = false,
     @SerialName("name") val name: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("avatarid") val avatarId: String,
     @SerialName("last_message_preview") val lastMessagePreview: String? = null,
     @SerialName("last_message_time") val lastMessageTime: String? = null,
     @SerialName("hidden_pin_hash") val hiddenPinHash: String? = null,
     @SerialName("created_at") val createdAt: String
 ) {
     fun toDomain(): Conversation = Conversation(
-        id, isGroup, name, lastMessagePreview, lastMessageTime, hiddenPinHash, createdAt
+        id, isGroup, name,
+        avatarId = avatarId,
+        avatarUrl = avatarUrl,
+        lastMessagePreview, lastMessageTime, hiddenPinHash, createdAt
     )
 }

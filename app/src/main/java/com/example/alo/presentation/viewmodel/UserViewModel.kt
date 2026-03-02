@@ -89,7 +89,7 @@ class UserViewModel @Inject constructor(
                 }
                 val user = User(
                     id = authUser.id,
-                    email = authUser.email ?: "",
+                    email = authUser.email,
                     username = currentState.username,
                     displayName = currentState.displayName,
                     phone = currentState.phone.ifBlank { null },
