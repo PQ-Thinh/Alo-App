@@ -2,10 +2,9 @@ package com.example.alo.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.presentation.view.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth // Import module auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -13,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -25,10 +24,9 @@ class SplashViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             try {
-                supabaseClient.auth.awaitInitialization()
-
-                val session = supabaseClient.auth.currentSessionOrNull()
-                if (session != null) {
+                authRepository.awaitInitialization()
+                val authUser = authRepository.getCurrentAuthUser()
+                if (authUser != null) {
                     _startDestination.value = Screen.Dashboard.route
                 } else {
                     _startDestination.value = Screen.Intro.route

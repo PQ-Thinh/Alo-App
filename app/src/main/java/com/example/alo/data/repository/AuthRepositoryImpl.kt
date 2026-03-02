@@ -99,4 +99,8 @@ class AuthRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun awaitInitialization() {
+        supabaseClient.auth.awaitInitialization()
+    }
+
 }

@@ -13,4 +13,5 @@ interface AuthRepository {
     suspend fun verifyPasswordResetOtp(email: String, otp: String)
     suspend fun updateNewPassword(newPassword: String)
     suspend fun getCurrentAuthUser(): AuthUser?
+    suspend fun awaitInitialization()
 }
