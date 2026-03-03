@@ -80,30 +80,23 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun subscribeToChatListUpdates(): Flow<Unit> = callbackFlow {
-        val channel = supabaseClient.channel("chat_list_global_updates")
+    override fun subscribeToChatListUpdates(currentUserId: String): Flow<Unit> = callbackFlow {
+        val channel = supabaseClient.channel("chat_list_update_$currentUserId")
 
         val insertMessageFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "messages"
         }
 
-        val updateParticipantFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
-            table = "participants"
-        }
-
-        val job1 = launch {
-            insertMessageFlow.collect { trySend(Unit) }
-        }
-
-        val job2 = launch {
-            updateParticipantFlow.collect { trySend(Unit) }
+        val job = launch {
+            insertMessageFlow.collect {
+                trySend(Unit)
+            }
         }
 
         channel.subscribe()
 
         awaitClose {
-            job1.cancel()
-            job2.cancel()
+            job.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)

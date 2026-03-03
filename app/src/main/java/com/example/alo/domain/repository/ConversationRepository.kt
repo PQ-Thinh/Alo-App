@@ -9,5 +9,5 @@ interface ConversationRepository {
     suspend fun getConversations(userId: String): List<Conversation>
     suspend fun getOrCreateDirectConversation(currentUserId: String, targetUserId: String): String?
     suspend fun resetUnreadCount(conversationId: String, userId: String)
-    fun subscribeToChatListUpdates(): Flow<Unit>
+    fun subscribeToChatListUpdates(currentUserId: String): Flow<Unit>
 }

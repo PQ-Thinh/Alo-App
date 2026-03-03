@@ -23,16 +23,29 @@ class ChatListViewModel @Inject constructor(
     val state: StateFlow<ChatListState> = _state.asStateFlow()
 
     init {
-
         fetchChatList()
+        observeGlobalUpdates()
+    }
+
+    private fun observeGlobalUpdates() {
+        viewModelScope.launch {
+            val currentUser = authRepository.getCurrentAuthUser()
+            if (currentUser != null) {
+
+                conversationRepository.subscribeToChatListUpdates(currentUser.id).collect {
+                    fetchChatList()
+                }
+            }
+        }
     }
 
     fun fetchChatList() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            if (_state.value.chatList.isEmpty()) {
+                _state.update { it.copy(isLoading = true, error = null) }
+            }
 
             try {
-
                 val currentUser = authRepository.getCurrentAuthUser()
                 if (currentUser == null) {
                     _state.update {
