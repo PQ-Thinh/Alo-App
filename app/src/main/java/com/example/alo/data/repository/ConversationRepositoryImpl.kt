@@ -11,6 +11,16 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class ConversationRepositoryImpl @Inject constructor(
@@ -67,6 +77,40 @@ class ConversationRepositoryImpl @Inject constructor(
             supabaseClient.postgrest.rpc("reset_unread_count", params)
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Lỗi reset unread_count: ${e.message}")
+        }
+    }
+
+    override fun subscribeToChatListUpdates(): Flow<Unit> = callbackFlow {
+        val channel = supabaseClient.channel("chat_list_global_updates")
+
+        val insertMessageFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "messages"
+        }
+
+        val updateParticipantFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "participants"
+        }
+
+        val job1 = launch {
+            insertMessageFlow.collect { trySend(Unit) }
+        }
+
+        val job2 = launch {
+            updateParticipantFlow.collect { trySend(Unit) }
+        }
+
+        channel.subscribe()
+
+        awaitClose {
+            job1.cancel()
+            job2.cancel()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    supabaseClient.realtime.removeChannel(channel)
+                } catch (e: Exception) {
+                    Log.e("ConversationRepo", "Lỗi đóng channel: ${e.message}")
+                }
+            }
         }
     }
 }

@@ -30,14 +30,16 @@ import coil3.compose.AsyncImage
 import com.example.alo.domain.model.ChatList
 import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.viewmodel.ChatListViewModel
+import com.example.alo.presentation.viewmodel.UserViewModel
 
 @Composable
 fun Message(
     viewModel: ChatListViewModel = hiltViewModel(),
-    onNavigateToChatRoom: (String) -> Unit
+    onNavigateToChatRoom: (String) -> Unit,
 
 ) {
     val state by viewModel.state.collectAsState()
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -151,14 +153,16 @@ fun Message(
 }
 
 @Composable
-fun ChatItem(chat: ChatList, onClick: () -> Unit) {
+fun ChatItem(chat: ChatList, onClick: () -> Unit,
+             userViewModel: UserViewModel = hiltViewModel()
+) {
     val hasUnread = chat.unreadCount > 0
-
+    val userState by userViewModel.state.collectAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(if (hasUnread) Color(0xFFF8F8FF) else Color.Transparent) // Highlight nhẹ nếu có tin chưa đọc
+            .background(if (hasUnread) Color(0xFFF8F8FF) else Color.Transparent)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -201,7 +205,7 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit) {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = chat.lastMessagePreview ?: "Bắt đầu trò chuyện...",
+                text = if (chat.chatName==userState.displayName) "Bạn:${chat.lastMessagePreview}" else chat.lastMessagePreview ?: "Bắt đầu trò chuyện...",
                 fontSize = 14.sp,
                 fontWeight = if (hasUnread) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (hasUnread) MaterialTheme.colorScheme.onBackground else Color.Gray,
