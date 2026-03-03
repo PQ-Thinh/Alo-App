@@ -41,9 +41,7 @@ class ChatListViewModel @Inject constructor(
                     return@launch
                 }
 
-
                 val chats = conversationRepository.getChatList(currentUser.id)
-
 
                 _state.update {
                     it.copy(

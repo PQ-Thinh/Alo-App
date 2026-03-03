@@ -7,6 +7,7 @@ import com.example.alo.domain.repository.MessageRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class MessageRepositoryImpl @Inject constructor(
@@ -66,4 +67,10 @@ class MessageRepositoryImpl @Inject constructor(
             Log.e("MessageRepo", "Lỗi thu hồi cảm xúc: ${e.message}")
         }
     }
+
+    override suspend fun getMessagesFlow(conversationId: String): Flow<List<Message>> {
+        TODO("Not yet implemented")
+    }
+
+
 }
