@@ -164,10 +164,8 @@ fun Message(
 
 @Composable
 fun ChatItem(chat: ChatList, onClick: () -> Unit,
-             userViewModel: UserViewModel = hiltViewModel()
 ) {
     val hasUnread = chat.unreadCount > 0
-    val userState by userViewModel.state.collectAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,8 +212,10 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit,
             )
             Spacer(modifier = Modifier.height(4.dp))
 
+            val prefix = if (chat.lastMessageSenderId == chat.currentUserId) "Bạn: " else ""
+            val previewText = chat.lastMessagePreview ?: "Bắt đầu trò chuyện..."
             Text(
-                text = if (chat.chatName==userState.displayName) "Bạn:${chat.lastMessagePreview}" else chat.lastMessagePreview ?: "Bắt đầu trò chuyện...",
+                text = "$prefix$previewText",
                 fontSize = 14.sp,
                 fontWeight = if (hasUnread) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (hasUnread) MaterialTheme.colorScheme.onBackground else Color.Gray,

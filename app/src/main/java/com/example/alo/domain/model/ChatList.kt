@@ -6,6 +6,7 @@ data class ChatList(
     val isGroup: Boolean,
     val lastMessagePreview: String?,
     val lastMessageTime: String?,
+    val lastMessageSenderId: String?,
     val unreadCount: Int,
     val chatName: String?,
     val chatAvatar: String?

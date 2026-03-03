@@ -11,6 +11,7 @@ data class ChatListDto(
     @SerialName("is_group") val isGroup: Boolean,
     @SerialName("last_message_preview") val lastMessagePreview: String?,
     @SerialName("last_message_time") val lastMessageTime: String?,
+    @SerialName("last_message_sender_id") val lastMessageSenderId: String? = null,
     @SerialName("unread_count") val unreadCount: Int,
     @SerialName("chat_name") val chatName: String?,
     @SerialName("chat_avatar") val chatAvatar: String?
@@ -24,7 +25,8 @@ data class ChatListDto(
             lastMessageTime = lastMessageTime,
             unreadCount = unreadCount,
             chatName = chatName,
-            chatAvatar = chatAvatar
+            chatAvatar = chatAvatar,
+            lastMessageSenderId = lastMessageSenderId
         )
     }
 }

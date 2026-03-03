@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -14,25 +15,31 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
+import com.example.alo.presentation.view.utils.formatMessageTime
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
-import com.example.alo.presentation.viewmodel.UserViewModel
-import androidx.compose.runtime.collectAsState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatRoomScreen(
     navController: NavController,
     viewModel: ChatRoomViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val messageText by viewModel.messageText.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
-    val state by userViewModel.state.collectAsState()
+
+    val partnerName by viewModel.partnerName.collectAsState()
+    val partnerAvatar by viewModel.partnerAvatar.collectAsState()
 
     val listState = rememberLazyListState()
 
@@ -45,7 +52,35 @@ fun ChatRoomScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${state.displayName}") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (partnerAvatar.isNotEmpty()) {
+                                AsyncImage(
+                                    model = partnerAvatar,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = partnerName.firstOrNull()?.uppercase() ?: "?",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        // Tên người dùng
+                        Text(text = partnerName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
@@ -78,36 +113,96 @@ fun ChatRoomScreen(
                 key = { it.id }
             ) { message ->
                 val isMine = message.senderId == currentUserId
-                MessageBubble(message = message, isMine = isMine)
-                Spacer(modifier = Modifier.height(8.dp))
+                MessageBubble(
+                    message = message,
+                    isMine = isMine,
+                    partnerAvatar = partnerAvatar,
+                    partnerName = partnerName
+                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
 }
 
 @Composable
-fun MessageBubble(message: Message, isMine: Boolean) {
-    Box(
+fun MessageBubble(
+    message: Message,
+    isMine: Boolean,
+    partnerAvatar: String,
+    partnerName: String
+) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = if (isMine) Alignment.CenterEnd else Alignment.CenterStart
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Bottom
     ) {
-        Box(
-            modifier = Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (isMine) 16.dp else 4.dp,
-                        bottomEnd = if (isMine) 4.dp else 16.dp
+        if (!isMine) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (partnerAvatar.isNotEmpty()) {
+                    AsyncImage(
+                        model = partnerAvatar,
+                        contentDescription = "Avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-                )
-                .background(if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                .padding(12.dp)
-                .widthIn(max = 280.dp)
+                } else {
+                    Text(
+                        text = partnerName.firstOrNull()?.uppercase() ?: "?",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Column(
+            horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
+            // Tên người gửi (chỉ hiện trong nhóm, đây nếu bạn cần)
+            /* if (!isMine) {
+                Text(
+                    text = partnerName,
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                )
+            } */
+
+            // Bong bóng tin nhắn
+            Box(
+                modifier = Modifier
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = if (isMine) 16.dp else 4.dp,
+                            bottomEnd = if (isMine) 4.dp else 16.dp
+                        )
+                    )
+                    .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .widthIn(max = 260.dp)
+            ) {
+                Text(
+                    text = message.encryptedContent,
+                    color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 15.sp
+                )
+            }
+
             Text(
-                text = message.encryptedContent,
-                color = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                text = formatMessageTime(message.createdAt),
+                fontSize = 11.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
             )
         }
     }

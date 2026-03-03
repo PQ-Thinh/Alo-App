@@ -37,6 +37,12 @@ class ChatRoomViewModel @Inject constructor(
     private val _messageText = MutableStateFlow("")
     val messageText: StateFlow<String> = _messageText.asStateFlow()
 
+    private val _partnerName = MutableStateFlow("Đang tải...")
+    val partnerName: StateFlow<String> = _partnerName.asStateFlow()
+
+    private val _partnerAvatar = MutableStateFlow("")
+    val partnerAvatar: StateFlow<String> = _partnerAvatar.asStateFlow()
+
     init {
         initializeChatRoom()
     }
@@ -48,6 +54,14 @@ class ChatRoomViewModel @Inject constructor(
                 _currentUserId.value = user.id
                 try {
                     conversationRepository.resetUnreadCount(conversationId, user.id)
+
+                    val chatList = conversationRepository.getChatList(user.id)
+                    val currentChatInfo = chatList.find { it.conversationId == conversationId }
+
+                    if (currentChatInfo != null) {
+                        _partnerName.value = currentChatInfo.chatName ?: "Người dùng ẩn danh"
+                        _partnerAvatar.value = currentChatInfo.chatAvatar ?: ""
+                    }
                 } catch (e: Exception) {}
             }
 
