@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +27,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.ChatList
 import com.example.alo.presentation.view.utils.formatRelativeTime
@@ -40,7 +44,13 @@ fun Message(
 ) {
     val state by viewModel.state.collectAsState()
 
+    val lifecycleOwner = LocalLifecycleOwner.current
 
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.fetchChatList()
+        }
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             state.isLoading -> {

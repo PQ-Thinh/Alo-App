@@ -1,5 +1,6 @@
 package com.example.alo.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -54,8 +55,10 @@ class ChatRoomViewModel @Inject constructor(
             _messages.value = historyMessages
 
             messageRepository.subscribeToNewMessages(conversationId).collect { newMessage ->
+                Log.d("REALTIME_TEST", "3. ViewModel đã nhận được tin: ${newMessage.encryptedContent}")
                 _messages.update { currentList ->
                     if (currentList.none { it.id == newMessage.id }) {
+                        Log.d("REALTIME_TEST", "4. Đang chèn tin mới vào UI...")
                         listOf(newMessage) + currentList
                     } else {
                         currentList.map { if (it.id == newMessage.id) newMessage else it }

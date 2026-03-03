@@ -89,11 +89,15 @@ class MessageRepositoryImpl @Inject constructor(
 
         val job = launch {
             insertFlow.collect { action ->
+                Log.d("REALTIME_TEST", "1. Đã có sự kiện INSERT trên bảng messages!")
                 try {
+                    Log.d("REALTIME_TEST", "JSON gốc: ${action.record}")
                     val newMessageDto = action.decodeRecord<MessageDto>()
                     val newMessage = newMessageDto.toDomain()
+                    Log.d("REALTIME_TEST", "2. Parse thành công tin nhắn: ${newMessage.encryptedContent}")
                     send(newMessage)
                 } catch (e: Exception) {
+                    Log.e("REALTIME_TEST", "LỖI PARSE REALTIME: ${e.message}")
                     Log.e("MessageRepo", "Lỗi parse Realtime: ${e.message}")
                 }
             }
