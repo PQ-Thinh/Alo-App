@@ -8,9 +8,9 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
-
 import javax.inject.Singleton
 import com.example.alo.BuildConfig
+import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 
 @Module
@@ -27,6 +27,7 @@ object SupabaseModule {
             install(Auth)
             install(Postgrest)
             install(Storage)
+            install(Realtime)
         }
     }
 }

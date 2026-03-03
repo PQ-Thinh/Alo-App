@@ -7,8 +7,17 @@ import com.example.alo.domain.repository.MessageRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.decodeRecord
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 
 class MessageRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
@@ -68,9 +77,37 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getMessagesFlow(conversationId: String): Flow<List<Message>> {
-        TODO("Not yet implemented")
-    }
+    override fun getMessagesFlow(conversationId: String): Flow<List<Message>> = callbackFlow {
+        var currentMessages = emptyList<Message>()
 
+        launch {
+            currentMessages = getMessages(conversationId)
+            trySend(currentMessages)
+        }
 
-}
+        val channel = supabaseClient.channel("chat_room_$conversationId")
+        val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "messages"
+            filter("conversation_id", FilterOperator.EQ, conversationId)
+        }
+
+        val job = launch {
+            insertFlow.collect { action ->
+                try {
+                    val newMessageDto = action.decodeRecord<MessageDto>()
+                    val newMessage = newMessageDto.toDomain()
+
+                    currentMessages = listOf(newMessage) + currentMessages
+                    trySend(currentMessages)
+                } catch (e: Exception) {
+                    Log.e("MessageRepo", "Lỗi parse Realtime: ${e.message}")
+                }
+            }
+        }
+
+        channel.subscribe()
+        awaitClose {
+            job.cancel()
+            supabaseClient.realtime.removeChannel(channel)
+        }
+    }}

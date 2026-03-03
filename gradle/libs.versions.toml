@@ -48,6 +48,7 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 supabase-storage = { group = "io.github.jan-tennert.supabase", name = "storage-kt" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt", version.ref = "supabase" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

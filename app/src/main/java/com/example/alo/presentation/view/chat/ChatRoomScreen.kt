@@ -27,6 +27,7 @@ fun ChatRoomScreen(
 ) {
     val messages by viewModel.messages.collectAsState()
     val messageText by viewModel.messageText.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
 
     Scaffold(
         topBar = {
@@ -62,7 +63,7 @@ fun ChatRoomScreen(
                 items = messages,
                 key = { it.id }
             ) { message ->
-                val isMine = message.senderId == viewModel.currentUserId
+                val isMine = message.senderId == currentUserId
                 MessageBubble(message = message, isMine = isMine)
                 Spacer(modifier = Modifier.height(8.dp))
             }
