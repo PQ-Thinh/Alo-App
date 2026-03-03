@@ -25,6 +25,8 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.view.utils.formatMessageTime
+import com.example.alo.presentation.view.utils.formatTimeHeader
+import com.example.alo.presentation.view.utils.shouldShowTimeHeader
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
 
 
@@ -109,17 +111,60 @@ fun ChatRoomScreen(
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             items(
-                items = messages,
-                key = { it.id }
-            ) { message ->
+                count = messages.size,
+                key = { index -> messages[index].id }
+            ) { index ->
+                val message = messages[index]
                 val isMine = message.senderId == currentUserId
-                MessageBubble(
-                    message = message,
-                    isMine = isMine,
-                    partnerAvatar = partnerAvatar,
-                    partnerName = partnerName
+
+                // --- XỬ LÝ LOGIC GOM NHÓM Ở ĐÂY ---
+                val previousMessage = if (index < messages.size - 1) messages[index + 1] else null
+
+                val nextMessage = if (index > 0) messages[index - 1] else null
+
+                val showTimeHeader = shouldShowTimeHeader(
+                    currentMessageTime = message.createdAt,
+                    previousMessageTime = previousMessage?.createdAt
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+
+                // avatar tin nhắn CUỐI CÙNG của một cụm người gửi liên tiếp
+                val isLastInGroup = nextMessage?.senderId != message.senderId
+
+                // tin nhắn CUỐI CÙNG của một cụm
+                val showSmallTime = nextMessage?.senderId != message.senderId
+
+                Column {
+                    // Hiển thị Header thời gian nếu cần (nằm giữa màn hình)
+                    if (showTimeHeader) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = formatTimeHeader(message.createdAt),
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier
+                                    .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    MessageBubble(
+                        message = message,
+                        isMine = isMine,
+                        partnerAvatar = partnerAvatar,
+                        partnerName = partnerName,
+                        showAvatar = isLastInGroup,
+                        showTime = showSmallTime
+                    )
+
+                    Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
+                }
             }
         }
     }
@@ -130,7 +175,9 @@ fun MessageBubble(
     message: Message,
     isMine: Boolean,
     partnerAvatar: String,
-    partnerName: String
+    partnerName: String,
+    showAvatar: Boolean,
+    showTime: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -142,22 +189,24 @@ fun MessageBubble(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(if (showAvatar) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
-                if (partnerAvatar.isNotEmpty()) {
-                    AsyncImage(
-                        model = partnerAvatar,
-                        contentDescription = "Avatar",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text(
-                        text = partnerName.firstOrNull()?.uppercase() ?: "?",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (showAvatar) {
+                    if (partnerAvatar.isNotEmpty()) {
+                        AsyncImage(
+                            model = partnerAvatar,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = partnerName.firstOrNull()?.uppercase() ?: "?",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -166,25 +215,14 @@ fun MessageBubble(
         Column(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
-            // Tên người gửi (chỉ hiện trong nhóm, đây nếu bạn cần)
-            /* if (!isMine) {
-                Text(
-                    text = partnerName,
-                    fontSize = 11.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
-                )
-            } */
-
-            // Bong bóng tin nhắn
             Box(
                 modifier = Modifier
                     .clip(
                         RoundedCornerShape(
                             topStart = 16.dp,
                             topEnd = 16.dp,
-                            bottomStart = if (isMine) 16.dp else 4.dp,
-                            bottomEnd = if (isMine) 4.dp else 16.dp
+                            bottomStart = if (isMine || !showAvatar) 16.dp else 4.dp,
+                            bottomEnd = if (!isMine || !showAvatar) 16.dp else 4.dp
                         )
                     )
                     .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
@@ -198,12 +236,14 @@ fun MessageBubble(
                 )
             }
 
-            Text(
-                text = formatMessageTime(message.createdAt),
-                fontSize = 11.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
-            )
+            if (showTime) {
+                Text(
+                    text = formatMessageTime(message.createdAt),
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
+                )
+            }
         }
     }
 }
