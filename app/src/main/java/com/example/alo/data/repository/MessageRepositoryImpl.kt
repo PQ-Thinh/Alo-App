@@ -16,6 +16,8 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
@@ -108,6 +110,12 @@ class MessageRepositoryImpl @Inject constructor(
         channel.subscribe()
         awaitClose {
             job.cancel()
-            supabaseClient.realtime.removeChannel(channel)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    supabaseClient.realtime.removeChannel(channel)
+                } catch (e: Exception) {
+                    Log.e("MessageRepo", "Lỗi khi đóng channel: ${e.message}")
+                }
+            }
         }
     }}
