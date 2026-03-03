@@ -25,7 +25,6 @@ class ChatRoomViewModel @Inject constructor(
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
     init {
-
         loadMessages()
     }
 

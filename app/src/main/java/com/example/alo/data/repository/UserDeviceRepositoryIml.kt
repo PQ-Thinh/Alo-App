@@ -13,7 +13,6 @@ class UserDeviceRepositoryImpl @Inject constructor(
 
     override suspend fun registerDevice(userId: String, fcmToken: String, deviceName: String?) {
         try {
-            // Upsert: Nếu fcmToken đã tồn tại thì cập nhật, chưa có thì thêm mới
             val deviceData = mapOf(
                 "user_id" to userId,
                 "fcm_token" to fcmToken,

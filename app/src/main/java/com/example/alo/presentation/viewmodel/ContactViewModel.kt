@@ -108,7 +108,6 @@ class ContactViewModel @Inject constructor(
     fun onFriendClicked(targetUserId: String, onNavigateToChat: (String) -> Unit) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-
             try {
                 val currentUserId = authRepository.getCurrentAuthUser()?.id
                 if (currentUserId == null) {
