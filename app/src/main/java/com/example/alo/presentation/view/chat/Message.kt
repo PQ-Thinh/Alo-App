@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.ChatList
+import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.viewmodel.ChatListViewModel
 
 @Composable
@@ -151,13 +152,17 @@ fun Message(
 
 @Composable
 fun ChatItem(chat: ChatList, onClick: () -> Unit) {
+    val hasUnread = chat.unreadCount > 0
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .background(if (hasUnread) Color(0xFFF8F8FF) else Color.Transparent) // Highlight nhẹ nếu có tin chưa đọc
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Avatar
         Box(
             modifier = Modifier
                 .size(56.dp)
@@ -188,18 +193,17 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = chat.chatName ?: "Người dùng ẩn danh",
-                fontWeight = FontWeight.Bold,
+                fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.SemiBold,
                 fontSize = 16.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(4.dp))
 
-            val hasUnread = chat.unreadCount > 0
             Text(
                 text = chat.lastMessagePreview ?: "Bắt đầu trò chuyện...",
                 fontSize = 14.sp,
-                fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.Normal,
+                fontWeight = if (hasUnread) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (hasUnread) MaterialTheme.colorScheme.onBackground else Color.Gray,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -210,31 +214,38 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit) {
 
         Column(
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.height(50.dp)
         ) {
             Text(
-                text = chat.lastMessageTime?.substring(11, 16) ?: "",
+                text = formatRelativeTime(chat.lastMessageTime.toString()),
                 fontSize = 12.sp,
-                color = if (chat.unreadCount > 0) Color(0xFF6C63FF) else Color.Gray
+                color = if (hasUnread) Color(0xFF6C63FF) else Color.Gray,
+                fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.Normal
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
-            if (chat.unreadCount > 0) {
+            if (hasUnread) {
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .defaultMinSize(minWidth = 20.dp)
+                        .height(20.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF6C63FF)),
+                        .background(Color(0xFF6C63FF))
+                        .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (chat.unreadCount > 9) "9+" else chat.unreadCount.toString(),
+                        text = if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString(),
                         color = Color.White,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
                 }
+            } else {
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }

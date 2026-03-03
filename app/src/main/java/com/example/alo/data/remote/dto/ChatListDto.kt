@@ -15,7 +15,6 @@ data class ChatListDto(
     @SerialName("chat_name") val chatName: String?,
     @SerialName("chat_avatar") val chatAvatar: String?
 ) {
-    // Hàm Mapper chuyển từ DTO của Data sang Model của Domain
     fun toDomain(): ChatList {
         return ChatList(
             currentUserId = currentUserId,

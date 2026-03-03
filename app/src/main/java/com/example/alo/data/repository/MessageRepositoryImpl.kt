@@ -79,11 +79,9 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getMessagesFlow(conversationId: String): Flow<List<Message>> = callbackFlow {
-        var currentMessages = getMessages(conversationId)
-        send(currentMessages)
+    override fun subscribeToNewMessages(conversationId: String): Flow<Message> = callbackFlow {
+        val channel = supabaseClient.channel("chat_room_updates_$conversationId")
 
-        val channel = supabaseClient.channel("chat_room_$conversationId")
         val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "messages"
             filter("conversation_id", FilterOperator.EQ, conversationId)
@@ -94,9 +92,7 @@ class MessageRepositoryImpl @Inject constructor(
                 try {
                     val newMessageDto = action.decodeRecord<MessageDto>()
                     val newMessage = newMessageDto.toDomain()
-
-                    currentMessages = listOf(newMessage) + currentMessages
-                    send(currentMessages)
+                    send(newMessage)
                 } catch (e: Exception) {
                     Log.e("MessageRepo", "Lỗi parse Realtime: ${e.message}")
                 }
@@ -115,4 +111,6 @@ class MessageRepositoryImpl @Inject constructor(
                 }
             }
         }
-    }}
+    }
+
+}

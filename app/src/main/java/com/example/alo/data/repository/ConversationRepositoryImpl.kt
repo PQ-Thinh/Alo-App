@@ -57,4 +57,16 @@ class ConversationRepositoryImpl @Inject constructor(
             null
         }
     }
+
+    override suspend fun resetUnreadCount(conversationId: String, userId: String) {
+        try {
+            val params = mapOf(
+                "conv_id" to conversationId,
+                "u_id" to userId
+            )
+            supabaseClient.postgrest.rpc("reset_unread_count", params)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi reset unread_count: ${e.message}")
+        }
+    }
 }
