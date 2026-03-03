@@ -80,6 +80,17 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     override fun subscribeToNewMessages(conversationId: String): Flow<Message> = callbackFlow {
+
+        // --- BỔ SUNG 1: Theo dõi trạng thái MẠNG TỔNG của Supabase ---
+        val globalStatusJob = launch {
+            supabaseClient.realtime.status.collect { status ->
+                Log.e("REALTIME_TEST", "Trạng thái MẠNG TỔNG (WebSocket): $status")
+            }
+        }
+
+        // --- BỔ SUNG 2: Ép khởi động cổng WebSocket ---
+        supabaseClient.realtime.connect()
+
         val channel = supabaseClient.channel("chat_room_updates_$conversationId")
 
         val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
@@ -87,18 +98,23 @@ class MessageRepositoryImpl @Inject constructor(
             filter("conversation_id", FilterOperator.EQ, conversationId)
         }
 
+        // --- BỔ SUNG 3: Theo dõi kênh con ---
+        val channelStatusJob = launch {
+            channel.status.collect { status ->
+                Log.e("REALTIME_TEST", "Trạng thái KÊNH CHAT: $status")
+            }
+        }
+
         val job = launch {
             insertFlow.collect { action ->
                 Log.d("REALTIME_TEST", "1. Đã có sự kiện INSERT trên bảng messages!")
                 try {
-                    Log.d("REALTIME_TEST", "JSON gốc: ${action.record}")
                     val newMessageDto = action.decodeRecord<MessageDto>()
                     val newMessage = newMessageDto.toDomain()
-                    Log.d("REALTIME_TEST", "2. Parse thành công tin nhắn: ${newMessage.encryptedContent}")
+                    Log.d("REALTIME_TEST", "2. Parse thành công: ${newMessage.encryptedContent}")
                     send(newMessage)
                 } catch (e: Exception) {
                     Log.e("REALTIME_TEST", "LỖI PARSE REALTIME: ${e.message}")
-                    Log.e("MessageRepo", "Lỗi parse Realtime: ${e.message}")
                 }
             }
         }
@@ -106,6 +122,8 @@ class MessageRepositoryImpl @Inject constructor(
         channel.subscribe()
 
         awaitClose {
+            globalStatusJob.cancel()
+            channelStatusJob.cancel()
             job.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -116,5 +134,4 @@ class MessageRepositoryImpl @Inject constructor(
             }
         }
     }
-
 }

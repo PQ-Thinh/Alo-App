@@ -64,7 +64,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.appcompat)
-    implementation(libs.play.services.ads)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -99,7 +98,8 @@ dependencies {
     implementation(libs.supabase.storage)
     implementation(libs.supabase.realtime)
     // Ktor
-    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.okhttp)
+    //implementation(libs.ktor.client.android)
 
     //auth gg
     implementation("androidx.credentials:credentials:1.6.0-rc01")
