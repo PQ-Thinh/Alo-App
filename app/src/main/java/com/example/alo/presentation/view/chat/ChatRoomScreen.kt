@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
+import com.example.alo.presentation.view.component.TypingIndicatorBubble
 import com.example.alo.presentation.view.utils.formatMessageTime
 import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
@@ -49,6 +50,8 @@ fun ChatRoomScreen(
     val partnerAvatar by viewModel.partnerAvatar.collectAsState()
 
     val listState = rememberLazyListState()
+    var activeReactionMessageId by remember { mutableStateOf<String?>(null) }
+    val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -115,10 +118,17 @@ fun ChatRoomScreen(
             reverseLayout = true,
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+            if (isPartnerTyping) {
+                item {
+                    TypingIndicatorBubble(partnerAvatar = partnerAvatar, partnerName = partnerName)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
             items(
                 count = messages.size,
                 key = { index -> messages[index].id }
             ) { index ->
+
                 val message = messages[index]
                 val isMine = message.senderId == currentUserId
 
@@ -166,14 +176,20 @@ fun ChatRoomScreen(
                         partnerName = partnerName,
                         showAvatar = isLastInGroup,
                         showTime = showSmallTime,
-                        showReactionBar = false,
-                        onMessageClick = {},
-                        onReactionSelect = {}
+                        showReactionBar = activeReactionMessageId == message.id,
+                        onMessageClick = {
+                            activeReactionMessageId = if (activeReactionMessageId == message.id) null else message.id
+                        },
+                       onReactionSelect = { emoji ->
+                            viewModel.addReaction(message.id, emoji)
+                            activeReactionMessageId = null
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
                 }
             }
+
         }
     }
 }
@@ -350,6 +366,33 @@ fun ChatBottomBar(
                 colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Send, contentDescription = "Gửi")
+            }
+        }
+    }
+}
+@Composable
+fun ReactionBar(
+    onReactionSelected: (String) -> Unit
+) {
+    // Danh sách các icon cảm xúc
+    val reactions = listOf("❤️", "👍", "😆", "😮", "😢", "😡")
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp, // Đổ bóng nhẹ cho thanh cảm xúc nổi lên
+        modifier = Modifier.padding(bottom = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            reactions.forEach { emoji ->
+                Text(
+                    text = emoji,
+                    fontSize = 24.sp,
+                    modifier = Modifier.clickable { onReactionSelected(emoji) }
+                )
             }
         }
     }

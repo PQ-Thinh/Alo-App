@@ -2,6 +2,7 @@ package com.example.alo.data.repository
 
 import android.util.Log
 import com.example.alo.data.remote.dto.MessageDto
+import com.example.alo.data.utils.TypingPayload
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.MessageRepository
 import io.github.jan.supabase.SupabaseClient
@@ -13,6 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.broadcast
+import io.github.jan.supabase.realtime.broadcastFlow
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
@@ -25,6 +29,8 @@ import kotlinx.coroutines.flow.callbackFlow
 class MessageRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : MessageRepository {
+
+    private var activeChannel: RealtimeChannel? = null
 
     override suspend fun getMessages(conversationId: String): List<Message> {
         return try {
@@ -80,33 +86,29 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun subscribeToNewMessages(conversationId: String): Flow<Message> = callbackFlow {
 
-//        val globalStatusJob = launch {
-//            supabaseClient.realtime.status.collect { status ->
-//                Log.e("REALTIME_TEST", "Trạng thái MẠNG TỔNG (WebSocket): $status")
-//            }
-//        }
+    override fun subscribeToNewMessages(conversationId: String, onTyping: (String) -> Unit): Flow<Message> = callbackFlow {
 
         supabaseClient.realtime.connect()
 
-        val channel = supabaseClient.channel("chat_room_updates_$conversationId")
+        val channel = supabaseClient.channel("chat_room_updates_$conversationId"){
+            broadcast {
+                receiveOwnBroadcasts = false
+            }
+        }
+        activeChannel = channel
 
         val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "messages"
             filter("conversation_id", FilterOperator.EQ, conversationId)
         }
 
-//        val channelStatusJob = launch {
-//            channel.status.collect { status ->
-//                Log.e("REALTIME_TEST", "Trạng thái KÊNH CHAT: $status")
-//            }
-//        }
 
         val updateFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
             table = "messages"
             filter("conversation_id", FilterOperator.EQ, conversationId)
         }
+        val typingFlow = channel.broadcastFlow<TypingPayload>(event = "typing")
 
         val job = launch {
             insertFlow.collect { action ->
@@ -129,13 +131,18 @@ class MessageRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {}
             }
         }
+        val jobTyping = launch {
+            typingFlow.collect { payload ->
+                onTyping(payload.user_id)
+            }
+        }
+
         channel.subscribe()
 
         awaitClose {
-//            globalStatusJob.cancel()
-//            channelStatusJob.cancel()
             job.cancel()
             jobUpdate.cancel()
+            jobTyping.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
@@ -155,6 +162,14 @@ class MessageRepositoryImpl @Inject constructor(
             supabaseClient.postgrest.rpc("mark_message_seen", params)
         } catch (e: Exception) {
             Log.e("MessageRepo", "Lỗi mark as seen: ${e.message}")
+        }
+    }
+
+    override suspend fun sendTypingEvent(conversationId: String, userId: String) {
+        try {
+            activeChannel?.broadcast(event = "typing", message = TypingPayload(userId))
+        } catch (e: Exception) {
+            Log.e("MessageRepo", "Lỗi gửi typing: ${e.message}")
         }
     }
 }

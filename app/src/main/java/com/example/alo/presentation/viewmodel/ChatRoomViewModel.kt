@@ -9,6 +9,8 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.MessageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +44,12 @@ class ChatRoomViewModel @Inject constructor(
     private val _partnerAvatar = MutableStateFlow("")
     val partnerAvatar: StateFlow<String> = _partnerAvatar.asStateFlow()
 
+    private val _isPartnerTyping = MutableStateFlow(false)
+    val isPartnerTyping: StateFlow<Boolean> = _isPartnerTyping.asStateFlow()
+
+    private var typingJob: Job? = null
+    private var lastTypingTime = 0L
+
     init {
         initializeChatRoom()
     }
@@ -74,7 +82,18 @@ class ChatRoomViewModel @Inject constructor(
                     }
                 }
             }
-            messageRepository.subscribeToNewMessages(conversationId).collect { newMessage ->
+            messageRepository.subscribeToNewMessages(conversationId
+            , onTyping = { typingUserId ->
+                    if (typingUserId != _currentUserId.value) {
+                        typingJob?.cancel()
+                        typingJob = viewModelScope.launch {
+                            _isPartnerTyping.value = true
+                            delay(3000) //
+                            _isPartnerTyping.value = false
+                        }
+                    }
+                }
+                ).collect { newMessage ->
                 if (newMessage.senderId != user?.id && !newMessage.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
                         messageRepository.markMessageAsSeen(newMessage.id, user!!.id)
@@ -94,6 +113,13 @@ class ChatRoomViewModel @Inject constructor(
 
     fun onMessageTextChanged(text: String) {
         _messageText.value = text
+        val currentTime = System.currentTimeMillis()
+        if (text.isNotEmpty() && (currentTime - lastTypingTime > 2000)) {
+            lastTypingTime = currentTime
+            viewModelScope.launch {
+                messageRepository.sendTypingEvent(conversationId, _currentUserId.value)
+            }
+        }
     }
 
     fun sendMessage() {
@@ -106,6 +132,14 @@ class ChatRoomViewModel @Inject constructor(
 
         viewModelScope.launch {
             messageRepository.sendMessage(conversationId, senderId, content)
+        }
+    }
+    fun addReaction(messageId: String, reactionIcon: String) {
+        viewModelScope.launch {
+            val userId = _currentUserId.value
+            if (userId.isNotEmpty()) {
+                messageRepository.addReaction(messageId, userId, reactionIcon)
+            }
         }
     }
 }
