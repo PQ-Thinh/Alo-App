@@ -89,7 +89,22 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
-
+    fun acceptFriendRequest(senderId: String) {
+        viewModelScope.launch {
+            val currentUserId = authRepository.getCurrentAuthUser()?.id ?: return@launch
+            _state.value = _state.value.copy(isLoading = true)
+            val success = friendRepository.acceptFriendRequest(senderId,currentUserId)
+            if (success) {
+                _state.value = _state.value.copy(successMessage = "Đã trở thành bạn bè!")
+                val updatedList = _state.value.searchResults.map {
+                    if (it.user.id == senderId) it.copy(relationStatus = "friends") else it
+                }
+                _state.value = _state.value.copy(searchResults = updatedList, isLoading = false)
+            } else {
+                _state.value = _state.value.copy(error = "Lỗi chấp nhận kết bạn", isLoading = false)
+            }
+        }
+    }
     // Hàm xóa thông báo (để UI gọi sau khi hiển thị Toast)
     fun clearMessages() {
         _state.update { it.copy(error = null, successMessage = null) }

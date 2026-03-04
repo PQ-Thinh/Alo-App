@@ -50,7 +50,10 @@ fun DashboardScreen(
                 Box(modifier = if (isSearchActive) Modifier.fillMaxWidth() else Modifier.weight(1f)) {
                     SearchTopBar(
                         active = isSearchActive,
-                        onActiveChange = { isSearchActive = it }
+                        onActiveChange = { isSearchActive = it },
+                        onNavigateToChat = { conversationId ->
+                            onNavigateToChatRoom(conversationId)
+                        }
                     )
                 }
 

@@ -28,19 +28,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.alo.presentation.helper.UserSearchResult
 import com.example.alo.presentation.viewmodel.SearchViewModel
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.alo.presentation.viewmodel.ContactViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun SearchTopBar(
     active: Boolean,
     onActiveChange: (Boolean) -> Unit,
-    viewModel: SearchViewModel = hiltViewModel()
+    onNavigateToChat: (String) -> Unit,
+    viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-
     var query by remember { mutableStateOf("") }
 
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(state.error, state.successMessage) {
         state.error?.let {
@@ -53,60 +62,129 @@ fun SearchTopBar(
         }
     }
 
-    SearchBar(
-        query = query,
-        onQueryChange = {
-            query = it
-            viewModel.searchUsers(it)
-        },
-        onSearch = { viewModel.searchUsers(it) },
-        active = active,
-        onActiveChange = { onActiveChange(it) },
-        placeholder = { Text("Tìm kiếm...") },
-        leadingIcon = {
-            if (active) {
-                IconButton(onClick = {
-                    onActiveChange(false)
-                    query = ""
-                }) { Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại") }
-            } else {
-                Icon(Icons.Default.Search, contentDescription = "Tìm kiếm")
-            }
-        },
-        trailingIcon = {
-            if (active && query.isNotEmpty()) {
-                IconButton(onClick = { query = "" }) {
-                    Icon(Icons.Default.Close, contentDescription = "Xóa")
-                }
-            }
-        },
+    // ==========================================
+    // 1. THANH TÌM KIẾM "GIẢ" (KHI CHƯA ACTIVE)
+    // ==========================================
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = if (active) 0.dp else 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                onActiveChange(true)
+            }
     ) {
-        // --- VÙNG HIỂN THỊ KẾT QUẢ TÌM KIẾM ---
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp),
-                    color = Color(0xFF6C63FF)
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            placeholder = { Text("Tìm kiếm bạn bè...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Tìm kiếm") },
+            enabled = false,
+            singleLine = true,
+            shape = RoundedCornerShape(percent = 50),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledBorderColor = Color.Transparent,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    // ==========================================
+    // 2. MÀN HÌNH TÌM KIẾM "THẬT" (FULL SCREEN DIALOG)
+    // ==========================================
+    if (active) {
+        Dialog(
+            onDismissRequest = {
+                onActiveChange(false)
+                query = ""
+            },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .systemBarsPadding()
+                    .imePadding()
+            ) {
+                // THANH TÌM KIẾM ĐANG HOẠT ĐỘNG
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = {
+                        query = it
+                        viewModel.searchUsers(it)
+                    },
+                    placeholder = { Text("Tìm kiếm...") },
+                    leadingIcon = {
+                        IconButton(onClick = {
+                            onActiveChange(false)
+                            query = ""
+                        }) { Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại") }
+                    },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Xóa")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(percent = 50),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .focusRequester(focusRequester)
                 )
-            } else if (state.searchResults.isEmpty() && query.isNotEmpty() && !state.isLoading) {
-                Text(
-                    text = "Không tìm thấy người dùng nào",
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp),
-                    color = Color.Gray
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    items(state.searchResults, key = { it.user.id }) { result ->
-                        UserSearchResultItem(
-                            result = result,
-                            onAddFriendClick = { viewModel.sendFriendRequest(result.user.id) }
+
+                // VÙNG HIỂN THỊ KẾT QUẢ
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp),
+                            color = Color(0xFF6C63FF)
                         )
+                    } else if (state.searchResults.isEmpty() && query.isNotEmpty()) {
+                        Text(
+                            text = "Không tìm thấy người dùng nào",
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp),
+                            color = Color.Gray
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            items(state.searchResults, key = { it.user.id }) { result ->
+                                UserSearchResultItem(
+                                    result = result,
+                                    onAddFriendClick = { viewModel.sendFriendRequest(result.user.id) },
+                                    onAcceptFriendClick = { viewModel.acceptFriendRequest(result.user.id) },
+                                    onMessageClick = {
+                                        onActiveChange(false)
+                                        onNavigateToChat(result.user.id)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -117,12 +195,15 @@ fun SearchTopBar(
 @Composable
 fun UserSearchResultItem(
     result: UserSearchResult,
-    onAddFriendClick: () -> Unit
+    onAddFriendClick: () -> Unit,
+    onAcceptFriendClick: () -> Unit,
+    onMessageClick: () -> Unit
 ) {
     val user = result.user
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onMessageClick() }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -194,14 +275,15 @@ fun UserSearchResultItem(
             }
             "request_received" -> {
                 Button(
-                    onClick = { /* Xử lý chấp nhận kết bạn sau */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Màu xanh lá
+                    onClick = onAcceptFriendClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text("Chấp nhận", fontSize = 12.sp)
                 }
             }
             "friends" -> {
-                IconButton(onClick = { /* Chuyển sang màn hình chat 1-1 */ }) {
+                IconButton(onClick = onMessageClick) {
                     Icon(Icons.Default.Message, contentDescription = "Nhắn tin", tint = Color(0xFF6C63FF))
                 }
             }
