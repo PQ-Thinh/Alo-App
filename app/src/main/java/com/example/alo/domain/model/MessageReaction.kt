@@ -4,5 +4,6 @@ data class MessageReaction(
     val messageId: String,
     val userId: String,
     val reactionIcon: String,
-    val createdAt: String
+    val createdAt: String,
+    val count: Int
 )

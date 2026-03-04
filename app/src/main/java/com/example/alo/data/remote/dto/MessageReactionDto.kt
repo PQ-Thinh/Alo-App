@@ -9,7 +9,8 @@ data class MessageReactionDto(
     @SerialName("message_id") val messageId: String,
     @SerialName("user_id") val userId: String,
     @SerialName("reaction_icon") val reactionIcon: String,
-    @SerialName("created_at") val createdAt: String
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("count") val count: Int =1
 ) {
-    fun toDomain(): MessageReaction = MessageReaction(messageId, userId, reactionIcon, createdAt)
+    fun toDomain(): MessageReaction = MessageReaction(messageId, userId, reactionIcon, createdAt,count)
 }

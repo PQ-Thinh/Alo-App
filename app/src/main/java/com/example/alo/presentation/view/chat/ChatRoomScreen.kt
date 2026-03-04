@@ -270,10 +270,14 @@ fun MessageBubble(
                 ReactionBar(onReactionSelected = onReactionSelect)
             }
 
-            Box {
+            // Khai báo biến để check cho gọn và tái sử dụng
+            val hasReactions = message.reactions.isNotEmpty()
+
+            Box(
+                modifier = Modifier.padding(bottom = if (hasReactions) 14.dp else 0.dp)
+            ) {
                 Box(
                     modifier = Modifier
-                        .padding(bottom = if (message.reactions.isNotEmpty()) 10.dp else 0.dp)
                         .clip(
                             RoundedCornerShape(
                                 topStart = 16.dp,
@@ -289,7 +293,13 @@ fun MessageBubble(
                                 onLongPress = { onMessageLongClick() }
                             )
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .defaultMinSize(minWidth = if (hasReactions) 70.dp else 0.dp)
+                        .padding(
+                            start = 14.dp,
+                            end = 14.dp,
+                            top = 10.dp,
+                            bottom = if (hasReactions) 16.dp else 10.dp
+                        )
                         .widthIn(max = 260.dp)
                 ) {
                     Text(
@@ -299,35 +309,29 @@ fun MessageBubble(
                     )
                 }
 
-                if (message.reactions.isNotEmpty()) {
-                    val reactionCounts = message.reactions.groupingBy { it.reactionIcon }.eachCount()
+                // --- THANH CẢM XÚC ---
+                if (hasReactions) {
+                    val reactionCounts = message.reactions
+                        .groupBy { it.reactionIcon }
+                        .mapValues { entry -> entry.value.sumOf { it.count } }
+
                     val sortedIcons = reactionCounts.entries.sortedByDescending { it.value }.map { it.key }
                     val displayIcons = sortedIcons.take(2)
-                    val totalReactions = message.reactions.size
+                    val totalReactions = reactionCounts.values.sum()
 
                     Row(
                         modifier = Modifier
                             .align(if (isMine) Alignment.BottomStart else Alignment.BottomEnd)
-                            .offset(
-                                x = if (isMine) 8.dp else (-8).dp,
-                                y = (5).dp
-                            )
-                            .background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                            .offset(x = if (isMine) 10.dp else (-10).dp, y = 12.dp)
+                            .background(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
                             .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                            .clickable { /* TODO: Mở danh sách xem ai thả gì */ },
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                            .clickable { /* TODO: Mở danh sách chi tiết */ },
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         displayIcons.forEach { icon ->
-                            Text(
-                                text = icon,
-                                fontSize = 12.sp,
-                                modifier = Modifier.offset(y = (-1).dp)
-                            )
+                            Text(text = icon, fontSize = 12.sp, modifier = Modifier.offset(y = (-1).dp))
                         }
 
                         if (totalReactions > 1) {

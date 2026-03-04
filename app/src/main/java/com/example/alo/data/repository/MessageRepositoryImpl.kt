@@ -63,12 +63,12 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun addReaction(messageId: String, userId: String, reactionIcon: String) {
         try {
-            val reactionBody = mapOf(
-                "message_id" to messageId,
-                "user_id" to userId,
-                "reaction_icon" to reactionIcon
+            val params = mapOf(
+                "p_message_id" to messageId,
+                "p_user_id" to userId,
+                "p_icon" to reactionIcon
             )
-            supabaseClient.postgrest["message_reactions"].upsert(reactionBody)
+            supabaseClient.postgrest.rpc("add_message_reaction", params)
         } catch (e: Exception) {
             Log.e("MessageRepo", "Lỗi thả cảm xúc: ${e.message}")
         }
@@ -127,9 +127,21 @@ class MessageRepositoryImpl @Inject constructor(
         val jobUpdate = launch {
             updateFlow.collect { action ->
                 try {
-                    val msg = action.decodeRecord<MessageDto>().toDomain()
-                    send(msg)
-                } catch (e: Exception) {}
+                    val rawMsg = action.decodeRecord<MessageDto>()
+                    val dtos = supabaseClient.postgrest["messages"]
+                        .select(columns = Columns.raw("*, message_reactions(*)")) {
+                            filter { eq("id", rawMsg.id) }
+                        }
+                        .decodeList<MessageDto>()
+
+                    val fullUpdatedMsg = dtos.firstOrNull()?.toDomain()
+
+                    if (fullUpdatedMsg != null) {
+                        send(fullUpdatedMsg)
+                    }
+                } catch (e: Exception) {
+                    Log.e("MessageRepo", "Lỗi fetch tin nhắn update realtime: ${e.message}")
+                }
             }
         }
         val jobTyping = launch {
