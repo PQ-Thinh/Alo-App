@@ -12,4 +12,5 @@ interface MessageRepository {
     suspend fun markMessageAsSeen(messageId: String, userId: String)
     suspend fun sendTypingEvent(conversationId: String, userId: String)
 
+
 }

@@ -23,7 +23,6 @@ class MainActivity : ComponentActivity() {
         splashScreen.setKeepOnScreenCondition {
             splashViewModel.isLoading.value
         }
-
         setContent {
             AloTheme {
                 val startDestination by splashViewModel.startDestination.collectAsState()

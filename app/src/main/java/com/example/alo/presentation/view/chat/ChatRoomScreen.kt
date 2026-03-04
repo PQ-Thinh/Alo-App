@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,10 +53,16 @@ fun ChatRoomScreen(
 
     val listState = rememberLazyListState()
     var activeReactionMessageId by remember { mutableStateOf<String?>(null) }
+    var activeDetailsMessageId by remember { mutableStateOf<String?>(null) }
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
+    LaunchedEffect(isPartnerTyping) {
+        if (isPartnerTyping) {
             listState.animateScrollToItem(0)
         }
     }
@@ -114,9 +122,10 @@ fun ChatRoomScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 22.dp)
+            ,
             reverseLayout = true,
-            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             if (isPartnerTyping) {
                 item {
@@ -177,10 +186,17 @@ fun ChatRoomScreen(
                         showAvatar = isLastInGroup,
                         showTime = showSmallTime,
                         showReactionBar = activeReactionMessageId == message.id,
+                        showDetails = activeDetailsMessageId == message.id,
                         onMessageClick = {
+                            activeReactionMessageId = null
+                            activeDetailsMessageId = if (activeDetailsMessageId == message.id) null else message.id
+                        },
+                        onMessageLongClick = {
+                            activeDetailsMessageId = null
                             activeReactionMessageId = if (activeReactionMessageId == message.id) null else message.id
                         },
-                       onReactionSelect = { emoji ->
+
+                        onReactionSelect = { emoji ->
                             viewModel.addReaction(message.id, emoji)
                             activeReactionMessageId = null
                         }
@@ -202,8 +218,10 @@ fun MessageBubble(
     partnerName: String,
     showAvatar: Boolean,
     showTime: Boolean,
+    showDetails: Boolean,
     showReactionBar: Boolean,
     onMessageClick: () -> Unit,
+    onMessageLongClick: () -> Unit,
     onReactionSelect: (String) -> Unit
 ) {
     Row(
@@ -263,7 +281,14 @@ fun MessageBubble(
                         )
                     )
                     .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { onMessageClick() }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onMessageClick() },
+                            onLongPress = {
+                                onMessageLongClick()
+                            }
+                        )
+                    }
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .widthIn(max = 260.dp)
             ) {
@@ -275,7 +300,7 @@ fun MessageBubble(
             }
 
             AnimatedVisibility(
-                visible = showReactionBar,
+                visible = showDetails,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { -10 }),
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { -10 })
             ) {
@@ -349,6 +374,7 @@ fun ChatBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp)
+                .imePadding()
                 .navigationBarsPadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -374,7 +400,6 @@ fun ChatBottomBar(
 fun ReactionBar(
     onReactionSelected: (String) -> Unit
 ) {
-    // Danh sách các icon cảm xúc
     val reactions = listOf("❤️", "👍", "😆", "😮", "😢", "😡")
 
     Surface(
