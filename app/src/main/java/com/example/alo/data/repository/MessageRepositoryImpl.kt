@@ -8,6 +8,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -81,14 +82,12 @@ class MessageRepositoryImpl @Inject constructor(
 
     override fun subscribeToNewMessages(conversationId: String): Flow<Message> = callbackFlow {
 
-        // --- BỔ SUNG 1: Theo dõi trạng thái MẠNG TỔNG của Supabase ---
-        val globalStatusJob = launch {
-            supabaseClient.realtime.status.collect { status ->
-                Log.e("REALTIME_TEST", "Trạng thái MẠNG TỔNG (WebSocket): $status")
-            }
-        }
+//        val globalStatusJob = launch {
+//            supabaseClient.realtime.status.collect { status ->
+//                Log.e("REALTIME_TEST", "Trạng thái MẠNG TỔNG (WebSocket): $status")
+//            }
+//        }
 
-        // --- BỔ SUNG 2: Ép khởi động cổng WebSocket ---
         supabaseClient.realtime.connect()
 
         val channel = supabaseClient.channel("chat_room_updates_$conversationId")
@@ -98,11 +97,15 @@ class MessageRepositoryImpl @Inject constructor(
             filter("conversation_id", FilterOperator.EQ, conversationId)
         }
 
-        // --- BỔ SUNG 3: Theo dõi kênh con ---
-        val channelStatusJob = launch {
-            channel.status.collect { status ->
-                Log.e("REALTIME_TEST", "Trạng thái KÊNH CHAT: $status")
-            }
+//        val channelStatusJob = launch {
+//            channel.status.collect { status ->
+//                Log.e("REALTIME_TEST", "Trạng thái KÊNH CHAT: $status")
+//            }
+//        }
+
+        val updateFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "messages"
+            filter("conversation_id", FilterOperator.EQ, conversationId)
         }
 
         val job = launch {
@@ -118,13 +121,21 @@ class MessageRepositoryImpl @Inject constructor(
                 }
             }
         }
-
+        val jobUpdate = launch {
+            updateFlow.collect { action ->
+                try {
+                    val msg = action.decodeRecord<MessageDto>().toDomain()
+                    send(msg)
+                } catch (e: Exception) {}
+            }
+        }
         channel.subscribe()
 
         awaitClose {
-            globalStatusJob.cancel()
-            channelStatusJob.cancel()
+//            globalStatusJob.cancel()
+//            channelStatusJob.cancel()
             job.cancel()
+            jobUpdate.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
@@ -132,6 +143,18 @@ class MessageRepositoryImpl @Inject constructor(
                     Log.e("MessageRepo", "Lỗi khi đóng channel: ${e.message}")
                 }
             }
+        }
+    }
+
+    override suspend fun markMessageAsSeen(messageId: String, userId: String) {
+        try {
+            val params = mapOf(
+                "p_message_id" to messageId,
+                "p_user_id" to userId
+            )
+            supabaseClient.postgrest.rpc("mark_message_seen", params)
+        } catch (e: Exception) {
+            Log.e("MessageRepo", "Lỗi mark as seen: ${e.message}")
         }
     }
 }

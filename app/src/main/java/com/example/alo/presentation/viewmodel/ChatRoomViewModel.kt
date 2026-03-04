@@ -12,10 +12,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update // <--- Import quan trọng để ép StateFlow cập nhật
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Instant // Dùng để lấy thời gian hiện tại
-import java.util.UUID // Dùng để tạo ID tạm
+
 import javax.inject.Inject
 
 @HiltViewModel
@@ -68,11 +67,22 @@ class ChatRoomViewModel @Inject constructor(
             val historyMessages = messageRepository.getMessages(conversationId)
             _messages.value = historyMessages
 
+            historyMessages.forEach { msg ->
+                if (msg.senderId != user?.id && !msg.seenBy.contains(user?.id)) {
+                    viewModelScope.launch {
+                        messageRepository.markMessageAsSeen(msg.id, user!!.id)
+                    }
+                }
+            }
             messageRepository.subscribeToNewMessages(conversationId).collect { newMessage ->
-                Log.d("REALTIME_TEST", "3. ViewModel đã nhận được tin: ${newMessage.encryptedContent}")
+                if (newMessage.senderId != user?.id && !newMessage.seenBy.contains(user?.id)) {
+                    viewModelScope.launch {
+                        messageRepository.markMessageAsSeen(newMessage.id, user!!.id)
+                    }
+                }
+
                 _messages.update { currentList ->
                     if (currentList.none { it.id == newMessage.id }) {
-                        Log.d("REALTIME_TEST", "4. Đang chèn tin mới vào UI...")
                         listOf(newMessage) + currentList
                     } else {
                         currentList.map { if (it.id == newMessage.id) newMessage else it }
@@ -91,24 +101,6 @@ class ChatRoomViewModel @Inject constructor(
         val senderId = _currentUserId.value
 
         if (content.isEmpty() || senderId.isEmpty()) return
-
-        val tempMessageId = UUID.randomUUID().toString()
-        val tempMessage = Message(
-            id = tempMessageId,
-            conversationId = conversationId,
-            senderId = senderId,
-            replyToId = null,
-            encryptedContent = content,
-            messageType = "text",
-            isEdited = false,
-            seenBy = emptyList(),
-            createdAt = Instant.now().toString(),
-            deletedAt = null
-        )
-
-        _messages.update { currentList ->
-            listOf(tempMessage) + currentList
-        }
 
         _messageText.value = ""
 

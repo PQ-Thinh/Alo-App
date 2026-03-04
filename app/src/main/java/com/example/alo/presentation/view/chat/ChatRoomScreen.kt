@@ -1,9 +1,14 @@
 package com.example.alo.presentation.view.chat
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -160,7 +165,10 @@ fun ChatRoomScreen(
                         partnerAvatar = partnerAvatar,
                         partnerName = partnerName,
                         showAvatar = isLastInGroup,
-                        showTime = showSmallTime
+                        showTime = showSmallTime,
+                        showReactionBar = false,
+                        onMessageClick = {},
+                        onReactionSelect = {}
                     )
 
                     Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
@@ -177,7 +185,10 @@ fun MessageBubble(
     partnerAvatar: String,
     partnerName: String,
     showAvatar: Boolean,
-    showTime: Boolean
+    showTime: Boolean,
+    showReactionBar: Boolean,
+    onMessageClick: () -> Unit,
+    onReactionSelect: (String) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -215,6 +226,16 @@ fun MessageBubble(
         Column(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
+            // 1. VẼ THANH CẢM XÚC (TRƯỢT TỪ TRÊN XUỐNG)
+            AnimatedVisibility(
+                visible = showReactionBar,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { 20 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { 20 })
+            ) {
+                ReactionBar(onReactionSelected = onReactionSelect)
+            }
+
+            // 2. BONG BÓNG TIN NHẮN (CÓ THỂ CLICK)
             Box(
                 modifier = Modifier
                     .clip(
@@ -226,6 +247,7 @@ fun MessageBubble(
                         )
                     )
                     .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onMessageClick() }
                     .padding(horizontal = 14.dp, vertical = 10.dp)
                     .widthIn(max = 260.dp)
             ) {
@@ -236,7 +258,59 @@ fun MessageBubble(
                 )
             }
 
-            if (showTime) {
+            AnimatedVisibility(
+                visible = showReactionBar,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -10 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -10 })
+            ) {
+                Row(
+                    modifier = Modifier.padding(top = 4.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Giờ gửi chi tiết
+                    Text(
+                        text = formatMessageTime(message.createdAt),
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+
+                    // Kiểm tra trạng thái đã xem (Chỉ áp dụng cho tin nhắn mình gửi)
+                    if (isMine) {
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        if (message.seenBy.isNotEmpty()) {
+
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (partnerAvatar.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = partnerAvatar,
+                                        contentDescription = "Seen Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = partnerName.firstOrNull()?.uppercase() ?: "?",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(text = "Đã nhận", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+
+            if (showTime && !showReactionBar) {
                 Text(
                     text = formatMessageTime(message.createdAt),
                     fontSize = 11.sp,

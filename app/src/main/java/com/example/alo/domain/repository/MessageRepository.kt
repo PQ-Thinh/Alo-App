@@ -9,4 +9,5 @@ interface MessageRepository {
     suspend fun addReaction(messageId: String, userId: String, reactionIcon: String)
     suspend fun removeReaction(messageId: String, userId: String)
     fun subscribeToNewMessages(conversationId: String): Flow<Message>
+    suspend fun markMessageAsSeen(messageId: String, userId: String)
 }
