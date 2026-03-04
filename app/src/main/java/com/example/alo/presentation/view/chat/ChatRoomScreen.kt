@@ -258,34 +258,6 @@ fun MessageBubble(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        if (message.reactions.isNotEmpty()) {
-            // Gom nhóm để đếm số lượng từng loại icon (VD: 2 ❤️, 1 👍)
-            val reactionCounts = message.reactions.groupingBy { it.reactionIcon }.eachCount()
-
-            Row(
-                modifier = Modifier
-                    // Đẩy Row này lùi lên trên đè vào viền tin nhắn một chút cho đẹp
-                    .offset(y = (-8).dp, x = if (isMine) (-12).dp else 12.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    // Hỗ trợ click để xem ai thả (tính năng mở rộng sau này)
-                    .clickable { /* Mở BottomSheet xem chi tiết người thả */ },
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                reactionCounts.forEach { (icon, count) ->
-                    Text(
-                        text = if (count > 1) "$icon $count" else icon,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-
         Column(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
@@ -298,34 +270,79 @@ fun MessageBubble(
                 ReactionBar(onReactionSelected = onReactionSelect)
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 16.dp,
-                            topEnd = 16.dp,
-                            bottomStart = if (isMine || !showAvatar) 16.dp else 4.dp,
-                            bottomEnd = if (!isMine || !showAvatar) 16.dp else 4.dp
+            Box {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = if (message.reactions.isNotEmpty()) 10.dp else 0.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                                bottomStart = if (isMine || !showAvatar) 16.dp else 4.dp,
+                                bottomEnd = if (!isMine || !showAvatar) 16.dp else 4.dp
+                            )
                         )
+                        .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { onMessageClick() },
+                                onLongPress = { onMessageLongClick() }
+                            )
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .widthIn(max = 260.dp)
+                ) {
+                    Text(
+                        text = message.encryptedContent,
+                        color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 15.sp
                     )
-                    .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { onMessageClick() },
-                            onLongPress = {
-                                onMessageLongClick()
-                            }
-                        )
+                }
+
+                if (message.reactions.isNotEmpty()) {
+                    val reactionCounts = message.reactions.groupingBy { it.reactionIcon }.eachCount()
+                    val sortedIcons = reactionCounts.entries.sortedByDescending { it.value }.map { it.key }
+                    val displayIcons = sortedIcons.take(2)
+                    val totalReactions = message.reactions.size
+
+                    Row(
+                        modifier = Modifier
+                            .align(if (isMine) Alignment.BottomStart else Alignment.BottomEnd)
+                            .offset(
+                                x = if (isMine) 8.dp else (-8).dp,
+                                y = (5).dp
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .clickable { /* TODO: Mở danh sách xem ai thả gì */ },
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        displayIcons.forEach { icon ->
+                            Text(
+                                text = icon,
+                                fontSize = 12.sp,
+                                modifier = Modifier.offset(y = (-1).dp)
+                            )
+                        }
+
+                        if (totalReactions > 1) {
+                            Text(
+                                text = totalReactions.toString(),
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 2.dp)
+                            )
+                        }
                     }
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-                    .widthIn(max = 260.dp)
-            ) {
-                Text(
-                    text = message.encryptedContent,
-                    color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 15.sp
-                )
+                }
             }
+
 
             AnimatedVisibility(
                 visible = showDetails,
