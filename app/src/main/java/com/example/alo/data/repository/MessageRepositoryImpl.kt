@@ -7,6 +7,7 @@ import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.MessageRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
@@ -35,7 +36,7 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun getMessages(conversationId: String): List<Message> {
         return try {
             val dtos = supabaseClient.postgrest["messages"]
-                .select {
+                .select(columns = Columns.raw("*, message_reactions(*)")) {
                     filter { eq("conversation_id", conversationId) }
                     order("created_at", order = Order.DESCENDING)
                 }

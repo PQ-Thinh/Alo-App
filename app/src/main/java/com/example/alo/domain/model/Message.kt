@@ -10,5 +10,6 @@ data class Message(
     val isEdited: Boolean,
     val seenBy: List<String>,
     val createdAt: String,
-    val deletedAt: String?
+    val deletedAt: String?,
+    val reactions: List<MessageReaction> = emptyList()
 )

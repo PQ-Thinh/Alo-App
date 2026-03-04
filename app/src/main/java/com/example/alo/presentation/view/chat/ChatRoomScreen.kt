@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -257,6 +258,34 @@ fun MessageBubble(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
+        if (message.reactions.isNotEmpty()) {
+            // Gom nhóm để đếm số lượng từng loại icon (VD: 2 ❤️, 1 👍)
+            val reactionCounts = message.reactions.groupingBy { it.reactionIcon }.eachCount()
+
+            Row(
+                modifier = Modifier
+                    // Đẩy Row này lùi lên trên đè vào viền tin nhắn một chút cho đẹp
+                    .offset(y = (-8).dp, x = if (isMine) (-12).dp else 12.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    // Hỗ trợ click để xem ai thả (tính năng mở rộng sau này)
+                    .clickable { /* Mở BottomSheet xem chi tiết người thả */ },
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                reactionCounts.forEach { (icon, count) ->
+                    Text(
+                        text = if (count > 1) "$icon $count" else icon,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
         Column(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
@@ -269,7 +298,6 @@ fun MessageBubble(
                 ReactionBar(onReactionSelected = onReactionSelect)
             }
 
-            // 2. BONG BÓNG TIN NHẮN (CÓ THỂ CLICK)
             Box(
                 modifier = Modifier
                     .clip(
