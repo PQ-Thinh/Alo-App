@@ -61,6 +61,13 @@ fun SearchTopBar(
             viewModel.clearMessages()
         }
     }
+    LaunchedEffect(state.navigateToConversationId) {
+        state.navigateToConversationId?.let { convId ->
+            onActiveChange(false)
+            onNavigateToChat(convId)
+            viewModel.resetNavigation()
+        }
+    }
 
     // ==========================================
     // 1. THANH TÌM KIẾM "GIẢ" (KHI CHƯA ACTIVE)
@@ -179,8 +186,8 @@ fun SearchTopBar(
                                     onAddFriendClick = { viewModel.sendFriendRequest(result.user.id) },
                                     onAcceptFriendClick = { viewModel.acceptFriendRequest(result.user.id) },
                                     onMessageClick = {
-                                        onActiveChange(false)
-                                        onNavigateToChat(result.user.id)
+
+                                        viewModel.getOrCreateChatAndNavigate(result.user.id)
                                     }
                                 )
                             }

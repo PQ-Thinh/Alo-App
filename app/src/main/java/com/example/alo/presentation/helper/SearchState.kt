@@ -4,5 +4,6 @@ data class SearchState(
     val isLoading: Boolean = false,
     val searchResults: List<UserSearchResult> = emptyList(),
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val navigateToConversationId: String? = null
 )

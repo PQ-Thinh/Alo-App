@@ -3,6 +3,7 @@ package com.example.alo.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
+import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.helper.SearchState
@@ -19,11 +20,13 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val friendRepository: FriendRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val conversationRepository: ConversationRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchState())
     val state: StateFlow<SearchState> = _state.asStateFlow()
+
 
     // Hàm thực hiện tìm kiếm
     fun searchUsers(query: String) {
@@ -104,6 +107,24 @@ class SearchViewModel @Inject constructor(
                 _state.value = _state.value.copy(error = "Lỗi chấp nhận kết bạn", isLoading = false)
             }
         }
+    }
+    fun getOrCreateChatAndNavigate(targetUserId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
+            val currentId = authRepository.getCurrentAuthUser()?.id ?: return@launch
+
+            val convId = conversationRepository.getOrCreateDirectConversation(targetUserId,currentId)
+
+            if (convId != null) {
+                _state.update { it.copy(isLoading = false, navigateToConversationId = convId) }
+            } else {
+                _state.update { it.copy(isLoading = false, error = "Không thể tạo phòng chat") }
+            }
+        }
+    }
+    fun resetNavigation() {
+        _state.update { it.copy(navigateToConversationId = null) }
     }
     // Hàm xóa thông báo (để UI gọi sau khi hiển thị Toast)
     fun clearMessages() {
