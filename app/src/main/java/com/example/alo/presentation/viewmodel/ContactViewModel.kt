@@ -25,9 +25,21 @@ class ContactViewModel @Inject constructor(
     val state: StateFlow<ContactState> = _state.asStateFlow()
 
     init {
-        fetchPendingRequests()
+        observeGlobalUpdates()
         fetchFriendsList()
     }
+
+    private fun observeGlobalUpdates(){
+        viewModelScope.launch {
+            val currentUser = authRepository.getCurrentAuthUser()
+            if (currentUser != null) {
+                friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collect {
+                    fetchPendingRequests()
+                }
+            }
+        }
+    }
+
 
     fun fetchPendingRequests() {
         viewModelScope.launch {

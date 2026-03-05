@@ -10,6 +10,16 @@ import com.example.alo.domain.repository.FriendRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class FriendRepositoryImpl @Inject constructor(
@@ -38,10 +48,11 @@ class FriendRepositoryImpl @Inject constructor(
             supabaseClient.postgrest["friend_requests"].insert(requestBody)
             true
         } catch (e: Exception) {
-         Log.e("FriendRepo", "Lỗi gửi lời mời: ${e.message}")
+            Log.e("FriendRepo", "Lỗi gửi lời mời: ${e.message}")
             false
         }
     }
+
     override suspend fun checkFriendStatus(
         currentUserId: String,
         targetUserId: String
@@ -69,13 +80,13 @@ class FriendRepositoryImpl @Inject constructor(
                     }
                 }.data
 
-             when {
+            when {
                 requestData.contains("\"sender_id\":\"$currentUserId\"") -> "request_sent"
                 requestData.contains("\"receiver_id\":\"$currentUserId\"") -> "request_received"
                 else -> "none"
             }
         } catch (e: Exception) {
-         Log.e("FriendRepo", "Lỗi check status: ${e.message}")
+            Log.e("FriendRepo", "Lỗi check status: ${e.message}")
             "none"
         }
     }
@@ -102,7 +113,7 @@ class FriendRepositoryImpl @Inject constructor(
 
             senders.map { it.toDomain() }
         } catch (e: Exception) {
-           Log.e("FriendRepo", "Lỗi lấy danh sách lời mời: ${e.message}")
+            Log.e("FriendRepo", "Lỗi lấy danh sách lời mời: ${e.message}")
             emptyList()
         }
     }
@@ -135,7 +146,7 @@ class FriendRepositoryImpl @Inject constructor(
             }
             true
         } catch (e: Exception) {
-           Log.e("FriendRepo", "Lỗi từ chối kết bạn: ${e.message}")
+            Log.e("FriendRepo", "Lỗi từ chối kết bạn: ${e.message}")
             false
         }
     }
@@ -167,10 +178,36 @@ class FriendRepositoryImpl @Inject constructor(
 
             friendsProfiles.map { it.toDomain() }
         } catch (e: Exception) {
-         Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
+            Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
             emptyList()
         }
     }
+    override fun subscribeToFriendReQuestListUpdates(receiverId: String): Flow<Unit> = callbackFlow {
+        val channel = supabaseClient.channel("friend_request_update_$receiverId")
 
+        val insertFriendRequestFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "friend_requests"
+        }
+
+        val job = launch {
+            insertFriendRequestFlow.collect {
+                trySend(Unit)
+            }
+        }
+
+        channel.subscribe()
+
+        awaitClose {
+            job.cancel()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    supabaseClient.realtime.removeChannel(channel)
+                } catch (e: Exception) {
+                    Log.e("FriendRepo", "Lỗi đóng channel: ${e.message}")
+                }
+            }
+        }
+
+    }
 
 }
