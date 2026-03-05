@@ -9,6 +9,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.FriendRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
@@ -183,22 +184,32 @@ class FriendRepositoryImpl @Inject constructor(
         }
     }
     override fun subscribeToFriendReQuestListUpdates(receiverId: String): Flow<Unit> = callbackFlow {
+        supabaseClient.realtime.connect()
+
         val channel = supabaseClient.channel("friend_request_update_$receiverId")
 
-        val insertFriendRequestFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+        val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "friend_requests"
+            filter("receiver_id", FilterOperator.EQ, receiverId)
         }
 
-        val job = launch {
-            insertFriendRequestFlow.collect {
-                trySend(Unit)
-            }
+        val updateFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "friend_requests"
+            filter("receiver_id", FilterOperator.EQ, receiverId)
         }
+
+        val deleteFlow = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
+            table = "friend_requests"
+            filter("receiver_id", FilterOperator.EQ, receiverId)
+        }
+
+        val jobInsert = launch { insertFlow.collect { trySend(Unit) } }
+        val jobUpdate = launch { updateFlow.collect { trySend(Unit) } }
+        val jobDelete = launch { deleteFlow.collect { trySend(Unit) } }
 
         channel.subscribe()
 
         awaitClose {
-            job.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
@@ -207,7 +218,48 @@ class FriendRepositoryImpl @Inject constructor(
                 }
             }
         }
+    }
+    override fun subscribeToFriendListUpdates(userId: String): Flow<Unit> = callbackFlow {
+        supabaseClient.realtime.connect()
 
+        val channel = supabaseClient.channel("friend_list_update_$userId")
+
+        // user_id_1 ---
+        val insertFlow1 = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "friends"
+            filter("user_id_1", FilterOperator.EQ, userId)
+        }
+        val deleteFlow1 = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
+            table = "friends"
+            filter("user_id_1", FilterOperator.EQ, userId)
+        }
+
+        //  user_id_2 ---
+        val insertFlow2 = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "friends"
+            filter("user_id_2", FilterOperator.EQ, userId)
+        }
+        val deleteFlow2 = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
+            table = "friends"
+            filter("user_id_2", FilterOperator.EQ, userId)
+        }
+
+        val jobInsert1 = launch { insertFlow1.collect { trySend(Unit) } }
+        val jobDelete1 = launch { deleteFlow1.collect { trySend(Unit) } }
+        val jobInsert2 = launch { insertFlow2.collect { trySend(Unit) } }
+        val jobDelete2 = launch { deleteFlow2.collect { trySend(Unit) } }
+
+        channel.subscribe()
+
+        awaitClose {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    supabaseClient.realtime.removeChannel(channel)
+                } catch (e: Exception) {
+                    Log.e("FriendRepo", "Lỗi đóng channel friend_list: ${e.message}")
+                }
+            }
+        }
     }
 
 }

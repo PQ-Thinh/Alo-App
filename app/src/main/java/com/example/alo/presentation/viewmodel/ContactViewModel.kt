@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,15 +26,17 @@ class ContactViewModel @Inject constructor(
     val state: StateFlow<ContactState> = _state.asStateFlow()
 
     init {
-        observeGlobalUpdates()
         fetchFriendsList()
+        observeGlobalUpdates()
+        observeFriendListUpdates()
+
     }
 
     private fun observeGlobalUpdates(){
         viewModelScope.launch {
             val currentUser = authRepository.getCurrentAuthUser()
             if (currentUser != null) {
-                friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collect {
+                friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collectLatest {
                     fetchPendingRequests()
                 }
             }
@@ -114,6 +117,17 @@ class ContactViewModel @Inject constructor(
                 _state.update { it.copy(friends = friends) }
             } catch (e: Exception) {
                 android.util.Log.e("ContactVM", "Lỗi tải bạn bè: ${e.message}")
+            }
+        }
+    }
+    private fun observeFriendListUpdates() {
+        viewModelScope.launch {
+            val currentUser = authRepository.getCurrentAuthUser()
+            if (currentUser != null) {
+                friendRepository.subscribeToFriendListUpdates(currentUser.id)
+                    .collectLatest {
+                        fetchFriendsList()
+                    }
             }
         }
     }

@@ -78,8 +78,7 @@ class ChatRoomViewModel @Inject constructor(
             historyMessages.forEach { msg ->
                 if (msg.senderId != user?.id && !msg.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
-                        messageRepository.markMessageAsSeen(msg.id, user!!.id)
-                    }
+                        user?.id?.let { uid -> messageRepository.markMessageAsSeen(msg.id, uid) }                    }
                 }
             }
             messageRepository.subscribeToNewMessages(conversationId

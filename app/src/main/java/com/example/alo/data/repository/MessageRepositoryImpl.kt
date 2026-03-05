@@ -89,7 +89,7 @@ class MessageRepositoryImpl @Inject constructor(
 
 
     override fun subscribeToNewMessages(conversationId: String, onTyping: (String) -> Unit): Flow<Message> = callbackFlow {
-
+        activeChannel?.unsubscribe()
         supabaseClient.realtime.connect()
 
         val channel = supabaseClient.channel("chat_room_updates_$conversationId"){

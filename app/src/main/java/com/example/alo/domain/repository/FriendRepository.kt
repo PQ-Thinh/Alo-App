@@ -13,5 +13,6 @@ interface FriendRepository {
     suspend fun declineFriendRequest(senderId: String, receiverId: String): Boolean
     suspend fun getFriendsList(currentUserId: String): List<User>
     fun subscribeToFriendReQuestListUpdates(receiverId: String): Flow<Unit>
+    fun subscribeToFriendListUpdates(userId: String): Flow<Unit>
 
 }
