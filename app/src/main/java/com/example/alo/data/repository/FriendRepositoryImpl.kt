@@ -41,12 +41,11 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun sendFriendRequest(senderId: String, receiverId: String): Boolean {
         return try {
-            val requestBody = mapOf(
-                "sender_id" to senderId,
-                "receiver_id" to receiverId,
-                "status" to "pending"
+            val params = mapOf(
+                "p_sender_id" to senderId,
+                "p_receiver_id" to receiverId
             )
-            supabaseClient.postgrest["friend_requests"].insert(requestBody)
+            supabaseClient.postgrest.rpc("upsert_friend_request", params)
             true
         } catch (e: Exception) {
             Log.e("FriendRepo", "Lỗi gửi lời mời: ${e.message}")
@@ -62,6 +61,7 @@ class FriendRepositoryImpl @Inject constructor(
             val friendsData = supabaseClient.postgrest["friends"]
                 .select {
                     filter {
+                        eq("status", "pending")
                         or {
                             and { eq("user_id_1", currentUserId); eq("user_id_2", targetUserId) }
                             and { eq("user_id_1", targetUserId); eq("user_id_2", currentUserId) }

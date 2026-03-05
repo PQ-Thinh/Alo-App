@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,6 +29,43 @@ class SearchViewModel @Inject constructor(
     val state: StateFlow<SearchState> = _state.asStateFlow()
 
 
+    init {
+        observeGlobalUpdates()
+    }
+
+    private fun observeGlobalUpdates() {
+        viewModelScope.launch {
+            val currentUser = authRepository.getCurrentAuthUser()
+            if (currentUser != null) {
+                launch {
+                    friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collectLatest {
+                        refreshCurrentSearchResults()
+                    }
+                }
+                launch {
+                    friendRepository.subscribeToFriendListUpdates(currentUser.id).collectLatest {
+                        refreshCurrentSearchResults()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun refreshCurrentSearchResults() {
+        val currentList = _state.value.searchResults
+        if (currentList.isEmpty()) return
+
+        viewModelScope.launch {
+            val currentUserId = authRepository.getCurrentAuthUser()?.id ?: return@launch
+
+            val updatedList = currentList.map { item ->
+                val freshStatus = friendRepository.checkFriendStatus(currentUserId, item.user.id)
+                item.copy(relationStatus = freshStatus)
+            }
+
+            _state.update { it.copy(searchResults = updatedList) }
+        }
+    }
     // Hàm thực hiện tìm kiếm
     fun searchUsers(query: String) {
         if (query.isBlank()) {
