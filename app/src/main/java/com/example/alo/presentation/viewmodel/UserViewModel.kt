@@ -10,11 +10,13 @@ import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.ProfileSetupState
 import com.example.alo.presentation.helper.UserProfileState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Locale
@@ -118,14 +120,29 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             _profileState.value = UserProfileState.Loading
             try {
-                val authUser = authRepository.getCurrentAuthUser()?.id
+                val authUser = authRepository.getCurrentAuthUser()
 
                 if (authUser == null) {
                     _profileState.value = UserProfileState.Error("Bạn chưa đăng nhập!")
                     return@launch
                 }
-                val user = userRepository.getCurrentUser(authUser)
+
+                val user = userRepository.getCurrentUser(authUser.id)
+
                 if (user != null) {
+                    val isGoogleAccount = user.avatarId == "google_oauth_avatar"
+                    val latestGoogleAvatar = authUser.avatarUrl
+
+                    if (isGoogleAccount && latestGoogleAvatar != null && latestGoogleAvatar != user.avatarUrl) {
+                        val updateData = mapOf("avatar_url" to latestGoogleAvatar)
+                        val success = userRepository.updateProfile(user.id, updateData)
+
+                        if (success) {
+                            _profileState.value = UserProfileState.Success(user.copy(avatarUrl = latestGoogleAvatar))
+                            return@launch
+                        }
+                    }
+
                     _profileState.value = UserProfileState.Success(user)
                 } else {
                     _profileState.value = UserProfileState.Error("Không tìm thấy thông tin người dùng")
@@ -140,8 +157,11 @@ class UserViewModel @Inject constructor(
         bio: String,
         phone: String,
         birthday: String,
+        gender: Boolean?,
         newUsername: String,
-        newAvatarBytes: ByteArray?
+        newAvatarBytes: ByteArray?,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
     ) {
         viewModelScope.launch {
             val currentState = _profileState.value
@@ -151,12 +171,28 @@ class UserViewModel @Inject constructor(
             _profileState.value = UserProfileState.Loading
 
             try {
-                val updateData = mutableMapOf<String,String>(
+                val formattedBirthday = if (birthday.isNotBlank()) {
+                    try {
+                        val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val date = inputFormat.parse(birthday)
+                        outputFormat.format(date!!)
+                    } catch (e: Exception) {
+                        birthday // Fallback nếu lỗi format
+                    }
+                } else ""
+
+                val updateData = mutableMapOf<String, String>(
                     "display_name" to displayName,
                     "bio" to bio,
                     "phone" to phone,
-                    "birthday" to birthday
+                    "birthday" to formattedBirthday
                 )
+
+                // Lưu trạng thái giới tính vào Map
+                if (gender != null) {
+                    updateData["gender"] = gender.toString()
+                }
 
                 val isGoogleAccount = currentUser.avatarId == "google_oauth_avatar"
 
@@ -176,13 +212,15 @@ class UserViewModel @Inject constructor(
 
                 if (success) {
                     fetchCurrentUserProfile()
+                    withContext(Dispatchers.Main) { onSuccess() }
                 } else {
-                    _profileState.value = UserProfileState.Error("Cập nhật thất bại")
+                    fetchCurrentUserProfile()
+                    withContext(Dispatchers.Main) { onError("Cập nhật thất bại") }
                 }
             } catch (e: Exception) {
-                _profileState.value = UserProfileState.Error(e.message ?: "Lỗi không xác định")
+                fetchCurrentUserProfile()
+                withContext(Dispatchers.Main) { onError(e.message ?: "Lỗi không xác định") }
             }
         }
     }
-
 }
