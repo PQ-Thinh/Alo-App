@@ -189,85 +189,59 @@ class FriendRepositoryImpl @Inject constructor(
     }
     override fun subscribeToFriendReQuestListUpdates(receiverId: String): Flow<Unit> = callbackFlow {
         supabaseClient.realtime.connect()
-
         val channel = supabaseClient.channel("friend_request_update_$receiverId")
 
-        val insertFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+        val receiverFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friend_requests"
             filter("receiver_id", FilterOperator.EQ, receiverId)
         }
 
-        val updateFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+        val senderFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friend_requests"
-            filter("receiver_id", FilterOperator.EQ, receiverId)
+            filter("sender_id", FilterOperator.EQ, receiverId)
         }
 
-        val deleteFlow = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
-            table = "friend_requests"
-            filter("receiver_id", FilterOperator.EQ, receiverId)
-        }
-
-        val jobInsert = launch { insertFlow.collect { trySend(Unit) } }
-        val jobUpdate = launch { updateFlow.collect { trySend(Unit) } }
-        val jobDelete = launch { deleteFlow.collect { trySend(Unit) } }
+        val job1 = launch { receiverFlow.collect { trySend(Unit) } }
+        val job2 = launch { senderFlow.collect { trySend(Unit) } }
 
         channel.subscribe()
 
         awaitClose {
-            jobInsert.cancel()
-            jobUpdate.cancel()
-            jobDelete.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    Log.e("FriendRepo", "Lỗi đóng channel: ${e.message}")
+                    Log.e("FriendRepo", "Lỗi đóng channel friend_requests: ${e.message}")
                 }
             }
         }
     }
+
     override fun subscribeToFriendListUpdates(userId: String): Flow<Unit> = callbackFlow {
         supabaseClient.realtime.connect()
-
         val channel = supabaseClient.channel("friend_list_update_$userId")
 
-        // user_id_1 ---
-        val insertFlow1 = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "friends"
-            filter("user_id_1", FilterOperator.EQ, userId)
-        }
-        val deleteFlow1 = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
+        val flow1 = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friends"
             filter("user_id_1", FilterOperator.EQ, userId)
         }
 
-        //  user_id_2 ---
-        val insertFlow2 = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "friends"
-            filter("user_id_2", FilterOperator.EQ, userId)
-        }
-        val deleteFlow2 = channel.postgresChangeFlow<PostgresAction.Delete>(schema = "public") {
+        val flow2 = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friends"
             filter("user_id_2", FilterOperator.EQ, userId)
         }
 
-        val jobInsert1 = launch { insertFlow1.collect { trySend(Unit) } }
-        val jobDelete1 = launch { deleteFlow1.collect { trySend(Unit) } }
-        val jobInsert2 = launch { insertFlow2.collect { trySend(Unit) } }
-        val jobDelete2 = launch { deleteFlow2.collect { trySend(Unit) } }
+        val job1 = launch { flow1.collect { trySend(Unit) } }
+        val job2 = launch { flow2.collect { trySend(Unit) } }
 
         channel.subscribe()
 
         awaitClose {
-            jobInsert1.cancel()
-            jobDelete1.cancel()
-            jobInsert2.cancel()
-            jobDelete2.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    Log.e("FriendRepo", "Lỗi đóng channel friend_list: ${e.message}")
+                    Log.e("FriendRepo", "Lỗi đóng channel friends: ${e.message}")
                 }
             }
         }
