@@ -84,7 +84,7 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfile(
         userId: String,
-        updateData: Map<String, Any>
+        updateData: Map<String, String>
     ): Boolean {
         return try {
             supabaseClient.postgrest["users"].update(updateData) {

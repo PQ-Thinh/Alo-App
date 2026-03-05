@@ -23,7 +23,9 @@ sealed class Screen(val route: String) {
     object ChatRoom : Screen("chat_room_screen/{conversationId}") {
         fun createRoute(conversationId: String) = "chat_room_screen/$conversationId"
     }
-    object EditProfile : Screen("edit_profile")
+    object EditProfile : Screen("edit_profile/{userId}"){
+        fun createRoute(userId: String) = "edit_profile/$userId"
+    }
 }
 sealed class Graph(val route: String) {
     object Root : Graph("root_graph")

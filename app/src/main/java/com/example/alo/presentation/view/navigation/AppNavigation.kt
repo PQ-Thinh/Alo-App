@@ -79,20 +79,15 @@ fun AppNavigation(startDestination: String) {
         }
 
         composable(
-            route = Screen.Profile.route,
-            arguments = listOf(
-                navArgument("userId") { type = NavType.StringType }
-            )
-        ) {
-            ProfileScreen(
-                onNavigateToProfile = { userId ->
-                    navController.navigate(Screen.Profile.createRoute(userId))
-                },
-                onLogoutSuccess = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+            route = Screen.EditProfile.route,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+
+            val userViewModel: UserViewModel = hiltViewModel()
+            EditProfileScreen(
+                navController = navController,
+                userViewModel = userViewModel
             )
         }
 

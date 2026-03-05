@@ -135,5 +135,54 @@ class UserViewModel @Inject constructor(
             }
         }
     }
+    fun updateUserProfile(
+        displayName: String,
+        bio: String,
+        phone: String,
+        birthday: String,
+        newUsername: String,
+        newAvatarBytes: ByteArray?
+    ) {
+        viewModelScope.launch {
+            val currentState = _profileState.value
+            if (currentState !is UserProfileState.Success) return@launch
+
+            val currentUser = currentState.user
+            _profileState.value = UserProfileState.Loading
+
+            try {
+                val updateData = mutableMapOf<String,String>(
+                    "display_name" to displayName,
+                    "bio" to bio,
+                    "phone" to phone,
+                    "birthday" to birthday
+                )
+
+                val isGoogleAccount = currentUser.avatarId == "google_oauth_avatar"
+
+                if (!isGoogleAccount) {
+                    updateData["username"] = newUsername
+
+                    if (newAvatarBytes != null) {
+                        val uploadedUrl = userRepository.uploadAvatar(newAvatarBytes, "jpg")
+                        if (uploadedUrl.isNotBlank()) {
+                            updateData["avatar_url"] = uploadedUrl
+                            updateData["avatarid"] = uploadedUrl.substringAfterLast("/")
+                        }
+                    }
+                }
+
+                val success = userRepository.updateProfile(currentUser.id, updateData)
+
+                if (success) {
+                    fetchCurrentUserProfile()
+                } else {
+                    _profileState.value = UserProfileState.Error("Cập nhật thất bại")
+                }
+            } catch (e: Exception) {
+                _profileState.value = UserProfileState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
 
 }
