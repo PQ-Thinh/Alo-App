@@ -81,4 +81,19 @@ class UserRepositoryImpl @Inject constructor(
             emptyList()
         }
     }
+
+    override suspend fun updateProfile(
+        userId: String,
+        updateData: Map<String, Any>
+    ): Boolean {
+        return try {
+            supabaseClient.postgrest["users"].update(updateData) {
+                filter { eq("id", userId) }
+            }
+            true
+        } catch (e: Exception) {
+           Log.e("UserRepo", "Lỗi cập nhật Profile: ${e.message}")
+            false
+        }
+    }
 }

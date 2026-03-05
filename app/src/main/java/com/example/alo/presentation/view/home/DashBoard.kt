@@ -160,7 +160,9 @@ fun DashboardScreen(
                 )
                 2 -> ProfileScreen(
                     onNavigateToProfile = { userId ->
-                        onNavigateToProfile(userId)
+                        navController.navigate(Screen.EditProfile.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     },
                     onLogoutSuccess = {
                         navController.navigate(Screen.Login.route) {

@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,7 +17,9 @@ import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.chat.ChatRoomScreen
 import com.example.alo.presentation.view.home.DashboardScreen
+import com.example.alo.presentation.view.profile.EditProfileScreen
 import com.example.alo.presentation.view.profile.ProfileScreen
+import com.example.alo.presentation.viewmodel.UserViewModel
 
 @Composable
 fun AppNavigation(startDestination: String) {
@@ -114,6 +117,13 @@ fun AppNavigation(startDestination: String) {
         ) {
 
             ChatRoomScreen(navController = navController)
+        }
+        composable(Screen.EditProfile.route) {
+            val userViewModel: UserViewModel = hiltViewModel()
+            EditProfileScreen(
+                navController = navController,
+                userViewModel = userViewModel
+            )
         }
     }
 }
