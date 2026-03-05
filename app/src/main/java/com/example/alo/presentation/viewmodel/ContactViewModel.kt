@@ -27,16 +27,16 @@ class ContactViewModel @Inject constructor(
 
     init {
         fetchFriendsList()
+        fetchPendingRequests()
         observeGlobalUpdates()
         observeFriendListUpdates()
-
     }
 
     private fun observeGlobalUpdates(){
         viewModelScope.launch {
             val currentUser = authRepository.getCurrentAuthUser()
             if (currentUser != null) {
-                friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collectLatest {
+                friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collect {
                     fetchPendingRequests()
                 }
             }
@@ -125,7 +125,7 @@ class ContactViewModel @Inject constructor(
             val currentUser = authRepository.getCurrentAuthUser()
             if (currentUser != null) {
                 friendRepository.subscribeToFriendListUpdates(currentUser.id)
-                    .collectLatest {
+                    .collect {
                         fetchFriendsList()
                     }
             }

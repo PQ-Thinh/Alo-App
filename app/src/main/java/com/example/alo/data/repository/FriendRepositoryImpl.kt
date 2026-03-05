@@ -61,7 +61,7 @@ class FriendRepositoryImpl @Inject constructor(
             val friendsData = supabaseClient.postgrest["friends"]
                 .select {
                     filter {
-                        eq("status", "pending")
+                        //eq("status", "pending")
                         or {
                             and { eq("user_id_1", currentUserId); eq("user_id_2", targetUserId) }
                             and { eq("user_id_1", targetUserId); eq("user_id_2", currentUserId) }
