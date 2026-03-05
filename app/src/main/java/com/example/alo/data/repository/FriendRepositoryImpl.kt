@@ -187,39 +187,49 @@ class FriendRepositoryImpl @Inject constructor(
             emptyList()
         }
     }
-    override fun subscribeToFriendReQuestListUpdates(receiverId: String): Flow<Unit> = callbackFlow {
+    override fun subscribeToFriendReQuestListUpdates(userId: String): Flow<Unit> = callbackFlow {
         supabaseClient.realtime.connect()
-        val channel = supabaseClient.channel("friend_request_update_$receiverId")
+        val channelName = "friend_request_update_${userId.take(5)}_${System.currentTimeMillis()}"
+        val channel = supabaseClient.channel(channelName)
 
         val receiverFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friend_requests"
-            filter("receiver_id", FilterOperator.EQ, receiverId)
+            filter("receiver_id", FilterOperator.EQ, userId)
         }
 
         val senderFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friend_requests"
-            filter("sender_id", FilterOperator.EQ, receiverId)
+            filter("sender_id", FilterOperator.EQ, userId)
         }
 
-        val job1 = launch { receiverFlow.collect { trySend(Unit) } }
-        val job2 = launch { senderFlow.collect { trySend(Unit) } }
+        launch {
+            receiverFlow.collect {
+                trySend(Unit)
+            }
+        }
 
-        channel.subscribe()
+        launch {
+            senderFlow.collect {
+                trySend(Unit)
+            }
+        }
+
+        launch {
+            channel.subscribe(blockUntilSubscribed = true)
+        }
 
         awaitClose {
             CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    supabaseClient.realtime.removeChannel(channel)
-                } catch (e: Exception) {
-                    Log.e("FriendRepo", "Lỗi đóng channel friend_requests: ${e.message}")
-                }
+                supabaseClient.realtime.removeChannel(channel)
             }
         }
     }
 
+
     override fun subscribeToFriendListUpdates(userId: String): Flow<Unit> = callbackFlow {
         supabaseClient.realtime.connect()
-        val channel = supabaseClient.channel("friend_list_update_$userId")
+        val channelName = "friend_list_update_${userId.take(5)}_${System.currentTimeMillis()}"
+        val channel = supabaseClient.channel(channelName)
 
         val flow1 = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "friends"
@@ -231,17 +241,26 @@ class FriendRepositoryImpl @Inject constructor(
             filter("user_id_2", FilterOperator.EQ, userId)
         }
 
-        val job1 = launch { flow1.collect { trySend(Unit) } }
-        val job2 = launch { flow2.collect { trySend(Unit) } }
+        launch {
+            flow1.collect {
+                trySend(Unit)
+            }
+        }
+        launch {
+            flow2.collect {
+                trySend(Unit)
+            }
+        }
 
-        channel.subscribe()
+        launch {
+            channel.subscribe(blockUntilSubscribed = true)
+        }
 
         awaitClose {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    Log.e("FriendRepo", "Lỗi đóng channel friends: ${e.message}")
                 }
             }
         }

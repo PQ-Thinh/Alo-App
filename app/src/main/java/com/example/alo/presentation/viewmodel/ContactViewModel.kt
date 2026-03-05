@@ -26,11 +26,13 @@ class ContactViewModel @Inject constructor(
     private val _state = MutableStateFlow(ContactState())
     val state: StateFlow<ContactState> = _state.asStateFlow()
 
+
     init {
         fetchFriendsList()
         fetchPendingRequests()
-        observeGlobalUpdates()
         observeFriendListUpdates()
+        observeGlobalUpdates()
+
     }
 
     private fun observeGlobalUpdates(){
@@ -38,7 +40,6 @@ class ContactViewModel @Inject constructor(
             val currentUser = authRepository.getCurrentAuthUser()
             if (currentUser != null) {
                 friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collect {
-                    Log.d("RealtimeTest", "CÓ TÍN HIỆU REALTIME TỪ BẢNG FRIEND_REQUESTS!")
                     fetchPendingRequests()
                 }
             }
@@ -128,7 +129,6 @@ class ContactViewModel @Inject constructor(
             if (currentUser != null) {
                 friendRepository.subscribeToFriendListUpdates(currentUser.id)
                     .collect {
-                       Log.d("RealtimeTest", "CÓ TÍN HIỆU REALTIME TỪ BẢNG FRIENDS!")
                         fetchFriendsList()
                     }
             }
