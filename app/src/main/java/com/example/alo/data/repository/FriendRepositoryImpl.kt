@@ -61,7 +61,6 @@ class FriendRepositoryImpl @Inject constructor(
             val friendsData = supabaseClient.postgrest["friends"]
                 .select {
                     filter {
-                        //eq("status", "pending")
                         or {
                             and { eq("user_id_1", currentUserId); eq("user_id_2", targetUserId) }
                             and { eq("user_id_1", targetUserId); eq("user_id_2", currentUserId) }
@@ -74,16 +73,21 @@ class FriendRepositoryImpl @Inject constructor(
             val requestData = supabaseClient.postgrest["friend_requests"]
                 .select {
                     filter {
+                        eq("status", "pending")
                         or {
                             and { eq("sender_id", currentUserId); eq("receiver_id", targetUserId) }
                             and { eq("sender_id", targetUserId); eq("receiver_id", currentUserId) }
                         }
                     }
-                }.data
+                }.decodeList<FriendRequestDto>()
 
+            val request = requestData.firstOrNull()
+
+            // 3. Phân luồng logic
             when {
-                requestData.contains("\"sender_id\":\"$currentUserId\"") -> "request_sent"
-                requestData.contains("\"receiver_id\":\"$currentUserId\"") -> "request_received"
+                request == null -> "none"
+                request.senderId == currentUserId -> "request_sent"
+                request.receiverId == currentUserId -> "request_received"
                 else -> "none"
             }
         } catch (e: Exception) {
@@ -210,6 +214,9 @@ class FriendRepositoryImpl @Inject constructor(
         channel.subscribe()
 
         awaitClose {
+            jobInsert.cancel()
+            jobUpdate.cancel()
+            jobDelete.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
@@ -252,6 +259,10 @@ class FriendRepositoryImpl @Inject constructor(
         channel.subscribe()
 
         awaitClose {
+            jobInsert1.cancel()
+            jobDelete1.cancel()
+            jobInsert2.cancel()
+            jobDelete2.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)

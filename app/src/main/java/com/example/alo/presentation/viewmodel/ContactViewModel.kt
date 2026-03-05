@@ -1,5 +1,6 @@
 package com.example.alo.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
@@ -37,6 +38,7 @@ class ContactViewModel @Inject constructor(
             val currentUser = authRepository.getCurrentAuthUser()
             if (currentUser != null) {
                 friendRepository.subscribeToFriendReQuestListUpdates(currentUser.id).collect {
+                    Log.d("RealtimeTest", "CÓ TÍN HIỆU REALTIME TỪ BẢNG FRIEND_REQUESTS!")
                     fetchPendingRequests()
                 }
             }
@@ -116,7 +118,7 @@ class ContactViewModel @Inject constructor(
                 val friends = friendRepository.getFriendsList(currentUserId)
                 _state.update { it.copy(friends = friends) }
             } catch (e: Exception) {
-                android.util.Log.e("ContactVM", "Lỗi tải bạn bè: ${e.message}")
+                Log.e("ContactVM", "Lỗi tải bạn bè: ${e.message}")
             }
         }
     }
@@ -126,6 +128,7 @@ class ContactViewModel @Inject constructor(
             if (currentUser != null) {
                 friendRepository.subscribeToFriendListUpdates(currentUser.id)
                     .collect {
+                       Log.d("RealtimeTest", "CÓ TÍN HIỆU REALTIME TỪ BẢNG FRIENDS!")
                         fetchFriendsList()
                     }
             }
