@@ -96,4 +96,12 @@ class UserRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    override suspend fun updateLastSeen() {
+        try {
+            supabaseClient.postgrest.rpc("update_last_seen")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

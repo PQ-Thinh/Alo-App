@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.FriendRepository
+import com.example.alo.domain.repository.PresenceRepository
 import com.example.alo.presentation.helper.ContactState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,12 +21,13 @@ import javax.inject.Inject
 class ContactViewModel @Inject constructor(
     private val friendRepository: FriendRepository,
     private val authRepository: AuthRepository,
-    private val conversationRepository: ConversationRepository
+    private val conversationRepository: ConversationRepository,
+    private val presenceRepository: PresenceRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ContactState())
     val state: StateFlow<ContactState> = _state.asStateFlow()
-
+    val onlineUsers = presenceRepository.onlineUsers
 
     init {
         fetchFriendsList()
