@@ -153,7 +153,7 @@ fun Message(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(state.chatList, key = { it.conversationId }) { chat ->
-                        val isOnline = chat.targetUserId?.let { it in onlineUsers } ?: false
+                        val isOnline = chat.currentUserId?.let { it in onlineUsers } ?: false
                         ChatItem(
                             chat = chat,
                             isOnline = isOnline,
