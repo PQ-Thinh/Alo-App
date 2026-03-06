@@ -8,4 +8,5 @@ interface UserRepository {
     suspend fun uploadAvatar(imageBytes: ByteArray, extension: String): String
     suspend fun searchUsers(query: String): List<User>
     suspend fun updateProfile(userId: String, updateData: Map<String, String>): Boolean
+    suspend fun updateLastSeen()
 }
