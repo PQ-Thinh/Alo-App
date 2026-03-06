@@ -76,6 +76,9 @@ class ChatRoomViewModel @Inject constructor(
                     if (currentChatInfo != null) {
                         _partnerName.value = currentChatInfo.chatName ?: "Người dùng ẩn danh"
                         _partnerAvatar.value = currentChatInfo.chatAvatar ?: ""
+
+                        _partnerId.value = currentChatInfo.targetUserId ?: ""
+                        _partnerLastSeen.value = currentChatInfo.targetLastSeen ?: ""
                     }
                 } catch (e: Exception) {}
             }

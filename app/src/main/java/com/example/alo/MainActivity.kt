@@ -1,7 +1,6 @@
 package com.example.alo
 
 import android.os.Bundle
-import android.util.Log // <-- Import Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -43,26 +42,19 @@ class MainActivity : ComponentActivity() {
 
             override fun onStart(owner: LifecycleOwner) {
                 super.onStart(owner)
-                Log.d("", "--> App vừa ON_START (vào Foreground)")
-
                 lifecycleScope.launch {
                     authRepository.awaitInitialization()
 
                     val user = authRepository.getCurrentAuthUser()
                     val userId = user?.id
-                    Log.d("MainActivity", "--> Current User ID lấy được: $userId")
 
                     if (userId != null) {
-                        // Nếu userId khác null thì mới gọi hàm Presence
                         presenceRepository.subscribeAndTrack(userId)
-                    } else {
-                        Log.e("MainActivity", "!!! KHÔNG GỌI PRESENCE VÌ USER ID NULL !!!")
                     }
                 }
             }
 
             override fun onStop(owner: LifecycleOwner) {
-                Log.d("MainActivity", "--> App vừa ON_STOP (vào Background)")
                 lifecycleScope.launch {
                     presenceRepository.unsubscribe()
                     userRepository.updateLastSeen()

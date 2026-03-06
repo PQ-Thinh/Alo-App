@@ -30,7 +30,9 @@ data class ChatListDto(
             unreadCount = unreadCount,
             chatName = chatName,
             chatAvatar = chatAvatar,
-            lastMessageSenderId = lastMessageSenderId
+            lastMessageSenderId = lastMessageSenderId,
+            targetUserId = targetUserId,
+            targetLastSeen = targetLastSeen
         )
     }
 }
