@@ -178,7 +178,7 @@ class UserViewModel @Inject constructor(
                         val date = inputFormat.parse(birthday)
                         outputFormat.format(date!!)
                     } catch (e: Exception) {
-                        birthday // Fallback nếu lỗi format
+                        birthday 
                     }
                 } else ""
 

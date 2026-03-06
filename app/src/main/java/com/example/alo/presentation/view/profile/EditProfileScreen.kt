@@ -26,9 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.UserProfileState
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -48,7 +50,7 @@ fun EditProfileScreen(
     var displayName by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var birthday by remember { mutableStateOf("") }
+    var ageText by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf<Boolean?>(null) } // true: Nam, false: Nữ
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -62,6 +64,17 @@ fun EditProfileScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
+    LaunchedEffect(datePickerState.selectedDateMillis) {
+        datePickerState.selectedDateMillis?.let { millis ->
+            val dob = Calendar.getInstance().apply { timeInMillis = millis }
+            val today = Calendar.getInstance()
+            var age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR)
+            if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) age--
+
+            //val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            ageText = if (age >= 0) "$age tuổi" else "Không hợp lệ"
+        }
+    }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -95,7 +108,7 @@ fun EditProfileScreen(
         gender = user.gender
 
         // Chuyển format yyyy-MM-dd từ DB sang dd/MM/yyyy để hiện lên UI
-        birthday = if (!user.birthday.isNullOrBlank()) {
+        ageText = if (!user.birthday.isNullOrBlank()) {
             try {
                 val dbFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val uiFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -153,7 +166,7 @@ fun EditProfileScreen(
                                 displayName = displayName,
                                 bio = bio,
                                 phone = phone,
-                                birthday = birthday,
+                                birthday = ageText,
                                 gender = gender, // Lưu giới tính
                                 newUsername = username,
                                 newAvatarBytes = selectedAvatarBytes,
@@ -182,7 +195,7 @@ fun EditProfileScreen(
                         showDatePicker = false
                         datePickerState.selectedDateMillis?.let { millis ->
                             val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            birthday = format.format(Date(millis))
+                            ageText = format.format(Date(millis))
                         }
                     }) {
                         Text("Chọn")
@@ -297,11 +310,11 @@ fun EditProfileScreen(
             // -- NGÀY SINH --
             Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
                 OutlinedTextField(
-                    value = birthday,
+                    value = ageText,
                     onValueChange = { },
                     label = { Text("Ngày sinh (dd/MM/yyyy)") },
-                    readOnly = true, // Không cho nhập bàn phím để bắt buộc dùng bộ chọn DatePicker
-                    enabled = false, // Vô hiệu hoá click mặc định của ô để bắt sự kiện click của Box bên ngoài
+                    readOnly = true,
+                    enabled = false,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
