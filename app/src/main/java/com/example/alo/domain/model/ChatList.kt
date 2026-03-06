@@ -9,5 +9,7 @@ data class ChatList(
     val lastMessageSenderId: String?,
     val unreadCount: Int,
     val chatName: String?,
-    val chatAvatar: String?
+    val chatAvatar: String?,
+    val targetUserId: String? = null,
+    val targetLastSeen: String? = null
 )

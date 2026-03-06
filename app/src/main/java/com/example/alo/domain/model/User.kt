@@ -12,6 +12,7 @@ data class User(
     val avatarId: String,
     val avatarUrl: String?,
     val publicKey: String,
+    val lastSeen: String?=null,
     val createdAt: String,
     val updatedAt: String
 )

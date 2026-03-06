@@ -14,7 +14,11 @@ data class ChatListDto(
     @SerialName("last_message_sender_id") val lastMessageSenderId: String? = null,
     @SerialName("unread_count") val unreadCount: Int,
     @SerialName("chat_name") val chatName: String?,
-    @SerialName("chat_avatar") val chatAvatar: String?
+    @SerialName("chat_avatar") val chatAvatar: String?,
+    @SerialName("target_user_id")
+    val targetUserId: String? = null,
+    @SerialName("target_last_seen")
+    val targetLastSeen: String? = null
 ) {
     fun toDomain(): ChatList {
         return ChatList(

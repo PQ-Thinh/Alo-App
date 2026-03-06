@@ -17,8 +17,11 @@ data class UserDto(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("avatarid") val avatarId: String,
     @SerialName("public_key") val publicKey: String,
+    @SerialName("last_seen")
+    val lastSeen: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
+
 ) {
     // Chuyển từ DTO (Data) sang Model (Domain)
     fun toDomain(): User = User(
