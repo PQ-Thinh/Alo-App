@@ -13,11 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import javax.inject.Inject
+import javax.inject.Singleton
 
-
+@Singleton
 class PresenceRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : PresenceRepository {
@@ -33,10 +32,7 @@ class PresenceRepositoryImpl @Inject constructor(
         presenceJob?.cancel()
 
         channel.subscribe(blockUntilSubscribed = true)
-
-
         channel.track(UserPresence(userId = currentUserId, status = "online"))
-
         presenceJob = CoroutineScope(Dispatchers.IO).launch {
 
             channel.presenceDataFlow<UserPresence>().collect { presences ->

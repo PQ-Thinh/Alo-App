@@ -32,6 +32,11 @@ class ChatRoomViewModel @Inject constructor(
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
     val onlineUsers = presenceRepository.onlineUsers
 
+    val _partnerId = MutableStateFlow("")
+    val partnerId: StateFlow<String> = _partnerId.asStateFlow()
+    val _partnerLastSeen = MutableStateFlow("")
+    val partnerLastSeen: StateFlow<String> = _partnerLastSeen.asStateFlow()
+
     private val _currentUserId = MutableStateFlow("")
     val currentUserId: StateFlow<String> = _currentUserId.asStateFlow()
 

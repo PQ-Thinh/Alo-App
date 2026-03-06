@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,7 +35,6 @@ import coil3.compose.AsyncImage
 import com.example.alo.domain.model.ChatList
 import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.viewmodel.ChatListViewModel
-import com.example.alo.presentation.viewmodel.UserViewModel
 
 @Composable
 fun Message(
@@ -42,6 +42,8 @@ fun Message(
     onNavigateToChatRoom: (String) -> Unit,
 
 ) {
+    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
+
     val state by viewModel.state.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -151,8 +153,10 @@ fun Message(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(state.chatList, key = { it.conversationId }) { chat ->
+                        val isOnline = chat.targetUserId?.let { it in onlineUsers } ?: false
                         ChatItem(
                             chat = chat,
+                            isOnline = isOnline,
                             onClick = { onNavigateToChatRoom(chat.conversationId) }
                         )
                     }
@@ -163,7 +167,7 @@ fun Message(
 }
 
 @Composable
-fun ChatItem(chat: ChatList, onClick: () -> Unit,
+fun ChatItem(chat: ChatList, onClick: () -> Unit,isOnline: Boolean,
 ) {
     val hasUnread = chat.unreadCount > 0
     Row(
@@ -175,27 +179,46 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!chat.chatAvatar.isNullOrEmpty()) {
-                AsyncImage(
-                    model = chat.chatAvatar,
-                    contentDescription = "Avatar",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                val initial = chat.chatName?.firstOrNull()?.uppercase() ?: "?"
-                Text(
-                    text = initial,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.size(56.dp)) {
+            // Avatar chính
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!chat.chatAvatar.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = chat.chatAvatar,
+                        contentDescription = "Avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initial = chat.chatName?.firstOrNull()?.uppercase() ?: "?"
+                    Text(
+                        text = initial,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 5. Vẽ CHẤM XANH nếu isOnline = true
+            if (isOnline) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .clip(CircleShape)
+                        .background(Color(0xFF4CAF50))
+                        .border(
+                            2.dp,
+                            MaterialTheme.colorScheme.background,
+                            CircleShape
+                        )
                 )
             }
         }

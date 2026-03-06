@@ -2,6 +2,7 @@ package com.example.alo.presentation.view.chat
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +34,8 @@ fun Contact(
     viewModel: ContactViewModel = hiltViewModel(),
     onNavigateToChatRoom: (String) -> Unit
 ) {
+    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
+
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
@@ -112,8 +115,10 @@ fun Contact(
                 }
             } else {
                 items(state.friends, key = { "friend_${it.id}" }) { friend ->
+                    val isOnline = friend.id in onlineUsers
                     FriendItem(
                         user = friend,
+                        isOnline = isOnline,
                         onClick = {
                             viewModel.onFriendClicked(friend.id) { conversationId ->
                                 onNavigateToChatRoom(conversationId)
@@ -136,6 +141,7 @@ fun Contact(
 @Composable
 fun FriendItem(
     user: User,
+    isOnline: Boolean,
     onClick: () -> Unit
 ) {
     Row(
@@ -146,25 +152,40 @@ fun FriendItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            if (user.avatarUrl != null) {
-                AsyncImage(
-                    model = user.avatarUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text(
-                    text = user.displayName.firstOrNull()?.uppercase() ?: "?",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.size(50.dp)) {
+            // Avatar chính
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (user.avatarUrl != null) {
+                    AsyncImage(
+                        model = user.avatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = user.displayName.firstOrNull()?.uppercase() ?: "?",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Vẽ CHẤM XANH
+            if (isOnline) {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .align(Alignment.BottomEnd)
+                        .clip(CircleShape)
+                        .background(Color(0xFF4CAF50))
+                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                 )
             }
         }

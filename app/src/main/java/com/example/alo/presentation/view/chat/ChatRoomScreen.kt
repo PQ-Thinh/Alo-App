@@ -34,6 +34,7 @@ import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.view.component.TypingIndicatorBubble
 import com.example.alo.presentation.view.utils.formatMessageTime
+import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
@@ -45,6 +46,9 @@ fun ChatRoomScreen(
     navController: NavController,
     viewModel: ChatRoomViewModel = hiltViewModel(),
 ) {
+    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
+    val partnerId by viewModel.partnerId.collectAsState()
+    val partnerLastSeen by viewModel.partnerLastSeen.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val messageText by viewModel.messageText.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
@@ -67,38 +71,72 @@ fun ChatRoomScreen(
             listState.animateScrollToItem(0)
         }
     }
+    val isOnline = partnerId in onlineUsers
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color.LightGray),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (partnerAvatar.isNotEmpty()) {
-                                AsyncImage(
-                                    model = partnerAvatar,
-                                    contentDescription = "Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Text(
-                                    text = partnerName.firstOrNull()?.uppercase() ?: "?",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                        Box(modifier = Modifier.size(40.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (partnerAvatar.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = partnerAvatar,
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = partnerName.firstOrNull()?.uppercase() ?: "?",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            // Vẽ chấm xanh đè lên nếu online
+                            if (isOnline) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF4CAF50))
+                                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         // Tên người dùng
-                        Text(text = partnerName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Column(verticalArrangement = Arrangement.Center) {
+                            Text(
+                                text = partnerName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                maxLines = 1
+                            )
+
+                            Text(
+                                text = if (isOnline) {
+                                    "Đang hoạt động"
+                                } else {
+                                    if (partnerLastSeen.isNotEmpty()) "Hoạt động ${formatRelativeTime(partnerLastSeen)}" else "Ngoại tuyến"
+                                },
+                                fontSize = 12.sp,
+                                color = if (isOnline) Color(0xFF4CAF50) else Color.Gray,
+                                maxLines = 1
+                            )
+                        }
                     }
+
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
