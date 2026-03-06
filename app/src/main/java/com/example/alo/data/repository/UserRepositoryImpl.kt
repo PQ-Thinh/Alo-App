@@ -77,7 +77,6 @@ class UserRepositoryImpl @Inject constructor(
                 .decodeList<UserDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("UserRepo", "Lỗi tìm kiếm người dùng: ${e.message}")
             emptyList()
         }
     }

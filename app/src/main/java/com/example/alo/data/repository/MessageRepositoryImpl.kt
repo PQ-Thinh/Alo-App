@@ -113,15 +113,9 @@ class MessageRepositoryImpl @Inject constructor(
 
         val job = launch {
             insertFlow.collect { action ->
-                Log.d("REALTIME_TEST", "1. Đã có sự kiện INSERT trên bảng messages!")
-                try {
-                    val newMessageDto = action.decodeRecord<MessageDto>()
-                    val newMessage = newMessageDto.toDomain()
-                    Log.d("REALTIME_TEST", "2. Parse thành công: ${newMessage.encryptedContent}")
-                    send(newMessage)
-                } catch (e: Exception) {
-                    Log.e("REALTIME_TEST", "LỖI PARSE REALTIME: ${e.message}")
-                }
+                val newMessageDto = action.decodeRecord<MessageDto>()
+                val newMessage = newMessageDto.toDomain()
+                send(newMessage)
             }
         }
         val jobUpdate = launch {

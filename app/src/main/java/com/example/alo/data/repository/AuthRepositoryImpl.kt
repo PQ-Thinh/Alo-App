@@ -11,7 +11,7 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import javax.inject.Inject
 
-class AuthRepositoryImpl @Inject constructor(
+class  AuthRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val dataStoreHelper: DataStoreHelper
 ) : AuthRepository {
