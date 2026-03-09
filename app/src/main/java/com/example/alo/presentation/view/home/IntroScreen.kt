@@ -2,12 +2,12 @@ package com.example.alo.presentation.view.home
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Forum
+import com.example.alo.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,15 +45,12 @@ fun IntroScreen(navController: NavController) {
         )
     }
 
-    // Tạo 3 lớp sóng lệch nhịp nhau
     val wave1 by waveProgress(0)
     val wave2 by waveProgress(1000)
     val wave3 by waveProgress(2000)
 
-    // 3. Kích hoạt Animation khi màn hình mở lên
     LaunchedEffect(Unit) {
         launch {
-            // Hiệu ứng nảy (Bouncy) cho Logo
             logoScale.animateTo(
                 targetValue = 1f,
                 animationSpec = spring(
@@ -62,14 +60,12 @@ fun IntroScreen(navController: NavController) {
             )
         }
         launch {
-            // Fade in nội dung
             contentAlpha.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 1000, delayMillis = 500)
             )
         }
         launch {
-            // Nút trượt từ dưới lên
             buttonOffsetY.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(durationMillis = 1000, delayMillis = 500, easing = FastOutSlowInEasing)
@@ -77,7 +73,6 @@ fun IntroScreen(navController: NavController) {
         }
     }
 
-    // 4. Vẽ Giao diện
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,7 +83,6 @@ fun IntroScreen(navController: NavController) {
             ),
         contentAlignment = Alignment.Center
     ) {
-        // --- TẦNG DƯỚI: CANVAS VẼ SÓNG ---
         Canvas(modifier = Modifier.fillMaxSize()) {
             val maxRadius = size.minDimension
             val waveColor = Color(0xFF6C63FF)
@@ -107,7 +101,6 @@ fun IntroScreen(navController: NavController) {
             )
         }
 
-        // --- TẦNG GIỮA: LOGO & TITLE ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.Center)
@@ -122,10 +115,9 @@ fun IntroScreen(navController: NavController) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Forum,
+                Image(
+                    painter = painterResource(id = R.mipmap.maloi_icon),
                     contentDescription = "Logo",
-                    tint = Color.White,
                     modifier = Modifier.size(50.dp)
                 )
             }
@@ -152,7 +144,6 @@ fun IntroScreen(navController: NavController) {
             )
         }
 
-        // --- TẦNG TRÊN CÙNG: NÚT BUTTON ---
         Button(
             onClick = {
                 navController.navigate(Screen.Login.route) {

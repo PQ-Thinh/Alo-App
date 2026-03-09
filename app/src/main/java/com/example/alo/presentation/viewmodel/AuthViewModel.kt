@@ -6,6 +6,7 @@ import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.domain.repository.AuthRepository
+import com.example.alo.domain.repository.PushNotiRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
+    private val notificationService: PushNotiRepository
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -149,6 +151,15 @@ class AuthViewModel @Inject constructor(
                 _userState.value = UserState.PasswordChangedSuccess
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Lỗi cập nhật mật khẩu: ${e.message}")
+            }
+        }
+    }
+    fun saveDeviceToken() {
+        viewModelScope.launch {
+            val token = notificationService.getDeviceToken()
+            if (token != null) {
+                val deviceName = android.os.Build.MODEL
+                userDeviceRepository.saveFcmToken(token, deviceName)
             }
         }
     }
