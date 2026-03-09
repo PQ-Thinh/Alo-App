@@ -37,9 +37,7 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted) {
-            splashViewModel.saveFCMToken()
-        } else {
+        if (!isGranted) {
             Log.e("FCM", "Người dùng từ chối quyền thông báo")
         }
     }
@@ -83,9 +81,6 @@ class MainActivity : ComponentActivity() {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED
             ) {
-                // Đã có quyền, tiến hành lấy token
-                splashViewModel.saveFCMToken()
-            } else {
                 // Hiển thị popup xin quyền
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
