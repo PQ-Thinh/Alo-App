@@ -1,6 +1,6 @@
 package com.example.alo.domain.repository
 
 interface UserDeviceRepository {
-    suspend fun registerDevice(userId: String, fcmToken: String, deviceName: String?)
-    suspend fun removeDevice(fcmToken: String)
+    suspend fun saveFcmToken(token: String, deviceName: String): Boolean
+    suspend fun deleteFcmToken(token: String): Boolean
 }

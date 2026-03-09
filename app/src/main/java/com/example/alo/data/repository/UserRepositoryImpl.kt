@@ -127,34 +127,4 @@ class UserRepositoryImpl @Inject constructor(
         heartbeatJob?.cancel()
         heartbeatJob = null
     }
-
-    override suspend fun saveFcmToken(token: String, deviceName: String): Boolean {
-        return try {
-            supabaseClient.postgrest.rpc(
-                function = "upsert_fcm_token",
-                parameters = mapOf(
-                    "p_token" to token,
-                    "p_device_name" to deviceName)
-            )
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
-    override suspend fun deleteFcmToken(token: String): Boolean {
-        return try {
-            supabaseClient.postgrest["user_devices"].delete {
-                filter {
-                    eq("fcm_token", token)
-                }
-            }
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
 }

@@ -7,6 +7,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.PushNotiRepository
+import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -21,7 +22,8 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val notificationService: PushNotiRepository
+    private val notificationService: PushNotiRepository,
+    private val userDeviceRepository: UserDeviceRepository
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -154,22 +156,25 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-    fun saveDeviceToken() {
-        viewModelScope.launch {
-            val token = notificationService.getDeviceToken()
-            if (token != null) {
-                val deviceName = android.os.Build.MODEL
-                userDeviceRepository.saveFcmToken(token, deviceName)
-            }
-        }
-    }
     fun logout() {
         viewModelScope.launch {
             _userState.value = UserState.Loading
+
             try {
+                val token = notificationService.getDeviceToken()
+
+                if (token != null) {
+                    userDeviceRepository.deleteFcmToken(token)
+                }
+
+                notificationService.deleteDeviceToken()
+
                 authRepository.logout()
                 _userState.value = UserState.Success("Đăng xuất thành công")
+
             } catch (e: Exception) {
+                e.printStackTrace()
+                authRepository.logout()
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
         }

@@ -11,6 +11,5 @@ interface UserRepository {
     suspend fun updateLastSeen()
     fun startHeartbeat()
     fun stopHeartbeat()
-    suspend fun saveFcmToken(token: String, deviceName: String): Boolean
-    suspend fun deleteFcmToken(token: String): Boolean
+
 }
