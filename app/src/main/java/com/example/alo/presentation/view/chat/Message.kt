@@ -49,9 +49,10 @@ fun Message(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
+
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.fetchChatList()
+            viewModel.fetchChatList(isSilentRefresh = true)
         }
     }
     Box(modifier = Modifier.fillMaxSize()) {
@@ -84,7 +85,7 @@ fun Message(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { viewModel.fetchChatList() },
+                        onClick = { viewModel.fetchChatList(isSilentRefresh = true) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF))
                     ) {
                         Text("Thử lại")

@@ -58,7 +58,7 @@ fun AnimatedSplashScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.mipmap.maloi),
+                painter = painterResource(id = R.mipmap.maloi_icon),
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(120.dp)
