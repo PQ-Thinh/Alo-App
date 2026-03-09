@@ -11,18 +11,20 @@ import javax.inject.Inject
 class UserDeviceRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : UserDeviceRepository {
-
     override suspend fun saveFcmToken(token: String, deviceName: String): Boolean {
         return try {
+            Log.d("FCM_DEBUG", "3. Bắt đầu gửi RPC lên Supabase với Token: $token")
             supabaseClient.postgrest.rpc(
                 function = "upsert_fcm_token",
                 parameters = mapOf(
                     "p_token" to token,
-                    "p_device_name" to deviceName)
+                    "p_device_name" to deviceName
+                )
             )
+            Log.d("FCM_DEBUG", "4. Gọi RPC THÀNH CÔNG! Đã lưu vào Database.")
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("FCM_DEBUG", "4. LỖI GỌI RPC Supabase: ${e.message}", e)
             false
         }
     }

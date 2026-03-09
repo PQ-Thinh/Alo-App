@@ -1,6 +1,7 @@
 package com.example.alo.presentation.viewmodel
 
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
@@ -57,13 +58,23 @@ class SplashViewModel @Inject constructor(
     fun saveFCMToken() {
         viewModelScope.launch {
             try {
+                // Kiểm tra chốt chặn an toàn: Chỉ chạy nếu đã đăng nhập
+                val session = authRepository.getCurrentAuthUser()
+                if (session == null) {
+                    Log.e("FCM_DEBUG", "2. Dừng lấy Token vì User CHƯA đăng nhập!")
+                    return@launch
+                }
+
+                Log.d("FCM_DEBUG", "2. Đang gọi Firebase xin token...")
                 val token = pushNotiRepository.getDeviceToken()
                 if (token != null) {
                     val deviceName = Build.MODEL
                     userDeviceRepository.saveFcmToken(token, deviceName)
+                } else {
+                    Log.e("FCM_DEBUG", "2. Firebase trả về Token bị rỗng (null)")
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("FCM_DEBUG", "2. Lỗi không xác định ở ViewModel: ${e.message}", e)
             }
         }
     }

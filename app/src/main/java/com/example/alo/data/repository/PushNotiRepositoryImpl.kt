@@ -1,5 +1,6 @@
 package com.example.alo.data.repository
 
+import android.util.Log
 import com.example.alo.domain.repository.PushNotiRepository
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
@@ -14,14 +15,17 @@ class PushNotiRepositoryImpl @Inject constructor() : PushNotiRepository {
             suspendCoroutine { continuation ->
                 FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        continuation.resume(task.result)
+                        val token = task.result
+                        Log.d("FCM_DEBUG", "1. Lấy token Firebase THÀNH CÔNG: $token")
+                        continuation.resume(token)
                     } else {
+                        Log.e("FCM_DEBUG", "1. LỖI lấy token Firebase", task.exception)
                         continuation.resume(null)
                     }
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("FCM_DEBUG", "1. Exception: ${e.message}")
             null
         }
     }
