@@ -37,7 +37,8 @@ data class UserDto(
         avatarUrl = avatarUrl,
         publicKey = publicKey,
         createdAt = createdAt ?: "",
-        updatedAt = updatedAt ?: ""
+        updatedAt = updatedAt ?: "",
+        lastSeen = lastSeen ?: ""
     )
 
     // Chuyển từ Model (Domain) sang DTO (Data)
@@ -56,5 +57,7 @@ fun User.toDto(): UserDto = UserDto(
     gender = this.gender,
     publicKey = this.publicKey,
     createdAt = this.createdAt.ifEmpty { null },
-    updatedAt = this.updatedAt.ifEmpty { null }
+    updatedAt = this.updatedAt.ifEmpty { null },
+    lastSeen = this.lastSeen?.ifEmpty { null }
+
 )

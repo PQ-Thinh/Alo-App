@@ -9,7 +9,12 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.filter.TextSearchType
 import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.util.UUID
@@ -18,6 +23,8 @@ import javax.inject.Inject
 class UserRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : UserRepository {
+
+    private var heartbeatJob: Job? = null
 
     override suspend fun getCurrentUser(userId: String): User? {
         return try {
@@ -50,6 +57,7 @@ class UserRepositoryImpl @Inject constructor(
             false
         }
     }
+
     override suspend fun uploadAvatar(imageBytes: ByteArray, extension: String): String {
         return withContext(Dispatchers.IO) {
             val fileName = "${UUID.randomUUID()}.$extension"
@@ -91,7 +99,7 @@ class UserRepositoryImpl @Inject constructor(
             }
             true
         } catch (e: Exception) {
-           Log.e("UserRepo", "Lỗi cập nhật Profile: ${e.message}")
+            Log.e("UserRepo", "Lỗi cập nhật Profile: ${e.message}")
             false
         }
     }
@@ -103,4 +111,19 @@ class UserRepositoryImpl @Inject constructor(
             e.printStackTrace()
         }
     }
+    override fun startHeartbeat() {
+        stopHeartbeat()
+        heartbeatJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                updateLastSeen()
+                delay(60_000L)
+            }
+        }
+    }
+
+    override fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
 }

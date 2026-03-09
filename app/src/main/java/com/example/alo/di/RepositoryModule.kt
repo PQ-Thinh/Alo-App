@@ -6,7 +6,6 @@ import com.example.alo.data.repository.ConversationRepositoryImpl
 import com.example.alo.data.repository.FriendRepositoryImpl
 import com.example.alo.data.repository.MessageRepositoryImpl
 import com.example.alo.data.repository.ParticipantRepositoryImpl
-import com.example.alo.data.repository.PresenceRepositoryImpl
 import com.example.alo.data.repository.UserDeviceRepositoryImpl
 import com.example.alo.data.repository.UserRepositoryImpl
 import com.example.alo.domain.repository.AttachmentRepository
@@ -15,7 +14,6 @@ import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.domain.repository.MessageRepository
 import com.example.alo.domain.repository.ParticipantRepository
-import com.example.alo.domain.repository.PresenceRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.Binds
@@ -76,9 +74,4 @@ abstract class RepositoryModule {
         attachmentRepositoryImpl: AttachmentRepositoryImpl
     ): AttachmentRepository
 
-    @Binds
-    @Singleton
-    abstract fun bindPresenceRepository(
-        presenceRepositoryImpl: PresenceRepositoryImpl
-    ): PresenceRepository
 }

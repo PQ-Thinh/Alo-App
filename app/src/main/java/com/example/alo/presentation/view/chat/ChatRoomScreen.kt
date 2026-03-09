@@ -36,6 +36,7 @@ import com.example.alo.presentation.view.component.TypingIndicatorBubble
 import com.example.alo.presentation.view.utils.formatMessageTime
 import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.view.utils.formatTimeHeader
+import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
 
@@ -46,7 +47,6 @@ fun ChatRoomScreen(
     navController: NavController,
     viewModel: ChatRoomViewModel = hiltViewModel(),
 ) {
-    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
     val partnerId by viewModel.partnerId.collectAsState()
     val partnerLastSeen by viewModel.partnerLastSeen.collectAsState()
     val messages by viewModel.messages.collectAsState()
@@ -71,7 +71,7 @@ fun ChatRoomScreen(
             listState.animateScrollToItem(0)
         }
     }
-    val isOnline = partnerId in onlineUsers
+    val userStatus = getUserStatus(partnerLastSeen)
 
     Scaffold(
         topBar = {
@@ -103,7 +103,7 @@ fun ChatRoomScreen(
                             }
 
                             // Vẽ chấm xanh đè lên nếu online
-                            if (isOnline) {
+                            if (userStatus.isOnline) {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
@@ -125,13 +125,9 @@ fun ChatRoomScreen(
                             )
 
                             Text(
-                                text = if (isOnline) {
-                                    "Đang hoạt động"
-                                } else {
-                                    if (partnerLastSeen.isNotEmpty()) "Hoạt động ${formatRelativeTime(partnerLastSeen)}" else "Ngoại tuyến"
-                                },
+                                text = userStatus.statusText,
                                 fontSize = 12.sp,
-                                color = if (isOnline) Color(0xFF4CAF50) else Color.Gray,
+                                color = if (userStatus.isOnline) Color(0xFF4CAF50) else Color.Gray,
                                 maxLines = 1
                             )
                         }

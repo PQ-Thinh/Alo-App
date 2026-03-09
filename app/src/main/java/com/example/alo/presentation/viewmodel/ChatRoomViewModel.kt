@@ -8,7 +8,6 @@ import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.MessageRepository
-import com.example.alo.domain.repository.PresenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,11 +25,9 @@ class ChatRoomViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
     private val authRepository: AuthRepository,
     private val conversationRepository: ConversationRepository,
-    private val presenceRepository: PresenceRepository
 ) : ViewModel() {
 
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
-    val onlineUsers = presenceRepository.onlineUsers
 
     val _partnerId = MutableStateFlow("")
     val partnerId: StateFlow<String> = _partnerId.asStateFlow()

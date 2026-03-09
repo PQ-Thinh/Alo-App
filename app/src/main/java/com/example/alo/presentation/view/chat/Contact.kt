@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.User
+import com.example.alo.presentation.helper.UserStatus
+import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.viewmodel.ContactViewModel
 
 @Composable
@@ -34,7 +36,6 @@ fun Contact(
     viewModel: ContactViewModel = hiltViewModel(),
     onNavigateToChatRoom: (String) -> Unit
 ) {
-    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
 
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -115,10 +116,10 @@ fun Contact(
                 }
             } else {
                 items(state.friends, key = { "friend_${it.id}" }) { friend ->
-                    val isOnline = friend.id in onlineUsers
+                    val userStatus = getUserStatus(friend.lastSeen)
                     FriendItem(
                         user = friend,
-                        isOnline = isOnline,
+                        userStatus,
                         onClick = {
                             viewModel.onFriendClicked(friend.id) { conversationId ->
                                 onNavigateToChatRoom(conversationId)
@@ -141,7 +142,7 @@ fun Contact(
 @Composable
 fun FriendItem(
     user: User,
-    isOnline: Boolean,
+    userStatus: UserStatus,
     onClick: () -> Unit
 ) {
     Row(
@@ -178,7 +179,7 @@ fun FriendItem(
             }
 
             // Vẽ CHẤM XANH
-            if (isOnline) {
+            if (userStatus.isOnline) {
                 Box(
                     modifier = Modifier
                         .size(14.dp)

@@ -10,23 +10,17 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import com.example.alo.domain.repository.AuthRepository
-import com.example.alo.domain.repository.PresenceRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
 import com.example.alo.presentation.view.navigation.AppNavigation
 import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
-
-    @Inject
-    lateinit var presenceRepository: PresenceRepository
 
     @Inject
     lateinit var authRepository: AuthRepository
@@ -42,23 +36,11 @@ class MainActivity : ComponentActivity() {
 
             override fun onStart(owner: LifecycleOwner) {
                 super.onStart(owner)
-                lifecycleScope.launch {
-                    authRepository.awaitInitialization()
-
-                    val user = authRepository.getCurrentAuthUser()
-                    val userId = user?.id
-
-                    if (userId != null) {
-                        presenceRepository.subscribeAndTrack(userId)
-                    }
-                }
+                userRepository.startHeartbeat()
             }
 
             override fun onStop(owner: LifecycleOwner) {
-                lifecycleScope.launch {
-                    presenceRepository.unsubscribe()
-                    userRepository.updateLastSeen()
-                }
+                userRepository.stopHeartbeat()
                 super.onStop(owner)
             }
         })

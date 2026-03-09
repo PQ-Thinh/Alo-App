@@ -33,7 +33,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.ChatList
+import com.example.alo.presentation.helper.UserStatus
 import com.example.alo.presentation.view.utils.formatRelativeTime
+import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.viewmodel.ChatListViewModel
 
 @Composable
@@ -42,7 +44,6 @@ fun Message(
     onNavigateToChatRoom: (String) -> Unit,
 
 ) {
-    val onlineUsers by viewModel.onlineUsers.collectAsState(initial = emptySet())
 
     val state by viewModel.state.collectAsState()
 
@@ -153,11 +154,11 @@ fun Message(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(state.chatList, key = { it.conversationId }) { chat ->
-                        val isOnline = chat.targetUserId?.let { it in onlineUsers } ?: false
+                        val userStatus = getUserStatus(chat.targetLastSeen)
                         ChatItem(
                             chat = chat,
-                            isOnline = isOnline,
-                            onClick = { onNavigateToChatRoom(chat.conversationId) }
+                            onClick = { onNavigateToChatRoom(chat.conversationId) },
+                            userStatus = userStatus
                         )
                     }
                 }
@@ -167,7 +168,7 @@ fun Message(
 }
 
 @Composable
-fun ChatItem(chat: ChatList, onClick: () -> Unit,isOnline: Boolean,
+fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
 ) {
     val hasUnread = chat.unreadCount > 0
     Row(
@@ -206,8 +207,7 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit,isOnline: Boolean,
                 }
             }
 
-            // 5. Vẽ CHẤM XANH nếu isOnline = true
-            if (isOnline) {
+            if (userStatus.isOnline) {
                 Box(
                     modifier = Modifier
                         .size(16.dp)
