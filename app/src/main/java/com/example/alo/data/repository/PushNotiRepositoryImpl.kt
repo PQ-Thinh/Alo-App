@@ -15,10 +15,8 @@ class PushNotiRepositoryImpl @Inject constructor() : PushNotiRepository {
         return withContext(Dispatchers.IO) {
             try {
                 val token = FirebaseMessaging.getInstance().token.await()
-                Log.d("FCM_DEBUG", "1. Lấy token Firebase THÀNH CÔNG: $token")
                 token
             } catch (e: Exception) {
-                Log.e("FCM_DEBUG", "1. LỖI lấy token Firebase: ${e.message}", e)
                 null
             }
         }
