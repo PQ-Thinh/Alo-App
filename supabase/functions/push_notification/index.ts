@@ -2,40 +2,50 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import admin from "npm:firebase-admin@11.11.0"
 
-// 1. Khởi tạo Firebase Admin bằng Service Account
-const serviceAccountRaw = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
-if (serviceAccountRaw && !admin.apps.length) {
-  const serviceAccount = JSON.parse(serviceAccountRaw);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-}
-
 serve(async (req) => {
   try {
+    // 1. KHỞI TẠO FIREBASE NGAY TẠI ĐÂY (Bắt buộc)
+    if (!admin.apps.length) {
+      const serviceAccountRaw = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+
+      // Kiểm tra xem chìa khóa có tồn tại không
+      if (!serviceAccountRaw) {
+        throw new Error("LỖI: Không tìm thấy biến môi trường FIREBASE_SERVICE_ACCOUNT trên máy chủ!");
+      }
+
+      // Xóa bỏ dấu nháy đơn (') thừa ở đầu và cuối chuỗi nếu bị dính từ file .env
+      const cleanServiceAccountRaw = serviceAccountRaw.replace(/^'|'$/g, '').trim();
+
+      const serviceAccount = JSON.parse(cleanServiceAccountRaw);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log("Khởi tạo Firebase Admin thành công!");
+    }
+
     // 2. Lấy dữ liệu Webhook gửi tới (Tin nhắn mới)
     const payload = await req.json()
-    const record = payload.record 
+    const record = payload.record
 
     const senderId = record.sender_id
     const conversationId = record.conversation_id
 
     if (!senderId) return new Response('Ignored system message', { status: 200 })
 
-    // Khởi tạo Supabase Admin Client để truy cập Database
+    // 3. Khởi tạo Supabase Admin Client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 3. Lấy tên của người gửi
+    // 4. Lấy tên của người gửi
     const { data: sender } = await supabaseAdmin
       .from('users')
       .select('display_name')
       .eq('id', senderId)
       .single()
 
-    // 4. Lấy ID những người trong phòng (Trừ người gửi)
+    // 5. Lấy ID những người trong phòng (Trừ người gửi)
     const { data: participants } = await supabaseAdmin
       .from('participants')
       .select('user_id')
@@ -48,7 +58,7 @@ serve(async (req) => {
 
     const receiverIds = participants.map((p: any) => p.user_id)
 
-    // 5. Lấy FCM Token từ bảng user_devices
+    // 6. Lấy FCM Token từ bảng user_devices
     const { data: devices } = await supabaseAdmin
       .from('user_devices')
       .select('fcm_token')
@@ -60,7 +70,7 @@ serve(async (req) => {
 
     const tokens = devices.map((d: any) => d.fcm_token)
 
-    // 6. Gửi Data Payload sang Firebase
+    // 7. Gửi Data Payload sang Firebase
     const message = {
       data: {
         type: "NEW_MESSAGE",
@@ -72,6 +82,7 @@ serve(async (req) => {
     }
 
     const response = await admin.messaging().sendEachForMulticast(message)
+    console.log("Firebase gửi thành công:", response)
 
     return new Response(JSON.stringify(response), {
       headers: { "Content-Type": "application/json" },
@@ -79,7 +90,7 @@ serve(async (req) => {
     })
 
   } catch (error: any) {
-    console.error("Lỗi:", error)
+    console.error("LỖI NẶNG:", error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { "Content-Type": "application/json" },
       status: 500

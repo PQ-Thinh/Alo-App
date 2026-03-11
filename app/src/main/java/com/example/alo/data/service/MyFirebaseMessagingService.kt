@@ -76,7 +76,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // 3. Vẽ Giao diện Thông báo
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.maloi_icon) // Thay bằng icon app của bạn nếu muốn (VD: R.drawable.ic_notification)
+            .setSmallIcon(R.mipmap.maloi_icon)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true) // Bấm vào là tự biến mất
