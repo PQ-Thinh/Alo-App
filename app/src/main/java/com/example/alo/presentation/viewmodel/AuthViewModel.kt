@@ -37,7 +37,7 @@ class AuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.signUp(userEmail, userPassword)
-                _userState.value = UserState.NeedsOtpVerification(userEmail)
+
                 val token = pushNotiRepository.getDeviceToken()
                 if (token != null) {
                     val deviceName = Build.MODEL
@@ -45,6 +45,7 @@ class AuthViewModel @Inject constructor(
                 } else {
                     Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
                 }
+                _userState.value = UserState.NeedsOtpVerification(userEmail)
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
@@ -56,7 +57,6 @@ class AuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.login(userEmail, userPassword)
-                _userState.value = UserState.Success("Đăng nhập thành công")
                 val token = pushNotiRepository.getDeviceToken()
                 if (token != null) {
                     val deviceName = Build.MODEL
@@ -64,6 +64,7 @@ class AuthViewModel @Inject constructor(
                 } else {
                     Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
                 }
+                _userState.value = UserState.Success("Đăng nhập thành công")
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
@@ -103,12 +104,6 @@ class AuthViewModel @Inject constructor(
                         )
 
                         val isSaved = userRepository.saveUserProfile(autoProfile)
-
-                        if (isSaved) {
-                            _userState.value = UserState.Success("Khởi tạo hồ sơ Google thành công")
-                        } else {
-                            _userState.value = UserState.Error("Lỗi: Không thể khởi tạo hồ sơ người dùng.")
-                        }
                         val token = pushNotiRepository.getDeviceToken()
                         if (token != null) {
                             val deviceName = Build.MODEL
@@ -116,6 +111,12 @@ class AuthViewModel @Inject constructor(
                         } else {
                             Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
                         }
+                        if (isSaved) {
+                            _userState.value = UserState.Success("Khởi tạo hồ sơ Google thành công")
+                        } else {
+                            _userState.value = UserState.Error("Lỗi: Không thể khởi tạo hồ sơ người dùng.")
+                        }
+
                     }
                 } else {
                     _userState.value = UserState.Error("Không lấy được phiên đăng nhập.")
@@ -130,6 +131,11 @@ class AuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.verifyOtp(email, otp)
+                val token = pushNotiRepository.getDeviceToken()
+                if (token != null) {
+                    val deviceName = Build.MODEL
+                    userDeviceRepository.saveFcmToken(token, deviceName)
+                }
                 _userState.value = UserState.VerificationSuccess
             } catch (e: Exception) {
                 _userState.value = UserState.Error("Mã xác nhận không hợp lệ hoặc đã hết hạn")
