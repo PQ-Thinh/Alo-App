@@ -9,9 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -211,14 +213,25 @@ fun FriendItem(
             )
         }
 
-        // Icon Nhắn tin
-        IconButton(onClick = onClick) {
-            Icon(
-                imageVector = Icons.Default.Message,
-                contentDescription = "Nhắn tin",
-                tint = Color(0xFF6C63FF)
-            )
+        Row() {
+            IconButton(onClick = {}) {
+                Icon(
+                    imageVector = Icons.Default.Call,
+                    contentDescription = "Call",
+                    tint = Color(0xFF6C63FF)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = {}) {
+                Icon(
+                    imageVector = Icons.Default.Videocam,
+                    contentDescription = "Video Call",
+                    tint = Color(0xFF6C63FF)
+                )
+            }
         }
+        // Icon Nhắn tin
+
     }
 }
 
