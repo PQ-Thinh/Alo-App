@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -150,19 +151,40 @@ fun Message(
 
             // 4. TRẠNG THÁI CÓ DỮ LIỆU
             else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    items(state.chatList, key = { it.conversationId }) { chat ->
-                        val userStatus = getUserStatus(chat.targetLastSeen)
-                        ChatItem(
-                            chat = chat,
-                            onClick = { onNavigateToChatRoom(chat.conversationId) },
-                            userStatus = userStatus
-                        )
+                Column() {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(state.chatList, key = { it.conversationId }) { chat ->
+                            val userStatus = getUserStatus(chat.targetLastSeen)
+                            if (userStatus.isOnline){
+                                ChatOnlineItem(
+                                    chat = chat,
+                                    onClick = { onNavigateToChatRoom(chat.conversationId) },
+                                    userStatus = userStatus
+                                )
+                            }
+
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(state.chatList, key = { it.conversationId }) { chat ->
+                            val userStatus = getUserStatus(chat.targetLastSeen)
+                            ChatItem(
+                                chat = chat,
+                                onClick = { onNavigateToChatRoom(chat.conversationId) },
+                                userStatus = userStatus
+                            )
+                        }
                     }
                 }
+
             }
         }
     }
@@ -287,4 +309,44 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
             }
         }
     }
+}
+
+@Composable
+fun ChatOnlineItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
+) {
+        // Avatar
+        Box(modifier = Modifier.size(62.dp)) {
+            // Avatar chính
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!chat.chatAvatar.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = chat.chatAvatar,
+                        contentDescription = "Avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            if (userStatus.isOnline) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .clip(CircleShape)
+                        .background(Color(0xFF4CAF50))
+                        .border(
+                            2.dp,
+                            MaterialTheme.colorScheme.background,
+                            CircleShape
+                        )
+                )
+            }
+        }
 }

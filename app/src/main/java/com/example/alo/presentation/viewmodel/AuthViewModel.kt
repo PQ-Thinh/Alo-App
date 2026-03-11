@@ -1,5 +1,7 @@
 package com.example.alo.presentation.viewmodel
 
+import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
@@ -23,7 +25,8 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val notificationService: PushNotiRepository,
-    private val userDeviceRepository: UserDeviceRepository
+    private val userDeviceRepository: UserDeviceRepository,
+    private val pushNotiRepository: PushNotiRepository
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -35,6 +38,13 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.signUp(userEmail, userPassword)
                 _userState.value = UserState.NeedsOtpVerification(userEmail)
+                val token = pushNotiRepository.getDeviceToken()
+                if (token != null) {
+                    val deviceName = Build.MODEL
+                    userDeviceRepository.saveFcmToken(token, deviceName)
+                } else {
+                    Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
+                }
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
@@ -47,6 +57,13 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.login(userEmail, userPassword)
                 _userState.value = UserState.Success("Đăng nhập thành công")
+                val token = pushNotiRepository.getDeviceToken()
+                if (token != null) {
+                    val deviceName = Build.MODEL
+                    userDeviceRepository.saveFcmToken(token, deviceName)
+                } else {
+                    Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
+                }
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
             }
@@ -91,6 +108,13 @@ class AuthViewModel @Inject constructor(
                             _userState.value = UserState.Success("Khởi tạo hồ sơ Google thành công")
                         } else {
                             _userState.value = UserState.Error("Lỗi: Không thể khởi tạo hồ sơ người dùng.")
+                        }
+                        val token = pushNotiRepository.getDeviceToken()
+                        if (token != null) {
+                            val deviceName = Build.MODEL
+                            userDeviceRepository.saveFcmToken(token, deviceName)
+                        } else {
+                            Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
                         }
                     }
                 } else {

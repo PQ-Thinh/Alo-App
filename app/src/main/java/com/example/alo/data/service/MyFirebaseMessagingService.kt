@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
@@ -16,6 +17,8 @@ import com.example.alo.MainActivity
 import com.example.alo.R
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.random.Random
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
@@ -33,6 +36,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             val type = remoteMessage.data["type"]
             val senderName = remoteMessage.data["senderName"] ?: "Người dùng"
             val conversationId = remoteMessage.data["conversationId"]
+            val senderAvatar = remoteMessage.data["senderAvatar"]
 
             Log.d("FCM_DEBUG", "Nhận tin nhắn từ: $senderName, Type: $type")
 
@@ -40,15 +44,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 showNotification(
                     title = senderName,
                     message = "Bạn có một tin nhắn mới",
-                    conversationId = conversationId
+                    conversationId = conversationId,
+                    avatarUrl = senderAvatar
                 )
             }
         }
     }
 
-    private fun showNotification(title: String, message: String, conversationId: String?) {
+    private fun showNotification(title: String, message: String, conversationId: String?, avatarUrl: String?) {
         val channelId = "alo_chat_channel"
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val avatarBitmap = getBitmapFromUrl(avatarUrl)
+
+        val iconCompat = if (avatarBitmap != null) {
+            IconCompat.createWithBitmap(avatarBitmap)
+        } else {
+            IconCompat.createWithResource(this, R.mipmap.maloi_icon)
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "Tin nhắn Alo App", NotificationManager.IMPORTANCE_HIGH).apply {
@@ -60,7 +72,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // 2. Tạo Intent để mở MainActivity và truyền conversationId
+
+        // Tạo Intent để mở MainActivity và truyền conversationId
         val intent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -76,22 +89,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val pendingIntent = PendingIntent.getActivity(this, conversationId?.hashCode() ?: 0, intent, flag)
 
-        // 3. Khởi tạo đối tượng Person (Người gửi và Người nhận)
+        //Khởi tạo đối tượng Person (Người gửi và Người nhận)
         val senderPerson = Person.Builder()
             .setName(title)
-            // .setIcon(IconCompat.createWithResource(this, R.drawable.avatar_default)) // Nếu có icon avatar thì thêm vào đây
+            .setIcon(iconCompat)
             .build()
 
-        // 4. Tạo MessagingStyle (Giao diện chuẩn của ứng dụng Chat)
+        // Tạo MessagingStyle (Giao diện chuẩn của ứng dụng Chat)
         val messagingStyle = NotificationCompat.MessagingStyle(Person.Builder().setName("Tôi").build())
             .addMessage(message, System.currentTimeMillis(), senderPerson)
 
-        // 5. Tạo Lối tắt (Shortcut) - Yêu cầu bắt buộc của Android 11+ để hiện Bubble
+        //Tạo Lối tắt (Shortcut) - Yêu cầu bắt buộc của Android 11+ để hiện Bubble
         val shortcutId = "chat_$conversationId"
         val shortcut = ShortcutInfoCompat.Builder(this, shortcutId)
             .setShortLabel(title)
             .setLongLabel("Tin nhắn từ $title")
-            .setIcon(IconCompat.createWithResource(this, R.mipmap.maloi))
+            .setIcon(iconCompat)
             .setIntent(intent)
             .setLongLived(true)
             .setCategories(setOf("com.example.alo.category.TEXT_SHARE_TARGET"))
@@ -99,20 +112,20 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .build()
         ShortcutManagerCompat.pushDynamicShortcut(this, shortcut)
 
-        // 6. Tạo Bubble Metadata (Cấu hình bong bóng)
+        //Tạo Bubble Metadata (Cấu hình bong bóng)
         val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
             pendingIntent,
-            IconCompat.createWithResource(this, R.mipmap.maloi)
+            iconCompat
         )
             .setDesiredHeight(600) // Chiều cao cửa sổ chat khi bấm vào bong bóng
             .setAutoExpandBubble(true) // Tự động mở bong bóng nếu app đang ở background
             .setSuppressNotification(true)
             .build()
 
-        // 7. Lắp ráp Notification
+        //Lắp ráp Notification
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_email)
+            .setSmallIcon(iconCompat)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)
@@ -124,8 +137,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setBubbleMetadata(bubbleMetadata) // Thêm Bong bóng
             .setContentIntent(pendingIntent)
 
-        // 8. Hiển thị thông báo (Dùng conversationId làm ID để các tin nhắn cùng người sẽ gộp chung 1 bong bóng)
+        // Hiển thị thông báo (Dùng conversationId làm ID để các tin nhắn cùng người sẽ gộp chung 1 bong bóng)
         val notificationId = conversationId?.hashCode() ?: Random.nextInt()
         notificationManager.notify(notificationId, notificationBuilder.build())
+    }
+}
+private fun getBitmapFromUrl(imageUrl: String?): android.graphics.Bitmap? {
+    if (imageUrl.isNullOrEmpty()) return null
+    return try {
+        val url = URL(imageUrl)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.doInput = true
+        connection.connect()
+        val input = connection.inputStream
+        BitmapFactory.decodeStream(input)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

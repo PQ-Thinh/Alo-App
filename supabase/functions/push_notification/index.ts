@@ -41,7 +41,7 @@ serve(async (req) => {
     // 4. Lấy tên của người gửi
     const { data: sender } = await supabaseAdmin
       .from('users')
-      .select('display_name')
+      .select('display_name, avatar_url')
       .eq('id', senderId)
       .single()
 
@@ -77,6 +77,7 @@ serve(async (req) => {
         conversationId: conversationId,
         senderId: senderId,
         senderName: sender?.display_name || "Người dùng",
+        senderAvatar: sender?.avatar_url || "",
       },
       tokens: tokens,
     }
