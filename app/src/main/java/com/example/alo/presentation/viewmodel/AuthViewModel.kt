@@ -12,10 +12,12 @@ import com.example.alo.domain.repository.PushNotiRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.NonCancellable
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
 
@@ -190,23 +192,25 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _userState.value = UserState.Loading
 
-            try {
-                val token = notificationService.getDeviceToken()
-
-                if (token != null) {
-                    userDeviceRepository.deleteFcmToken(token)
+            withContext(NonCancellable) {
+                try {
+                    val token = notificationService.getDeviceToken()
+                    if (token != null) {
+                        userDeviceRepository.deleteFcmToken(token)
+                    }
+                    notificationService.deleteDeviceToken()
+                } catch (e: Exception) {
+                    Log.e("Logout", "Lỗi xóa FCM Token: ${e.message}")
                 }
 
-                notificationService.deleteDeviceToken()
-
-                authRepository.logout()
-                _userState.value = UserState.Success("Đăng xuất thành công")
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                authRepository.logout()
-                _userState.value = UserState.Error(e.message ?: "Lỗi không xác định")
+                try {
+                    authRepository.logout()
+                } catch (e: Exception) {
+                    Log.e("Logout", "Lỗi gọi Supabase Logout: ${e.message}")
+                }
             }
+
+            _userState.value = UserState.Success("Đăng xuất thành công")
         }
     }
 

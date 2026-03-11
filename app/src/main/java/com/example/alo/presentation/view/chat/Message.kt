@@ -43,20 +43,17 @@ import com.example.alo.presentation.viewmodel.ChatListViewModel
 fun Message(
     viewModel: ChatListViewModel = hiltViewModel(),
     onNavigateToChatRoom: (String) -> Unit,
-
 ) {
-
     val state by viewModel.state.collectAsState()
-
     val lifecycleOwner = LocalLifecycleOwner.current
-
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.fetchChatList(isSilentRefresh = true)
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
+
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when {
             state.isLoading -> {
                 CircularProgressIndicator(
@@ -94,7 +91,6 @@ fun Message(
                 }
             }
 
-            // 3. TRẠNG THÁI TRỐNG (Chưa có bạn bè/Tin nhắn)
             state.chatList.isEmpty() -> {
                 Column(
                     modifier = Modifier
@@ -102,7 +98,6 @@ fun Message(
                         .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Box chứa Icon minh họa
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -116,28 +111,22 @@ fun Message(
                             modifier = Modifier.size(60.dp)
                         )
                     }
-
                     Spacer(modifier = Modifier.height(24.dp))
-
                     Text(
                         text = "Bạn chưa có cuộc trò chuyện nào",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
                         text = "Hãy tìm kiếm bạn bè và bắt đầu trò chuyện ngay nhé!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
-
                     Spacer(modifier = Modifier.height(24.dp))
-
                     Button(
-                        onClick = { /* TODO: Chuyển sang Tab Danh bạ hoặc mở Modal Thêm bạn */ },
+                        onClick = { /* TODO */ },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
@@ -149,30 +138,60 @@ fun Message(
                 }
             }
 
-            // 4. TRẠNG THÁI CÓ DỮ LIỆU
             else -> {
-                Column() {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
-                    ) {
-                        items(state.chatList, key = { it.conversationId }) { chat ->
-                            val userStatus = getUserStatus(chat.targetLastSeen)
-                            if (userStatus.isOnline){
-                                ChatOnlineItem(
-                                    chat = chat,
-                                    onClick = { onNavigateToChatRoom(chat.conversationId) },
-                                    userStatus = userStatus
-                                )
-                            }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    val onlineUsers = state.chatList.filter { getUserStatus(it.targetLastSeen).isOnline }
 
+                    if (onlineUsers.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Đang hoạt động",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+
+                        // Khối Background bo góc cho LazyRow (Modern UI)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp) // Cân bằng khoảng cách tự động
+                            ) {
+                                items(onlineUsers, key = { it.conversationId }) { chat ->
+                                    ChatOnlineItem(
+                                        chat = chat,
+                                        onClick = { onNavigateToChatRoom(chat.conversationId) },
+                                        userStatus = getUserStatus(chat.targetLastSeen)
+                                    )
+                                }
+                            }
                         }
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Tiêu đề khu vực Message
+                    Text(
+                        text = "Tin nhắn",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    // Danh sách Chat chính
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                        modifier = Modifier.weight(1f), // Chiếm phần không gian còn lại
+                        contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
                         items(state.chatList, key = { it.conversationId }) { chat ->
                             val userStatus = getUserStatus(chat.targetLastSeen)
@@ -184,27 +203,30 @@ fun Message(
                         }
                     }
                 }
-
             }
         }
     }
 }
 
 @Composable
-fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
+fun ChatItem(
+    chat: ChatList,
+    onClick: () -> Unit,
+    userStatus: UserStatus
 ) {
     val hasUnread = chat.unreadCount > 0
+    val backgroundColor = if (hasUnread) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f) else Color.Transparent
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(if (hasUnread) Color(0xFFF8F8FF) else Color.Transparent)
+            .background(backgroundColor)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar
-        Box(modifier = Modifier.size(56.dp)) {
-            // Avatar chính
+        Box(modifier = Modifier.size(60.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -224,8 +246,8 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                     Text(
                         text = initial,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -237,11 +259,7 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                         .align(Alignment.BottomEnd)
                         .clip(CircleShape)
                         .background(Color(0xFF4CAF50))
-                        .border(
-                            2.dp,
-                            MaterialTheme.colorScheme.background,
-                            CircleShape
-                        )
+                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                 )
             }
         }
@@ -251,11 +269,13 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = chat.chatName ?: "Người dùng ẩn danh",
-                fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.SemiBold,
-                fontSize = 16.sp,
+                fontWeight = if (hasUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
+                fontSize = 17.sp,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
             Spacer(modifier = Modifier.height(4.dp))
 
             val prefix = if (chat.lastMessageSenderId == chat.currentUserId) "Bạn: " else ""
@@ -284,44 +304,51 @@ fun ChatItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                 fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.Normal
             )
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             if (hasUnread) {
                 Box(
                     modifier = Modifier
-                        .defaultMinSize(minWidth = 20.dp)
-                        .height(20.dp)
+                        .defaultMinSize(minWidth = 22.dp)
+                        .height(22.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF6C63FF))
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString(),
                         color = Color.White,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(22.dp))
             }
         }
     }
 }
 
 @Composable
-fun ChatOnlineItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
+fun ChatOnlineItem(
+    chat: ChatList,
+    onClick: () -> Unit,
+    userStatus: UserStatus
 ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(64.dp) // Cố định chiều rộng để text không làm vỡ layout
+            .clickable(onClick = onClick)
+    ) {
         // Avatar
-        Box(modifier = Modifier.size(62.dp)) {
-            // Avatar chính
+        Box(modifier = Modifier.size(60.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .clickable{onClick()}
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -331,6 +358,14 @@ fun ChatOnlineItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                         contentDescription = "Avatar",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initial = chat.chatName?.firstOrNull()?.uppercase() ?: "?"
+                    Text(
+                        text = initial,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -342,12 +377,22 @@ fun ChatOnlineItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                         .align(Alignment.BottomEnd)
                         .clip(CircleShape)
                         .background(Color(0xFF4CAF50))
-                        .border(
-                            2.dp,
-                            MaterialTheme.colorScheme.background,
-                            CircleShape
-                        )
+                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), CircleShape)
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Tên hiển thị (chỉ lấy chữ cuối cùng - Tên thật trong tiếng Việt)
+        val shortName = chat.chatName?.split(" ")?.lastOrNull() ?: "?"
+        Text(
+            text = shortName,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }

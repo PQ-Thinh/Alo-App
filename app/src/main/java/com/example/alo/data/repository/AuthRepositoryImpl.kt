@@ -5,10 +5,13 @@ import com.example.alo.domain.model.AuthUser
 import com.example.alo.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class  AuthRepositoryImpl @Inject constructor(
@@ -35,8 +38,21 @@ class  AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout() {
-        supabaseClient.auth.signOut()
-        dataStoreHelper.clearAll()
+        withContext(NonCancellable) {
+            try {
+                supabaseClient.auth.signOut()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                try {
+                    supabaseClient.auth.signOut(io.github.jan.supabase.auth.SignOutScope.LOCAL)
+                } catch (e2: Exception) {
+                    e2.printStackTrace()
+                }
+            } finally {
+                dataStoreHelper.clearAll()
+            }
+        }
+
     }
     override suspend fun loginWithGoogle(idToken: String) {
         supabaseClient.auth.signInWith(IDToken) {
