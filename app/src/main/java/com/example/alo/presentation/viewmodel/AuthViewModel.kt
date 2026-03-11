@@ -82,7 +82,13 @@ class AuthViewModel @Inject constructor(
 
                 if (authUser != null) {
                     val existingProfile = userRepository.getCurrentUser(authUser.id)
-
+                    val token = pushNotiRepository.getDeviceToken()
+                    if (token != null) {
+                        val deviceName = Build.MODEL
+                        userDeviceRepository.saveFcmToken(token, deviceName)
+                    } else {
+                        Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
+                    }
                     if (existingProfile != null) {
                         _userState.value = UserState.Success("Đăng nhập Google thành công")
                     } else {
@@ -106,13 +112,7 @@ class AuthViewModel @Inject constructor(
                         )
 
                         val isSaved = userRepository.saveUserProfile(autoProfile)
-                        val token = pushNotiRepository.getDeviceToken()
-                        if (token != null) {
-                            val deviceName = Build.MODEL
-                            userDeviceRepository.saveFcmToken(token, deviceName)
-                        } else {
-                            Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
-                        }
+
                         if (isSaved) {
                             _userState.value = UserState.Success("Khởi tạo hồ sơ Google thành công")
                         } else {
