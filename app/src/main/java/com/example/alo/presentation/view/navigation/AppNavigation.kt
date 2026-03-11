@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,8 +24,16 @@ import com.example.alo.presentation.view.profile.ProfileScreen
 import com.example.alo.presentation.viewmodel.UserViewModel
 
 @Composable
-fun AppNavigation(startDestination: String) {
+fun AppNavigation(
+    startDestination: String,
+    pushConversationId: String?
+) {
     val navController = rememberNavController()
+    LaunchedEffect(pushConversationId) {
+        if (pushConversationId != null) {
+            navController.navigate("chat_room_screen/$pushConversationId")
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = "animated_splash"

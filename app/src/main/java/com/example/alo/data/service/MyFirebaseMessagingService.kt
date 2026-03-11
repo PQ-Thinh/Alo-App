@@ -3,11 +3,16 @@ package com.example.alo.data.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.Person
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.example.alo.MainActivity
 import com.example.alo.R
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -47,45 +52,83 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val channelId = "alo_chat_channel"
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        // 1. Tạo Kênh thông báo (Bắt buộc từ Android 8.0 trở lên)
+        // 1. Tạo Kênh thông báo (Bắt buộc cho Bong bóng chat phải bật allowBubbles)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Tin nhắn Alo App",
-                NotificationManager.IMPORTANCE_HIGH // Đặt HIGH để nó Pop-up (heads-up) trên màn hình
-            ).apply {
+            val channel = NotificationChannel(channelId, "Tin nhắn Alo App", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Kênh thông báo khi có tin nhắn mới"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setAllowBubbles(true) // Cho phép hiển thị bong bóng
+                }
             }
             notificationManager.createNotificationChannel(channel)
         }
 
-        // 2. Tạo Hành động khi người dùng bấm vào thông báo -> Mở ứng dụng
+        // 2. Tạo Intent để mở MainActivity và truyền conversationId
         val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            // Bạn có thể nhét conversationId vào intent để xử lý điều hướng thẳng vào phòng chat sau
+            action = Intent.ACTION_VIEW
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             putExtra("conversationId", conversationId)
         }
 
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        )
+        // Bắt buộc dùng FLAG_MUTABLE cho Bubble API từ Android 12 trở lên
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
 
-        // 3. Vẽ Giao diện Thông báo
+        val pendingIntent = PendingIntent.getActivity(this, conversationId?.hashCode() ?: 0, intent, flag)
+
+        // 3. Khởi tạo đối tượng Person (Người gửi và Người nhận)
+        val senderPerson = Person.Builder()
+            .setName(title)
+            // .setIcon(IconCompat.createWithResource(this, R.drawable.avatar_default)) // Nếu có icon avatar thì thêm vào đây
+            .build()
+
+        // 4. Tạo MessagingStyle (Giao diện chuẩn của ứng dụng Chat)
+        val messagingStyle = NotificationCompat.MessagingStyle(Person.Builder().setName("Tôi").build())
+            .addMessage(message, System.currentTimeMillis(), senderPerson)
+
+        // 5. Tạo Lối tắt (Shortcut) - Yêu cầu bắt buộc của Android 11+ để hiện Bubble
+        val shortcutId = "chat_$conversationId"
+        val shortcut = ShortcutInfoCompat.Builder(this, shortcutId)
+            .setShortLabel(title)
+            .setLongLabel("Tin nhắn từ $title")
+            .setIcon(IconCompat.createWithResource(this, R.mipmap.maloi))
+            .setIntent(intent)
+            .setLongLived(true)
+            .setCategories(setOf("com.example.alo.category.TEXT_SHARE_TARGET"))
+            .setPerson(senderPerson)
+            .build()
+        ShortcutManagerCompat.pushDynamicShortcut(this, shortcut)
+
+        // 6. Tạo Bubble Metadata (Cấu hình bong bóng)
+        val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
+            pendingIntent,
+            IconCompat.createWithResource(this, R.mipmap.maloi)
+        )
+            .setDesiredHeight(600) // Chiều cao cửa sổ chat khi bấm vào bong bóng
+            .setAutoExpandBubble(true) // Tự động mở bong bóng nếu app đang ở background
+            .setSuppressNotification(true)
+            .build()
+
+        // 7. Lắp ráp Notification
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.maloi_icon)
+            .setSmallIcon(android.R.drawable.ic_dialog_email)
             .setContentTitle(title)
             .setContentText(message)
-            .setAutoCancel(true) // Bấm vào là tự biến mất
-            .setSound(defaultSoundUri) // Kêu "Ting" một cái
-            .setPriority(NotificationCompat.PRIORITY_HIGH) // Ưu tiên hiển thị Pop-up
+            .setAutoCancel(true)
+            .setSound(defaultSoundUri)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE) // BẮT BUỘC LÀ CATEGORY_MESSAGE
+            .setStyle(messagingStyle) // Áp dụng giao diện chat
+            .setShortcutId(shortcutId) // Liên kết với Shortcut
+            .setBubbleMetadata(bubbleMetadata) // Thêm Bong bóng
             .setContentIntent(pendingIntent)
 
-        // 4. Hiển thị lên màn hình (Dùng số ngẫu nhiên để các thông báo không đè lên nhau)
-        val notificationId = Random.nextInt()
+        // 8. Hiển thị thông báo (Dùng conversationId làm ID để các tin nhắn cùng người sẽ gộp chung 1 bong bóng)
+        val notificationId = conversationId?.hashCode() ?: Random.nextInt()
         notificationManager.notify(notificationId, notificationBuilder.build())
     }
 }

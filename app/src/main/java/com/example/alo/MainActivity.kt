@@ -1,6 +1,7 @@
 package com.example.alo
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -11,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -39,12 +41,18 @@ class MainActivity : ComponentActivity() {
     ) { isGranted: Boolean ->
         if (!isGranted) {
             Log.e("FCM", "Người dùng từ chối quyền thông báo")
+        } else {
+            splashViewModel.saveFCMToken()
         }
     }
+
+    private var pushConversationId = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        pushConversationId.value = intent?.getStringExtra("conversationId")
 
         // Đăng ký Heartbeat
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -67,8 +75,14 @@ class MainActivity : ComponentActivity() {
             AloTheme {
                 val startDestination by splashViewModel.startDestination.collectAsState()
 
+                // Lắng nghe state của conversationId
+                val conversationIdToNavigate by pushConversationId
+
                 if (startDestination != null) {
-                    AppNavigation(startDestination = startDestination!!)
+                    AppNavigation(
+                        startDestination = startDestination!!,
+                        pushConversationId = conversationIdToNavigate
+                    )
                 }
             }
         }
@@ -76,13 +90,20 @@ class MainActivity : ComponentActivity() {
         askNotificationPermission()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pushConversationId.value = intent.getStringExtra("conversationId")
+    }
+
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
                 PackageManager.PERMISSION_GRANTED
             ) {
-                // Hiển thị popup xin quyền
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                splashViewModel.saveFCMToken()
             }
         } else {
             splashViewModel.saveFCMToken()
