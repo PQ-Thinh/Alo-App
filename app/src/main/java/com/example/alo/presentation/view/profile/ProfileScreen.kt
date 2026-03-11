@@ -49,7 +49,6 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Hồ sơ của tôi", fontWeight = FontWeight.Bold) },
                 actions = {
-                    // Nút Đăng xuất được đưa lên góc phải chuẩn app hiện đại
                     IconButton(onClick = {
                         authViewModel.logout()
                         onLogoutSuccess()
