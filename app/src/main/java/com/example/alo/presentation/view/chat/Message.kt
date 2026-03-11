@@ -321,6 +321,7 @@ fun ChatOnlineItem(chat: ChatList, onClick: () -> Unit, userStatus: UserStatus,
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
+                    .clickable{onClick()}
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
