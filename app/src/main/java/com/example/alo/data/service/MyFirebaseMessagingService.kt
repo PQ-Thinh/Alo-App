@@ -3,7 +3,6 @@ package com.example.alo.data.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
@@ -24,7 +23,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM_DEBUG", "FCM Token bị làm mới: $token")
-        // Token mới này sẽ được SplashViewModel tự động cập nhật ở lần mở app tiếp theo
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -52,12 +50,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val channelId = "alo_chat_channel"
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        // 1. Tạo Kênh thông báo (Bắt buộc cho Bong bóng chat phải bật allowBubbles)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "Tin nhắn Alo App", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Kênh thông báo khi có tin nhắn mới"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setAllowBubbles(true) // Cho phép hiển thị bong bóng
+                    setAllowBubbles(true)
                 }
             }
             notificationManager.createNotificationChannel(channel)
