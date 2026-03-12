@@ -82,16 +82,8 @@ class AuthViewModel @Inject constructor(
 
                 if (authUser != null) {
                     val existingProfile = userRepository.getCurrentUser(authUser.id)
-                    val token = pushNotiRepository.getDeviceToken()
-                    if (token != null) {
-                        val deviceName = Build.MODEL
-                        userDeviceRepository.saveFcmToken(token, deviceName)
-                    } else {
-                        Log.e("FCM_DEBUG", " Firebase trả về Token bị rỗng (null)")
-                    }
-                    if (existingProfile != null) {
-                        _userState.value = UserState.Success("Đăng nhập Google thành công")
-                    } else {
+
+                    if (existingProfile == null) {
                         val defaultUsername = authUser.email.substringBefore("@")
                         val displayName = authUser.fullName ?: defaultUsername
 
@@ -112,14 +104,26 @@ class AuthViewModel @Inject constructor(
                         )
 
                         val isSaved = userRepository.saveUserProfile(autoProfile)
-
-                        if (isSaved) {
-                            _userState.value = UserState.Success("Khởi tạo hồ sơ Google thành công")
-                        } else {
+                        if (!isSaved) {
                             _userState.value = UserState.Error("Lỗi: Không thể khởi tạo hồ sơ người dùng.")
+                            return@launch
                         }
-
                     }
+
+                    try {
+                        val token = pushNotiRepository.getDeviceToken()
+                        if (token != null) {
+                            val deviceName = Build.MODEL
+                            userDeviceRepository.saveFcmToken(token, deviceName)
+                        } else {
+                            Log.e("FCM_DEBUG", "Firebase trả về Token bị rỗng (null)")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FCM_DEBUG", "Lỗi lưu Token: ${e.message}")
+                    }
+
+                    _userState.value = UserState.Success("Đăng nhập Google thành công")
+
                 } else {
                     _userState.value = UserState.Error("Không lấy được phiên đăng nhập.")
                 }
