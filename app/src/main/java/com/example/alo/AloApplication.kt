@@ -1,6 +1,7 @@
 package com.example.alo
 
 import android.app.Application
+import com.example.alo.data.utils.CryptoHelper
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 
@@ -9,5 +10,6 @@ class AloApplication : Application(){
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
+        CryptoHelper.initTink()
     }
 }

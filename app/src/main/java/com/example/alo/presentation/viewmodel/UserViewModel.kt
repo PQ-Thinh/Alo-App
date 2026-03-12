@@ -1,5 +1,6 @@
 package com.example.alo.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
@@ -10,6 +11,7 @@ import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.ProfileSetupState
 import com.example.alo.presentation.helper.UserProfileState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -65,7 +68,7 @@ class UserViewModel @Inject constructor(
                 var finalAvatarUrl: String? = existingProfile?.avatarUrl ?: authUser.avatarUrl
                 var finalAvatarId: String? = existingProfile?.avatarId
                     ?: if (authUser.avatarUrl != null) "google_oauth_avatar" else "default_id"
-
+                val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context)
                 if (currentState.avatarBytes != null) {
                     val uploadedUrl = userRepository.uploadAvatar(currentState.avatarBytes, "jpg")
                     if (uploadedUrl.isNotBlank()) {
@@ -100,7 +103,8 @@ class UserViewModel @Inject constructor(
                     bio = currentState.bio.ifBlank{ null},
                     avatarId = finalAvatarId.toString(),
                     avatarUrl = finalAvatarUrl,
-                    publicKey = existingProfile?.publicKey ?: CryptoHelper.getOrGeneratePublicKey(),
+                    publicEncryptKey = encryptKeyStr,
+                    publicSignKey = signKeyStr,
                     createdAt = existingProfile?.createdAt ?: Instant.now().toString(),
                     updatedAt = Instant.now().toString()
                 )

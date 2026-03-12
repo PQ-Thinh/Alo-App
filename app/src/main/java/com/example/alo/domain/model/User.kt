@@ -11,7 +11,8 @@ data class User(
     val gender: Boolean?,
     val avatarId: String,
     val avatarUrl: String?,
-    val publicKey: String,
+    val publicEncryptKey: String,
+    val publicSignKey: String?,
     val lastSeen: String?=null,
     val createdAt: String,
     val updatedAt: String

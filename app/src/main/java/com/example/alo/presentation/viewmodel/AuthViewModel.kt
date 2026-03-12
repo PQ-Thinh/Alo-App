@@ -1,5 +1,6 @@
 package com.example.alo.presentation.viewmodel
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -11,7 +12,9 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.PushNotiRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
+import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.NonCancellable
 
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +27,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val notificationService: PushNotiRepository,
@@ -79,7 +83,7 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.loginWithGoogle(credential as String)
                 val authUser = authRepository.getCurrentAuthUser()
-
+                val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context)
                 if (authUser != null) {
                     val existingProfile = userRepository.getCurrentUser(authUser.id)
 
@@ -98,7 +102,8 @@ class AuthViewModel @Inject constructor(
                             gender = null,
                             avatarId = "google_oauth_avatar",
                             avatarUrl = authUser.avatarUrl,
-                            publicKey = CryptoHelper.getOrGeneratePublicKey(),
+                            publicEncryptKey = encryptKeyStr,
+                            publicSignKey = signKeyStr,
                             createdAt = Instant.now().toString(),
                             updatedAt = Instant.now().toString()
                         )

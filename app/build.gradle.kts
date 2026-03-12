@@ -118,6 +118,8 @@ dependencies {
 
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    implementation("com.google.crypto.tink:tink-android:1.8.0")
+
 }
 secrets {
     propertiesFileName = "local.properties"

@@ -16,9 +16,9 @@ data class UserDto(
     @SerialName("gender") val gender: Boolean? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("avatarid") val avatarId: String,
-    @SerialName("public_key") val publicKey: String,
-    @SerialName("last_seen")
-    val lastSeen: String? = null,
+    @SerialName("public_encrypt_key") val publicEncryptKey: String = "",
+    @SerialName("public_sign_key") val publicSignKey: String? = null,
+    @SerialName("last_seen") val lastSeen: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 
@@ -35,7 +35,8 @@ data class UserDto(
         birthday = birthday,
         gender = gender,
         avatarUrl = avatarUrl,
-        publicKey = publicKey,
+        publicEncryptKey = publicEncryptKey,
+        publicSignKey = publicSignKey,
         createdAt = createdAt ?: "",
         updatedAt = updatedAt ?: "",
         lastSeen = lastSeen ?: ""
@@ -55,7 +56,8 @@ fun User.toDto(): UserDto = UserDto(
     avatarUrl = this.avatarUrl,
     birthday = this.birthday,
     gender = this.gender,
-    publicKey = this.publicKey,
+    publicEncryptKey = publicEncryptKey,
+    publicSignKey = publicSignKey,
     createdAt = this.createdAt.ifEmpty { null },
     updatedAt = this.updatedAt.ifEmpty { null },
     lastSeen = this.lastSeen?.ifEmpty { null }
