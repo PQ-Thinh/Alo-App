@@ -105,7 +105,7 @@ object CryptoHelper {
         try {
             val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
 
-            val emptyContextInfo = null
+            val emptyContextInfo = ByteArray(0)
 
             // 1. MÃ HÓA CHO NGƯỜI NHẬN (BOB)
             val receiverKeyHandle = getPublicKeyHandleFromBase64(receiverPublicEncryptKeyBase64)
@@ -179,7 +179,7 @@ object CryptoHelper {
 
             // Parse chuỗi JSON (Dùng org.json có sẵn của Android)
             val jsonObject = org.json.JSONObject(encryptedJson)
-            val emptyContextInfo = null
+            val emptyContextInfo = ByteArray(0)
 
             if (isMyMessage) {
                 // ==========================================
