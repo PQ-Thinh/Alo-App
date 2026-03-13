@@ -79,9 +79,9 @@ serve(async (req) => {
         senderName: sender?.display_name || "Người dùng",
         senderAvatar: sender?.avatar_url || "",
       },
-        android: {
-          priority: "high",
-        },
+//         android: {
+//           priority: "high",
+//         },
       tokens: tokens,
     }
 

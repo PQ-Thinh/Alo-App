@@ -138,6 +138,7 @@ class ChatRoomViewModel @Inject constructor(
         _messageText.value = ""
 
         viewModelScope.launch {
+
             messageRepository.sendMessage(conversationId, senderId, content)
         }
     }
