@@ -10,8 +10,10 @@ import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import com.google.crypto.tink.signature.SignatureConfig
 import java.io.ByteArrayOutputStream
 import android.util.Base64
+import com.google.crypto.tink.HybridDecrypt
 import com.google.crypto.tink.HybridEncrypt
 import com.google.crypto.tink.PublicKeySign
+import com.google.crypto.tink.PublicKeyVerify
 
 object CryptoHelper {
 
@@ -24,6 +26,8 @@ object CryptoHelper {
     // Tên của 2 bộ khóa (Keyset)
     private const val ENCRYPT_KEYSET_NAME = "encrypt_keyset"
     private const val SIGN_KEYSET_NAME = "sign_keyset"
+    private var cachedDecryptHandle: KeysetHandle? = null
+
 
     /**
      * Hàm này GỌI 1 LẦN DUY NHẤT khi app khởi chạy (ví dụ trong Application hoặc MainActivity)
@@ -139,6 +143,83 @@ object CryptoHelper {
         } catch (e: Exception) {
             android.util.Log.e("CRYPTO_ERROR", "Lỗi mã hóa tin nhắn: ${e.message}", e)
             return "" // Trả về rỗng nếu có lỗi để chặn việc gửi tin nhắn lỗi lên Server
+        }
+        // Biến lưu tạm Private Key vào RAM để giải mã hàng loạt tin nhắn mà không bị lag UI
+
+    }
+    /**
+     * HÀM HỖ TRỢ: Lấy Private Key Mã hóa (Có Caching)
+     */
+    private fun getDecryptHandle(context: Context): KeysetHandle {
+        if (cachedDecryptHandle == null) {
+            cachedDecryptHandle = AndroidKeysetManager.Builder()
+                .withSharedPref(context, ENCRYPT_KEYSET_NAME, PREF_FILE_NAME)
+                .withMasterKeyUri(MASTER_KEY_URI)
+                .build()
+                .keysetHandle
+        }
+        return cachedDecryptHandle!!
+    }
+
+    /**
+     * HÀM GIẢI MÃ TIN NHẮN (DECRYPT)
+     * Cần gọi hàm này cho mỗi tin nhắn tải về từ Supabase.
+     */
+    fun decryptMessage(
+        context: Context,
+        encryptedJson: String,
+        senderPublicSignKeyBase64: String?, // Public Sign Key của người gửi (có thể null nếu là tin mình gửi)
+        isMyMessage: Boolean                // Biến cờ: true nếu mình là người gửi tin này
+    ): String {
+        try {
+            // Lấy công cụ giải mã (từ Private Key của chính mình)
+            val hybridDecrypt = getDecryptHandle(context).getPrimitive(HybridDecrypt::class.java)
+
+            // Parse chuỗi JSON (Dùng org.json có sẵn của Android)
+            val jsonObject = org.json.JSONObject(encryptedJson)
+
+            if (isMyMessage) {
+                // ==========================================
+                // TRƯỜNG HỢP 1: TIN NHẮN DO MÌNH TỰ GỬI
+                // ==========================================
+                val forSenderBase64 = jsonObject.getString("for_sender")
+                val ciphertextBytes = Base64.decode(forSenderBase64, Base64.DEFAULT)
+
+                // Giải mã bằng Private Key của mình
+                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, null)
+                return String(plaintextBytes, Charsets.UTF_8)
+
+            } else {
+                // ==========================================
+                // TRƯỜNG HỢP 2: TIN NHẮN DO NGƯỜI KHÁC GỬI
+                // ==========================================
+                val forReceiverBase64 = jsonObject.getString("for_receiver")
+                val signatureBase64 = jsonObject.getString("signature")
+
+                val ciphertextBytes = Base64.decode(forReceiverBase64, Base64.DEFAULT)
+                val signatureBytes = Base64.decode(signatureBase64, Base64.DEFAULT)
+
+                // BƯỚC 2.1: SOÁT XÉT CHỮ KÝ!
+                if (senderPublicSignKeyBase64 == null) {
+                    throw Exception("Thiếu Public Sign Key của người gửi để xác minh!")
+                }
+
+                val senderSignKeyHandle = getPublicKeyHandleFromBase64(senderPublicSignKeyBase64)
+                val verifier = senderSignKeyHandle.getPrimitive(PublicKeyVerify::class.java)
+
+                // Hàm verify sẽ văng Exception ngay lập tức nếu Hacker tráo tin nhắn / sửa chữ ký
+                verifier.verify(signatureBytes, ciphertextBytes)
+
+                // BƯỚC 2.2: CHỮ KÝ CHUẨN -> GIẢI MÃ THÔI!
+                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, null)
+                return String(plaintextBytes, Charsets.UTF_8)
+            }
+
+        } catch (e: Exception) {
+            // Nếu parse JSON lỗi (do tin nhắn cũ trước khi có E2EE) hoặc giải mã thất bại
+            android.util.Log.e("CRYPTO_ERROR", "Lỗi giải mã tin nhắn: ${e.message}")
+            // Bạn có thể trả về chính encryptedJson nếu muốn xem raw, hoặc báo lỗi:
+            return "🔒 Nội dung không thể giải mã"
         }
     }
 }

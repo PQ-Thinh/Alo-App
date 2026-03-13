@@ -1,14 +1,18 @@
 package com.example.alo.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.MessageRepository
+import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +26,11 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatRoomViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context,
     private val messageRepository: MessageRepository,
     private val authRepository: AuthRepository,
     private val conversationRepository: ConversationRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
@@ -52,6 +58,10 @@ class ChatRoomViewModel @Inject constructor(
     private val _isPartnerTyping = MutableStateFlow(false)
     val isPartnerTyping: StateFlow<Boolean> = _isPartnerTyping.asStateFlow()
 
+    // cache save publicEncryptKey
+    private var myPublicEncryptKey: String = ""
+    private var partnerPublicEncryptKey: String = ""
+
     private var typingJob: Job? = null
     private var lastTypingTime = 0L
 
@@ -67,6 +77,9 @@ class ChatRoomViewModel @Inject constructor(
                 try {
                     conversationRepository.resetUnreadCount(conversationId, user.id)
 
+                    val myProfile = userRepository.getCurrentUser(user.id)
+                    myPublicEncryptKey = myProfile?.publicEncryptKey ?: ""
+
                     val chatList = conversationRepository.getChatList(user.id)
                     val currentChatInfo = chatList.find { it.conversationId == conversationId }
 
@@ -74,8 +87,14 @@ class ChatRoomViewModel @Inject constructor(
                         _partnerName.value = currentChatInfo.chatName ?: "Người dùng ẩn danh"
                         _partnerAvatar.value = currentChatInfo.chatAvatar ?: ""
 
-                        _partnerId.value = currentChatInfo.targetUserId ?: ""
+                        val pId = currentChatInfo.targetUserId ?: ""
+                        _partnerId.value = pId
                         _partnerLastSeen.value = currentChatInfo.targetLastSeen ?: ""
+
+                        if (pId.isNotEmpty()) {
+                            val partnerProfile = userRepository.getCurrentUser(pId)
+                            partnerPublicEncryptKey = partnerProfile?.publicEncryptKey ?: ""
+                        }
                     }
                 } catch (e: Exception) {}
             }
@@ -135,11 +154,28 @@ class ChatRoomViewModel @Inject constructor(
 
         if (content.isEmpty() || senderId.isEmpty()) return
 
+        if (myPublicEncryptKey.isEmpty() || partnerPublicEncryptKey.isEmpty()) {
+            Log.e("CRYPTO_ERROR", "Chưa tải được Public Key, không thể mã hóa tin nhắn!")
+            return
+        }
+
         _messageText.value = ""
 
         viewModelScope.launch {
 
-            messageRepository.sendMessage(conversationId, senderId, content)
+            val encryptedJsonPayload = CryptoHelper.encryptMessage(
+                context = context,
+                plaintext = content,
+                receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
+                myPublicEncryptKeyBase64 = myPublicEncryptKey
+            )
+
+            if (encryptedJsonPayload.isNotEmpty()) {
+                messageRepository.sendMessage(conversationId, senderId, encryptedJsonPayload)
+                Log.d("CRYPTO_SUCCESS", "Đã gửi gói tin mã hóa: $encryptedJsonPayload")
+            } else {
+                Log.e("CRYPTO_ERROR", "Lỗi trong quá trình mã hóa. Tin nhắn bị hủy.")
+            }
         }
     }
     fun addReaction(messageId: String, reactionIcon: String) {
