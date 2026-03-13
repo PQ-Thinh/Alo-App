@@ -105,17 +105,19 @@ object CryptoHelper {
         try {
             val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
 
+            val emptyContextInfo = null
+
             // 1. MÃ HÓA CHO NGƯỜI NHẬN (BOB)
             val receiverKeyHandle = getPublicKeyHandleFromBase64(receiverPublicEncryptKeyBase64)
             val receiverHybridEncrypt = receiverKeyHandle.getPrimitive(HybridEncrypt::class.java)
             // null ở tham số thứ 2 là contextInfo (chúng ta không cần dùng tới)
-            val receiverCiphertext = receiverHybridEncrypt.encrypt(plaintextBytes, null)
+            val receiverCiphertext = receiverHybridEncrypt.encrypt(plaintextBytes, emptyContextInfo)
             val receiverCiphertextBase64 = Base64.encodeToString(receiverCiphertext, Base64.NO_WRAP)
 
             // 2. MÃ HÓA CHO CHÍNH MÌNH (ALICE - ĐỂ TỰ ĐỌC LẠI LỊCH SỬ)
             val myKeyHandle = getPublicKeyHandleFromBase64(myPublicEncryptKeyBase64)
             val myHybridEncrypt = myKeyHandle.getPrimitive(HybridEncrypt::class.java)
-            val myCiphertext = myHybridEncrypt.encrypt(plaintextBytes, null)
+            val myCiphertext = myHybridEncrypt.encrypt(plaintextBytes, emptyContextInfo)
             val myCiphertextBase64 = Base64.encodeToString(myCiphertext, Base64.NO_WRAP)
 
             // 3. KÝ ĐIỆN TỬ (ĐÓNG MỘC BẰNG PRIVATE KEY CỦA ALICE)
@@ -177,16 +179,17 @@ object CryptoHelper {
 
             // Parse chuỗi JSON (Dùng org.json có sẵn của Android)
             val jsonObject = org.json.JSONObject(encryptedJson)
+            val emptyContextInfo = null
 
             if (isMyMessage) {
                 // ==========================================
                 // TRƯỜNG HỢP 1: TIN NHẮN DO MÌNH TỰ GỬI
                 // ==========================================
                 val forSenderBase64 = jsonObject.getString("for_sender")
-                val ciphertextBytes = Base64.decode(forSenderBase64, Base64.DEFAULT)
+                val ciphertextBytes = Base64.decode(forSenderBase64, Base64.NO_WRAP)
 
                 // Giải mã bằng Private Key của mình
-                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, null)
+                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, emptyContextInfo)
                 return String(plaintextBytes, Charsets.UTF_8)
 
             } else {
@@ -196,8 +199,8 @@ object CryptoHelper {
                 val forReceiverBase64 = jsonObject.getString("for_receiver")
                 val signatureBase64 = jsonObject.getString("signature")
 
-                val ciphertextBytes = Base64.decode(forReceiverBase64, Base64.DEFAULT)
-                val signatureBytes = Base64.decode(signatureBase64, Base64.DEFAULT)
+                val ciphertextBytes = Base64.decode(forReceiverBase64, Base64.NO_WRAP)
+                val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
 
                 // BƯỚC 2.1: SOÁT XÉT CHỮ KÝ!
                 if (senderPublicSignKeyBase64 == null) {
@@ -211,7 +214,7 @@ object CryptoHelper {
                 verifier.verify(signatureBytes, ciphertextBytes)
 
                 // BƯỚC 2.2: CHỮ KÝ CHUẨN -> GIẢI MÃ THÔI!
-                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, null)
+                val plaintextBytes = hybridDecrypt.decrypt(ciphertextBytes, emptyContextInfo)
                 return String(plaintextBytes, Charsets.UTF_8)
             }
 

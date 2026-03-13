@@ -61,6 +61,7 @@ class ChatRoomViewModel @Inject constructor(
     // cache save publicEncryptKey
     private var myPublicEncryptKey: String = ""
     private var partnerPublicEncryptKey: String = ""
+    private var partnerPublicSignKey: String? = null
 
     private var typingJob: Job? = null
     private var lastTypingTime = 0L
@@ -94,13 +95,18 @@ class ChatRoomViewModel @Inject constructor(
                         if (pId.isNotEmpty()) {
                             val partnerProfile = userRepository.getCurrentUser(pId)
                             partnerPublicEncryptKey = partnerProfile?.publicEncryptKey ?: ""
+
+                            partnerPublicSignKey = partnerProfile?.publicSignKey
                         }
                     }
                 } catch (e: Exception) {}
             }
 
             val historyMessages = messageRepository.getMessages(conversationId)
-            _messages.value = historyMessages
+            val decryptedHistory = historyMessages.map { msg ->
+                decryptMessageObj(msg)
+            }
+            _messages.value = decryptedHistory
 
             historyMessages.forEach { msg ->
                 if (msg.senderId != user?.id && !msg.seenBy.contains(user?.id)) {
@@ -120,33 +126,42 @@ class ChatRoomViewModel @Inject constructor(
                     }
                 }
                 ).collect { newMessage ->
-                if (newMessage.senderId != user?.id && !newMessage.seenBy.contains(user?.id)) {
+                val decryptedNewMsg = decryptMessageObj(newMessage)
+
+                if (decryptedNewMsg.senderId != user?.id && !decryptedNewMsg.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
-                        messageRepository.markMessageAsSeen(newMessage.id, user!!.id)
+                        messageRepository.markMessageAsSeen(decryptedNewMsg.id, user!!.id)
                     }
                 }
 
                 _messages.update { currentList ->
-                    if (currentList.none { it.id == newMessage.id }) {
-                        listOf(newMessage) + currentList
+                    if (currentList.none { it.id == decryptedNewMsg.id }) {
+                        listOf(decryptedNewMsg) + currentList
                     } else {
-                        currentList.map { if (it.id == newMessage.id) newMessage else it }
+                        currentList.map { if (it.id == decryptedNewMsg.id) decryptedNewMsg else it }
                     }
                 }
             }
         }
     }
 
-    fun onMessageTextChanged(text: String) {
-        _messageText.value = text
-        val currentTime = System.currentTimeMillis()
-        if (text.isNotEmpty() && (currentTime - lastTypingTime > 2000)) {
-            lastTypingTime = currentTime
-            viewModelScope.launch {
-                messageRepository.sendTypingEvent(conversationId, _currentUserId.value)
-            }
-        }
+    private fun decryptMessageObj(msg: Message): Message {
+        val isMine = (msg.senderId == _currentUserId.value)
+
+        // Nếu không phải tin mình gửi, lấy Sign Key của đối phương để dò mộc
+        val senderSignKey = if (!isMine) partnerPublicSignKey else null
+
+        val clearText = CryptoHelper.decryptMessage(
+            context = context,
+            encryptedJson = msg.encryptedContent,
+            senderPublicSignKeyBase64 = senderSignKey,
+            isMyMessage = isMine
+        )
+
+        // Tạo ra một bản copy của tin nhắn, thay thế phần JSON bằng chữ thật
+        return msg.copy(encryptedContent = clearText)
     }
+
 
     fun sendMessage() {
         val content = _messageText.value.trim()
@@ -175,6 +190,16 @@ class ChatRoomViewModel @Inject constructor(
                 Log.d("CRYPTO_SUCCESS", "Đã gửi gói tin mã hóa: $encryptedJsonPayload")
             } else {
                 Log.e("CRYPTO_ERROR", "Lỗi trong quá trình mã hóa. Tin nhắn bị hủy.")
+            }
+        }
+    }
+    fun onMessageTextChanged(text: String) {
+        _messageText.value = text
+        val currentTime = System.currentTimeMillis()
+        if (text.isNotEmpty() && (currentTime - lastTypingTime > 2000)) {
+            lastTypingTime = currentTime
+            viewModelScope.launch {
+                messageRepository.sendTypingEvent(conversationId, _currentUserId.value)
             }
         }
     }
