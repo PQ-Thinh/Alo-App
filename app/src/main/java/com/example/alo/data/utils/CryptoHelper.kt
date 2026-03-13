@@ -26,11 +26,11 @@ object CryptoHelper {
     // Tên của 2 bộ khóa (Keyset)
     private const val ENCRYPT_KEYSET_NAME = "encrypt_keyset"
     private const val SIGN_KEYSET_NAME = "sign_keyset"
-    private var cachedDecryptHandle: KeysetHandle? = null
+    private var cachedDecryptHandle: KeysetHandle? = null//cache save key
 
 
     /**
-     * Hàm này GỌI 1 LẦN DUY NHẤT khi app khởi chạy (ví dụ trong Application hoặc MainActivity)
+     * Hàm này GỌI 1 LẦN DUY NHẤT khi app khởi chạy
      */
     fun initTink() {
         // Đăng ký các thuật toán Mã hóa Lai (ECDH + AES) và Chữ ký (Ed25519)
