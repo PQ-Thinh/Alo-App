@@ -157,13 +157,12 @@ class ChatRoomViewModel @Inject constructor(
             senderPublicSignKeyBase64 = senderSignKey,
             isMyMessage = isMine
         )
-
-        // Tạo ra một bản copy của tin nhắn, thay thế phần JSON bằng chữ thật
         return msg.copy(encryptedContent = clearText)
     }
 
 
-    fun sendMessage() {
+
+    fun sendMessage(replyToId: String? = null) {
         val content = _messageText.value.trim()
         val senderId = _currentUserId.value
 
@@ -186,7 +185,7 @@ class ChatRoomViewModel @Inject constructor(
             )
 
             if (encryptedJsonPayload.isNotEmpty()) {
-                messageRepository.sendMessage(conversationId, senderId, encryptedJsonPayload)
+                messageRepository.sendMessage(conversationId, senderId, encryptedJsonPayload, replyToId = replyToId)
                 Log.d("CRYPTO_SUCCESS", "Đã gửi gói tin mã hóa: $encryptedJsonPayload")
             } else {
                 Log.e("CRYPTO_ERROR", "Lỗi trong quá trình mã hóa. Tin nhắn bị hủy.")

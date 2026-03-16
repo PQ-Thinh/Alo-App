@@ -47,12 +47,18 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun sendMessage(conversationId: String, senderId: String, content: String) {
+    override suspend fun sendMessage(
+        conversationId: String,
+        senderId: String,
+        content: String,
+        replyToId: String?
+    ) {
         try {
             val messageBody = mapOf(
                 "conversation_id" to conversationId,
                 "sender_id" to senderId,
-                "encrypted_content" to content
+                "encrypted_content" to content,
+                "reply_to_id" to replyToId
             )
             supabaseClient.postgrest["messages"].insert(messageBody)
         } catch (e: Exception) {

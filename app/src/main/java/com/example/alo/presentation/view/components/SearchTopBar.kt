@@ -1,4 +1,4 @@
-package com.example.alo.presentation.view.component
+package com.example.alo.presentation.view.components
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -35,7 +35,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.alo.presentation.viewmodel.ContactViewModel
 
 
 @Composable

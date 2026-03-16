@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.alo.presentation.view.chat.Message
-import com.example.alo.presentation.view.component.SearchTopBar
+import com.example.alo.presentation.view.components.SearchTopBar
 import com.example.alo.presentation.view.chat.Contact
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.profile.ProfileScreen
