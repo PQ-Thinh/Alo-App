@@ -25,6 +25,7 @@ import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
 
 class MessageRepositoryImpl @Inject constructor(
@@ -122,6 +123,26 @@ class MessageRepositoryImpl @Inject constructor(
         val job = launch {
             insertFlow.collect { action ->
                 val newMessageDto = action.decodeRecord<MessageDto>()
+
+                // NẾU LÀ TIN NHẮN ẢNH -> LẤY FULL DỮ LIỆU KÈM ATTACHMENT
+                if (newMessageDto.messageType == "IMAGE") {
+                    delay(800)
+                    try {
+                        val dtos = supabaseClient.postgrest["messages"]
+                            .select(columns = Columns.raw("*, message_reactions(*), attachments(*)")) {
+                                filter { eq("id", newMessageDto.id) }
+                            }.decodeList<MessageDto>()
+
+                        val fullMsg = dtos.firstOrNull()?.toDomain()
+                        if (fullMsg != null) {
+                            send(fullMsg)
+                            return@collect
+                        }
+                    } catch (e: Exception) {
+                        Log.e("MessageRepo", "Lỗi Realtime Image: ${e.message}")
+                    }
+                }
+
                 val newMessage = newMessageDto.toDomain()
                 send(newMessage)
             }
@@ -131,7 +152,7 @@ class MessageRepositoryImpl @Inject constructor(
                 try {
                     val rawMsg = action.decodeRecord<MessageDto>()
                     val dtos = supabaseClient.postgrest["messages"]
-                        .select(columns = Columns.raw("*, message_reactions(*)")) {
+                        .select(columns = Columns.raw("*, message_reactions(*),attachments(*)")) {
                             filter { eq("id", rawMsg.id) }
                         }
                         .decodeList<MessageDto>()
