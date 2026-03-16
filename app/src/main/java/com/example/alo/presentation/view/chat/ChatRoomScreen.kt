@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -144,8 +145,11 @@ fun ChatRoomScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 ),
+                modifier = Modifier.shadow(elevation = 2.dp),
                 actions = {
                     Row() {
                         IconButton(onClick = {}) {
@@ -170,9 +174,6 @@ fun ChatRoomScreen(
         bottomBar = {
             ChatBottomBar(
                 text = messageText,
-                replyingToMessage = replyingToMessage,
-                partnerName = partnerName,
-                currentUserId = currentUserId,
                 onCancelReply = { replyingToMessage = null },
                 onTextChange = { viewModel.onMessageTextChanged(it) },
                 onSend = {
@@ -187,9 +188,11 @@ fun ChatRoomScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.LightGray)
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 22.dp),
+                //.padding(bottom = 22.dp)
+               ,
             reverseLayout = true,
         ) {
             if (isPartnerTyping) {
