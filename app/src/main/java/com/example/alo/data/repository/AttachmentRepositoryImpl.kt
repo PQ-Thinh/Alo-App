@@ -2,6 +2,7 @@ package com.example.alo.data.repository
 
 import android.util.Log
 import com.example.alo.data.remote.dto.AttachmentDto
+import com.example.alo.data.utils.AttachmentInsertDto
 import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.repository.AttachmentRepository
 import io.github.jan.supabase.SupabaseClient
@@ -31,16 +32,18 @@ class AttachmentRepositoryImpl @Inject constructor(
 
     override suspend fun sendAttachment(messageId: String?, fileUrl: String, fileType: String, fileName: String, fileSize: Int) {
         try {
-            val attachmentBody = mapOf(
-                "message_id" to messageId,
-                "file_url" to fileUrl,
-                "file_type" to fileType,
-                "file_name" to fileName,
-                "file_size" to fileSize
+            val attachmentBody = AttachmentInsertDto(
+                messageId = messageId,
+                fileUrl = fileUrl,
+                fileType = fileType,
+                fileName = fileName,
+                fileSize = fileSize
             )
             supabaseClient.postgrest["attachments"].insert(attachmentBody)
+            Log.d("AttachmentRepo", "Đã lưu attachment vào DB thành công!")
         } catch (e: Exception) {
             Log.e("AttachmentRepo", "Lỗi gửi file đính kèm: ${e.message}")
+            throw e
         }
     }
 
