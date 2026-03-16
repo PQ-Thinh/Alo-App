@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.Message
+import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.MessageRepository
@@ -30,7 +31,8 @@ class ChatRoomViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
     private val authRepository: AuthRepository,
     private val conversationRepository: ConversationRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val attachmentRepository: AttachmentRepository
 ) : ViewModel() {
 
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
@@ -185,7 +187,12 @@ class ChatRoomViewModel @Inject constructor(
             )
 
             if (encryptedJsonPayload.isNotEmpty()) {
-                messageRepository.sendMessage(conversationId, senderId, encryptedJsonPayload, replyToId = replyToId)
+                messageRepository.sendMessage(
+                    conversationId,
+                    senderId = senderId,
+                    content = encryptedJsonPayload,
+                    replyToId = replyToId
+                )
                 Log.d("CRYPTO_SUCCESS", "Đã gửi gói tin mã hóa: $encryptedJsonPayload")
             } else {
                 Log.e("CRYPTO_ERROR", "Lỗi trong quá trình mã hóa. Tin nhắn bị hủy.")
@@ -207,6 +214,53 @@ class ChatRoomViewModel @Inject constructor(
             val userId = _currentUserId.value
             if (userId.isNotEmpty()) {
                 messageRepository.addReaction(messageId, userId, reactionIcon)
+            }
+        }
+    }
+    fun sendImageMessage(
+        conversationId: String,
+        byteArray: ByteArray,
+        fileName: String,
+        fileSize: Int = 0
+    ) {
+        viewModelScope.launch {
+            try {
+                val imageUrl = attachmentRepository.uploadImage(byteArray, fileName)
+
+                val fallbackText = "[Hình ảnh]"
+                val encryptedJsonPayload = CryptoHelper.encryptMessage(
+                    context = context,
+                    plaintext = fallbackText,
+                    receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
+                    myPublicEncryptKeyBase64 = myPublicEncryptKey
+                )
+
+                if (encryptedJsonPayload.isEmpty()) {
+                    Log.e("CRYPTO_ERROR", "Lỗi mã hóa tin nhắn ảnh")
+                    return@launch
+                }
+
+                val generatedMessageId = messageRepository.sendMessage(
+                    conversationId = conversationId,
+                    senderId = _currentUserId.value,
+                    content = encryptedJsonPayload,
+                    messageType = "IMAGE",
+                    replyToId = null
+                )
+
+                attachmentRepository.sendAttachment(
+                    messageId = generatedMessageId,
+                    fileUrl = imageUrl,
+                    fileType = "IMAGE",
+                    fileName = fileName,
+                    fileSize = fileSize
+                )
+
+                Log.d("UPLOAD_SUCCESS", "Đã gửi ảnh thành công!")
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e("UPLOAD_ERROR", "Lỗi gửi ảnh: ${e.message}")
             }
         }
     }

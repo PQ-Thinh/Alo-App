@@ -17,11 +17,15 @@ data class MessageDto(
     @SerialName("created_at") val createdAt: String,
     @SerialName("deleted_at") val deletedAt: String? = null,
     @SerialName("message_reactions")
-    val reactions: List<MessageReactionDto>? = null
+    val reactions: List<MessageReactionDto>? = null,
+    @SerialName("attachments")
+    val attachments: List<AttachmentDto>? = null,
 ) {
     fun toDomain(): Message = Message(
         id, conversationId, senderId, replyToId, encryptedContent,
         messageType, isEdited, seenBy, createdAt, deletedAt,
-        reactions = reactions?.map { it.toDomain() } ?: emptyList()
+        reactions = reactions?.map { it.toDomain() } ?: emptyList(),
+        attachments = attachments?.map {it.toDomain()}?:emptyList()
+
     )
 }

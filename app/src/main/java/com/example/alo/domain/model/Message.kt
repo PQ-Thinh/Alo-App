@@ -11,5 +11,6 @@ data class Message(
     val seenBy: List<String>,
     val createdAt: String,
     val deletedAt: String?,
-    val reactions: List<MessageReaction> = emptyList()
+    val reactions: List<MessageReaction> = emptyList(),
+    val attachments: List<Attachment> = emptyList()
 )
