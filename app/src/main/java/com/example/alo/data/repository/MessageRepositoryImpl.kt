@@ -43,7 +43,6 @@ class MessageRepositoryImpl @Inject constructor(
                 .decodeList<MessageDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("MessageRepo", "Lỗi lấy tin nhắn: ${e.message}")
             emptyList()
         }
     }

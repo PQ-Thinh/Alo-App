@@ -92,7 +92,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         //Khởi tạo đối tượng Person (Người gửi và Người nhận)
         val senderPerson = Person.Builder()
             .setName(title)
-            .setIcon(iconCompat)
+            .setIcon(IconCompat.createWithResource(this,R.mipmap.icon_vip))
             .build()
 
         // Tạo MessagingStyle (Giao diện chuẩn của ứng dụng Chat)

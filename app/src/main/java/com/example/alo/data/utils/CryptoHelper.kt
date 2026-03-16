@@ -43,27 +43,52 @@ object CryptoHelper {
      * Trả về Pair<PublicEncryptKey, PublicSignKey> dạng Base64 để bạn upload lên Supabase
      */
     fun generateAndGetPublicKeys(context: Context): Pair<String, String> {
-        // 1. Lấy hoặc Tạo cặp khóa Mã hóa (ECIES)
-        val encryptKeysetHandle = AndroidKeysetManager.Builder()
-            .withSharedPref(context, ENCRYPT_KEYSET_NAME, PREF_FILE_NAME)
-            .withKeyTemplate(KeyTemplates.get("ECIES_P256_HKDF_HMAC_SHA256_AES128_GCM"))
-            .withMasterKeyUri(MASTER_KEY_URI)
-            .build()
-            .keysetHandle
+        // Lấy hoặc Tạo cặp khóa Mã hóa (ECIES) bằng hàm thông minh
+        val encryptKeysetHandle = getValidKeysetHandle(
+            context,
+            ENCRYPT_KEYSET_NAME,
+            KeyTemplates.get("ECIES_P256_HKDF_HMAC_SHA256_AES128_GCM")
+        )
 
-        // 2. Lấy hoặc Tạo cặp khóa Chữ ký (ED25519)
-        val signKeysetHandle = AndroidKeysetManager.Builder()
-            .withSharedPref(context, SIGN_KEYSET_NAME, PREF_FILE_NAME)
-            .withKeyTemplate(KeyTemplates.get("ED25519"))
-            .withMasterKeyUri(MASTER_KEY_URI)
-            .build()
-            .keysetHandle
+        // Lấy hoặc Tạo cặp khóa Chữ ký (ED25519) bằng hàm thông minh
+        val signKeysetHandle = getValidKeysetHandle(
+            context,
+            SIGN_KEYSET_NAME,
+            KeyTemplates.get("ED25519")
+        )
 
-        // 3. Trích xuất Public Keys từ 2 Handle này ra thành Base64 để gửi lên DB
+        //  Trích xuất
         val publicEncryptKeyBase64 = extractPublicKeyToBase64(encryptKeysetHandle)
         val publicSignKeyBase64 = extractPublicKeyToBase64(signKeysetHandle)
 
         return Pair(publicEncryptKeyBase64, publicSignKeyBase64)
+    }
+    /**
+     * HÀM HỖ TRỢ : Khởi tạo Keyset thông minh (Chống lỗi Crash do Backup/Uninstall)
+     */
+    private fun getValidKeysetHandle(context: Context, keysetName: String, template: com.google.crypto.tink.KeyTemplate): KeysetHandle {
+        return try {
+            AndroidKeysetManager.Builder()
+                .withSharedPref(context, keysetName, PREF_FILE_NAME)
+                .withKeyTemplate(template)
+                .withMasterKeyUri(MASTER_KEY_URI)
+                .build()
+                .keysetHandle
+        } catch (e: Exception) {
+            // NẾU VÀO ĐÂY: Có nghĩa là file XML cũ được Restore nhưng Master Key phần cứng đã mất!
+            android.util.Log.e("CRYPTO_ERROR", "Phát hiện Khóa cũ bị hỏng do cài lại app. Đang dọn dẹp...", e)
+
+            // 1. Xóa sạch file SharedPreferences bị kẹt
+            context.getSharedPreferences(PREF_FILE_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+
+            // 2. Chạy lại lệnh tạo khóa từ đầu (Lúc này file đã sạch, Tink sẽ tự đẻ khóa mới)
+            AndroidKeysetManager.Builder()
+                .withSharedPref(context, keysetName, PREF_FILE_NAME)
+                .withKeyTemplate(template)
+                .withMasterKeyUri(MASTER_KEY_URI)
+                .build()
+                .keysetHandle
+        }
     }
 
     /**
@@ -154,11 +179,11 @@ object CryptoHelper {
      */
     private fun getDecryptHandle(context: Context): KeysetHandle {
         if (cachedDecryptHandle == null) {
-            cachedDecryptHandle = AndroidKeysetManager.Builder()
-                .withSharedPref(context, ENCRYPT_KEYSET_NAME, PREF_FILE_NAME)
-                .withMasterKeyUri(MASTER_KEY_URI)
-                .build()
-                .keysetHandle
+            cachedDecryptHandle = getValidKeysetHandle(
+                context,
+                ENCRYPT_KEYSET_NAME,
+                KeyTemplates.get("ECIES_P256_HKDF_HMAC_SHA256_AES128_GCM")
+            )
         }
         return cachedDecryptHandle!!
     }
