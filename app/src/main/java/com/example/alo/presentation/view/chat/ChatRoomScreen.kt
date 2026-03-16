@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.chat
 
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +39,9 @@ import com.example.alo.presentation.viewmodel.ChatRoomViewModel
 import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.MessageActionOverlay
 import com.example.alo.presentation.view.components.MessageBubble
+import android.net.Uri
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +66,31 @@ fun ChatRoomScreen(
     var selectedMessageForOverlay by remember { mutableStateOf<Message?>(null) }
     val clipboardManager = LocalClipboardManager.current
     var replyingToMessage by remember { mutableStateOf<Message?>(null) }
+
+    val context = LocalContext.current
+    val conversationId = viewModel.conversationId
+
+    // KHỞI TẠO TRÌNH CHỌN ẢNH
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let { selectedUri ->
+            // Đọc file thành ByteArray
+            val inputStream = context.contentResolver.openInputStream(selectedUri)
+            val byteArray = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (byteArray != null) {
+                val fileName = "img_${System.currentTimeMillis()}.jpg"
+
+                viewModel.sendImageMessage(
+                    conversationId = conversationId,
+                    byteArray = byteArray,
+                    fileName = fileName
+                )
+            }
+        }
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -180,7 +210,13 @@ fun ChatRoomScreen(
                     viewModel.sendMessage(replyToId = replyingToMessage?.id)
 
                     replyingToMessage = null
-                }
+                },
+                onAttachImage = {
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onAttachFile = { /*TODO*/ }
             )
         }
     ) { paddingValues ->

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,7 +45,6 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.view.utils.formatMessageTime
-
 
 @Composable
 fun MessageBubble(
@@ -95,7 +95,6 @@ fun MessageBubble(
         Column(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
-            // Khai báo biến để check cho gọn và tái sử dụng
             val hasReactions = message.reactions.isNotEmpty()
 
             Box(
@@ -120,12 +119,12 @@ fun MessageBubble(
                         }
                         .defaultMinSize(minWidth = if (hasReactions) 70.dp else 0.dp)
                         .padding(
-                            start = 14.dp,
-                            end = 14.dp,
-                            top = 10.dp,
-                            bottom = if (hasReactions) 16.dp else 10.dp
+                            start = if (message.messageType == "IMAGE") 4.dp else 14.dp,
+                            end = if (message.messageType == "IMAGE") 4.dp else 14.dp,
+                            top = if (message.messageType == "IMAGE") 4.dp else 10.dp,
+                            bottom = if (message.messageType == "IMAGE") { if (hasReactions) 10.dp else 4.dp } else { if (hasReactions) 16.dp else 10.dp }
                         )
-                        .widthIn(max = 200.dp)
+                        .widthIn(max = 240.dp)
                 ) {
                     Column {
                         // 1. NẾU CÓ TRÍCH DẪN -> HIỂN THỊ KHỐI QUOTE Ở TRÊN
@@ -168,14 +167,29 @@ fun MessageBubble(
                             }
                         }
 
-                        // 2. NỘI DUNG TIN NHẮN CHÍNH
-                        Text(
-                            text = message.encryptedContent,
-                            color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 15.sp
-                        )
+                        // 2. NỘI DUNG TIN NHẮN CHÍNH (XỬ LÝ TEXT VÀ IMAGE)
+                        if (message.messageType == "IMAGE" && message.attachments.isNotEmpty()) {
+                            // Hiển thị Hình Ảnh
+                            val imageUrl = message.attachments.first().fileUrl
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = "Hình ảnh đính kèm",
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .heightIn(min = 150.dp, max = 300.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = message.encryptedContent,
+                                color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 15.sp
+                            )
+                        }
                     }
                 }
+
                 // --- THANH CẢM XÚC ---
                 if (hasReactions) {
                     val reactionCounts = message.reactions
@@ -213,7 +227,6 @@ fun MessageBubble(
                     }
                 }
             }
-
 
             AnimatedVisibility(
                 visible = showDetails,
