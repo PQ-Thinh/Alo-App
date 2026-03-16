@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
+import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
@@ -248,6 +249,8 @@ class ChatRoomViewModel @Inject constructor(
                     replyToId = null
                 )
 
+
+
                 attachmentRepository.sendAttachment(
                     messageId = generatedMessageId,
                     fileUrl = imageUrl,
@@ -255,6 +258,22 @@ class ChatRoomViewModel @Inject constructor(
                     fileName = fileName,
                     fileSize = fileSize
                 )
+                val newAttachment = Attachment(
+                    id = "temp_${System.currentTimeMillis()}",
+                    messageId = generatedMessageId,
+                    fileUrl = imageUrl,
+                    fileType = "IMAGE",
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    createdAt = ""
+                )
+                _messages.update { currentList ->
+                    currentList.map { msg ->
+                        if (msg.id == generatedMessageId) {
+                            msg.copy(attachments = listOf(newAttachment))
+                        } else msg
+                    }
+                }
 
                 Log.d("UPLOAD_SUCCESS", "Đã gửi ảnh thành công!")
 
