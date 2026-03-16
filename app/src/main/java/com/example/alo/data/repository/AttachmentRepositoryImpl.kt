@@ -6,13 +6,30 @@ import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.repository.AttachmentRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import javax.inject.Inject
 
 class AttachmentRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) : AttachmentRepository {
+    override suspend fun uploadImage(
+        byteArray: ByteArray,
+        fileName: String
+    ): String {
+        return try {
+            val bucket = supabaseClient.storage["chat_images"]
 
-    override suspend fun sendAttachment(messageId: String, fileUrl: String, fileType: String, fileName: String, fileSize: Int) {
+            bucket.upload(fileName, byteArray)
+
+            val publicUrl = bucket.publicUrl(fileName)
+            publicUrl
+        } catch (e: Exception) {
+            Log.e("AttachmentRepo", "Lỗi upload ảnh lên Storage: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun sendAttachment(messageId: String?, fileUrl: String, fileType: String, fileName: String, fileSize: Int) {
         try {
             val attachmentBody = mapOf(
                 "message_id" to messageId,

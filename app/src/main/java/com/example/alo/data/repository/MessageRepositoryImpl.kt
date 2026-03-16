@@ -36,7 +36,7 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun getMessages(conversationId: String): List<Message> {
         return try {
             val dtos = supabaseClient.postgrest["messages"]
-                .select(columns = Columns.raw("*, message_reactions(*)")) {
+                .select(columns = Columns.raw("*, message_reactions(*), attachments(*)")) {
                     filter { eq("conversation_id", conversationId) }
                     order("created_at", order = Order.DESCENDING)
                 }
@@ -49,21 +49,24 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun sendMessage(
         conversationId: String,
+        messageType: String,
         senderId: String,
         content: String,
         replyToId: String?
-    ) {
-        try {
-            val messageBody = mapOf(
-                "conversation_id" to conversationId,
-                "sender_id" to senderId,
-                "encrypted_content" to content,
-                "reply_to_id" to replyToId
-            )
-            supabaseClient.postgrest["messages"].insert(messageBody)
-        } catch (e: Exception) {
-            Log.e("MessageRepo", "Lỗi gửi tin nhắn: ${e.message}")
-        }
+    ): String {
+        val messageBody = mapOf(
+            "conversation_id" to conversationId,
+            "sender_id" to senderId,
+            "message_type" to messageType,
+            "encrypted_content" to content,
+            "reply_to_id" to replyToId
+        )
+        val insertedMessage = supabaseClient.postgrest["messages"]
+            .insert(messageBody) {
+                select()
+            }
+            .decodeSingle<MessageDto>()
+        return insertedMessage.id
     }
 
     override suspend fun addReaction(messageId: String, userId: String, reactionIcon: String) {
@@ -184,4 +187,5 @@ class MessageRepositoryImpl @Inject constructor(
             Log.e("MessageRepo", "Lỗi gửi typing: ${e.message}")
         }
     }
+
 }
