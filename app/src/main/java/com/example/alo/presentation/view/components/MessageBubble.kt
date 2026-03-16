@@ -57,7 +57,8 @@ fun MessageBubble(
     showTime: Boolean,
     showDetails: Boolean,
     onMessageClick: () -> Unit,
-    onMessageLongClick: () -> Unit
+    onMessageLongClick: () -> Unit,
+    showRawEncryption: Boolean,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -181,8 +182,9 @@ fun MessageBubble(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
+                            val displayContent = if (showRawEncryption) message.rawEncryptedContent else message.encryptedContent
                             Text(
-                                text = message.encryptedContent,
+                                text = displayContent,
                                 color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 15.sp
                             )

@@ -23,6 +23,7 @@ data class MessageDto(
 ) {
     fun toDomain(): Message = Message(
         id, conversationId, senderId, replyToId, encryptedContent,
+        rawEncryptedContent = "",
         messageType, isEdited, seenBy, createdAt, deletedAt,
         reactions = reactions?.map { it.toDomain() } ?: emptyList(),
         attachments = attachments?.map {it.toDomain()}?:emptyList()

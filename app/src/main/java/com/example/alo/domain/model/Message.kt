@@ -6,6 +6,7 @@ data class Message(
     val senderId: String?,
     val replyToId: String?,
     val encryptedContent: String,
+    val rawEncryptedContent: String = "",
     val messageType: String,
     val isEdited: Boolean,
     val seenBy: List<String>,

@@ -61,6 +61,11 @@ class ChatRoomViewModel @Inject constructor(
     private val _isPartnerTyping = MutableStateFlow(false)
     val isPartnerTyping: StateFlow<Boolean> = _isPartnerTyping.asStateFlow()
 
+    private val _isShowingRawEncryption = MutableStateFlow(false)
+    val isShowingRawEncryption: StateFlow<Boolean> = _isShowingRawEncryption.asStateFlow()
+
+
+
     // cache save publicEncryptKey
     private var myPublicEncryptKey: String = ""
     private var partnerPublicEncryptKey: String = ""
@@ -160,7 +165,11 @@ class ChatRoomViewModel @Inject constructor(
             senderPublicSignKeyBase64 = senderSignKey,
             isMyMessage = isMine
         )
-        return msg.copy(encryptedContent = clearText)
+
+        return msg.copy(
+            encryptedContent = clearText.ifEmpty { "[Lỗi giải mã/Chưa mã hóa]" },
+            rawEncryptedContent = msg.encryptedContent
+        )
     }
 
 
@@ -282,5 +291,8 @@ class ChatRoomViewModel @Inject constructor(
                 Log.e("UPLOAD_ERROR", "Lỗi gửi ảnh: ${e.message}")
             }
         }
+    }
+    fun toggleEncryptionView() {
+        _isShowingRawEncryption.value = !_isShowingRawEncryption.value
     }
 }
