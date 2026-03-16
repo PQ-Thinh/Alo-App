@@ -42,6 +42,8 @@ import com.example.alo.presentation.view.components.MessageBubble
 import android.net.Uri
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +71,8 @@ fun ChatRoomScreen(
 
     val context = LocalContext.current
     val conversationId = viewModel.conversationId
+
+    val isShowingRawEncryption by viewModel.isShowingRawEncryption.collectAsState()
 
     // KHỞI TẠO TRÌNH CHỌN ẢNH
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -182,6 +186,14 @@ fun ChatRoomScreen(
                 modifier = Modifier.shadow(elevation = 2.dp),
                 actions = {
                     Row() {
+                        IconButton(onClick = { viewModel.toggleEncryptionView() }) {
+                            Icon(
+                                imageVector = if (isShowingRawEncryption) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = "Bật/Tắt giải mã",
+                                tint = if (isShowingRawEncryption) Color(0xFFE91E63) else Color(0xFF6C63FF)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = {}) {
                             Icon(
                                 imageVector = Icons.Default.Call,
@@ -202,8 +214,12 @@ fun ChatRoomScreen(
             )
         },
         bottomBar = {
+
             ChatBottomBar(
                 text = messageText,
+                replyingToMessage = replyingToMessage,
+                partnerName = partnerName,
+                currentUserId = currentUserId,
                 onCancelReply = { replyingToMessage = null },
                 onTextChange = { viewModel.onMessageTextChanged(it) },
                 onSend = {
@@ -302,7 +318,8 @@ fun ChatRoomScreen(
                         onMessageLongClick = {
                             activeDetailsMessageId = null
                             selectedMessageForOverlay = message
-                        }
+                        },
+                        showRawEncryption = isShowingRawEncryption
                     )
                     Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
                 }
