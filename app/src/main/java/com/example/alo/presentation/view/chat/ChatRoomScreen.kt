@@ -17,6 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
@@ -27,7 +30,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,7 +42,6 @@ import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.view.component.TypingIndicatorBubble
 import com.example.alo.presentation.view.utils.formatMessageTime
-import com.example.alo.presentation.view.utils.formatRelativeTime
 import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
@@ -49,7 +54,7 @@ fun ChatRoomScreen(
     navController: NavController,
     viewModel: ChatRoomViewModel = hiltViewModel(),
 ) {
-    val partnerId by viewModel.partnerId.collectAsState()
+    //val partnerId by viewModel.partnerId.collectAsState()
     val partnerLastSeen by viewModel.partnerLastSeen.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val messageText by viewModel.messageText.collectAsState()
@@ -62,6 +67,11 @@ fun ChatRoomScreen(
     var activeReactionMessageId by remember { mutableStateOf<String?>(null) }
     var activeDetailsMessageId by remember { mutableStateOf<String?>(null) }
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
+
+    var selectedMessageForAction by remember { mutableStateOf<Message?>(null) }
+    val sheetState = rememberModalBottomSheetState()
+    val clipboardManager = LocalClipboardManager.current
+    var replyingToMessage by remember { mutableStateOf<Message?>(null) }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -168,8 +178,12 @@ fun ChatRoomScreen(
         bottomBar = {
             ChatBottomBar(
                 text = messageText,
+                replyingToMessage = replyingToMessage,
+                onCancelReply = { replyingToMessage = null },
                 onTextChange = { viewModel.onMessageTextChanged(it) },
-                onSend = { viewModel.sendMessage() }
+                onSend = {
+                    viewModel.sendMessage()
+                }
             )
         }
     ) { paddingValues ->
@@ -250,6 +264,7 @@ fun ChatRoomScreen(
                         onMessageLongClick = {
                             activeDetailsMessageId = null
                             activeReactionMessageId = if (activeReactionMessageId == message.id) null else message.id
+                            selectedMessageForAction = message
                         },
 
                         onReactionSelect = { emoji ->
@@ -264,7 +279,51 @@ fun ChatRoomScreen(
 
         }
     }
+
+    // BOTTOM SHEET
+    if (selectedMessageForAction != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                selectedMessageForAction = null
+                activeReactionMessageId = null
+            },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                // Nút Copy tin nhắn
+                ListItem(
+                    headlineContent = { Text("Copy tin nhắn") },
+                    leadingContent = { Icon(Icons.Default.ContentCopy, contentDescription = "Copy") },
+                    modifier = Modifier.clickable {
+                        // Lấy nội dung hiển thị của tin nhắn
+                        val textToCopy = selectedMessageForAction?.encryptedContent ?: ""
+                        clipboardManager.setText(AnnotatedString(textToCopy))
+
+                        // Đóng sheet sau khi copy
+                        selectedMessageForAction = null
+                        activeReactionMessageId = null
+                    }
+                )
+
+                // Nút Reply tin nhắn
+                ListItem(
+                    headlineContent = { Text("Trả lời") },
+                    leadingContent = { Icon(Icons.Default.Reply, contentDescription = "Reply") },
+                    modifier = Modifier.clickable {
+                        replyingToMessage = selectedMessageForAction
+                        selectedMessageForAction = null
+                        activeReactionMessageId = null
+                    }
+                )
+            }
+        }
+    }
 }
+
 
 @Composable
 fun MessageBubble(
@@ -381,7 +440,7 @@ fun MessageBubble(
                             .background(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
                             .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
                             .padding(horizontal = 5.dp, vertical = 1.dp)
-                            .clickable { /* TODO: Mở danh sách chi tiết */ },
+                            .clickable { },
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -470,32 +529,72 @@ fun MessageBubble(
 @Composable
 fun ChatBottomBar(
     text: String,
+    replyingToMessage: Message?, // Thêm tham số này
+    onCancelReply: () -> Unit,   // Thêm tham số này
     onTextChange: (String) -> Unit,
     onSend: () -> Unit
 ) {
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-                .imePadding()
-                .navigationBarsPadding(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-                placeholder = { Text("Nhập tin nhắn...") },
-                shape = RoundedCornerShape(24.dp),
-                maxLines = 4
-            )
-            IconButton(
-                onClick = onSend,
-                enabled = text.trim().isNotEmpty(),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+        Column {
+            // Hiển thị khung "Đang trả lời" nếu có
+            AnimatedVisibility(visible = replyingToMessage != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF5F5F5))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Reply, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Đang trả lời tin nhắn",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = replyingToMessage?.encryptedContent ?: "",
+                            fontSize = 12.sp,
+                            color = Color.DarkGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    IconButton(onClick = onCancelReply, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Hủy", tint = Color.Gray)
+                    }
+                }
+            }
+
+            // Khung nhập text như cũ
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .imePadding()
+                    .navigationBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Gửi")
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    placeholder = { Text("Nhập tin nhắn...") },
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 4
+                )
+                IconButton(
+                    onClick = {
+                        onSend()
+                        onCancelReply() // Gửi xong thì xóa trạng thái đang trả lời
+                    },
+                    enabled = text.trim().isNotEmpty(),
+                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = "Gửi")
+                }
             }
         }
     }

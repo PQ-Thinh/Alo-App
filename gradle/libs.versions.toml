@@ -21,6 +21,7 @@ secrets = "2.0.1"
 ksp = "2.2.10-2.0.2"
 appcompat = "1.6.1"
 firebaseMessaging = "25.0.1"
+uiText = "1.10.5"
 
 [libraries]
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
@@ -54,6 +55,7 @@ supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt", ver
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
