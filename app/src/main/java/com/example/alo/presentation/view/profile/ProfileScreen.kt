@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -26,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.theme.AppBackgroundColor
+import com.example.alo.presentation.theme.CardBackgroundColor
+import com.example.alo.presentation.theme.ErrorColor
+import com.example.alo.presentation.theme.TextPrimaryColor
+import com.example.alo.presentation.theme.TextSecondaryColor
 import com.example.alo.presentation.viewmodel.AuthViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 
@@ -47,7 +53,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hồ sơ của tôi", fontWeight = FontWeight.Bold) },
+                title = { Text("Hồ sơ của tôi", fontWeight = FontWeight.Bold, color = TextPrimaryColor) },
                 actions = {
                     IconButton(onClick = {
                         authViewModel.logout()
@@ -56,12 +62,12 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
                             contentDescription = "Đăng xuất",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = ErrorColor // Dùng màu lỗi tĩnh thay vì theo Theme
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = AppBackgroundColor // Màu nền App xám nhạt
                 )
             )
         }
@@ -69,7 +75,7 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(AppBackgroundColor) // Nền tổng thể xám nhạt
                 .padding(paddingValues),
             contentAlignment = Alignment.TopCenter
         ) {
@@ -81,7 +87,7 @@ fun ProfileScreen(
                 }
                 is UserProfileState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        Text(text = state.message, color = ErrorColor)
                     }
                 }
                 is UserProfileState.Success -> {
@@ -114,10 +120,10 @@ fun ProfileScreen(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        .background(Color(0xFFE8EAF6)), // Nền mặc định avatar
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(50.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(50.dp), tint = primaryColor)
                                 }
                             }
                         }
@@ -127,12 +133,12 @@ fun ProfileScreen(
                             text = user.displayName,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = TextPrimaryColor
                         )
                         Text(
                             text = "@${user.username}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
+                            color = TextSecondaryColor
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -140,32 +146,33 @@ fun ProfileScreen(
                         // Nút Edit Profile Full-width ở giữa
                         Button(
                             onClick = { onNavigateToProfile(user.id) },
-                            modifier = Modifier.fillMaxWidth(0.7f), // Chiếm 70% chiều ngang
+                            modifier = Modifier.fillMaxWidth(0.7f),
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Chỉnh sửa hồ sơ", fontWeight = FontWeight.SemiBold)
+                            Text("Chỉnh sửa hồ sơ", fontWeight = FontWeight.SemiBold, color = Color.White)
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // THÔNG TIN CÁ NHÂN
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        // THÔNG TIN CÁ NHÂN (Hiệu ứng Đảo nổi)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp), clip = false)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(CardBackgroundColor) // Thẻ màu trắng
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 ProfileInfoItem(icon = Icons.Rounded.Email, label = "Email", value = user.email)
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                HorizontalDivider(color = AppBackgroundColor, thickness = 1.dp) // Dùng màu xám nền làm đường kẻ siêu nhạt
                                 ProfileInfoItem(icon = Icons.Rounded.Phone, label = "Số điện thoại", value = user.phone?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật")
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                HorizontalDivider(color = AppBackgroundColor, thickness = 1.dp)
                                 ProfileInfoItem(icon = Icons.Rounded.DateRange, label = "Ngày sinh", value = user.birthday?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật")
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                HorizontalDivider(color = AppBackgroundColor, thickness = 1.dp)
 
                                 val genderText = when (user.gender) {
                                     true -> "Nam"
@@ -178,24 +185,25 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // TIỂU SỬ (BIO)
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        // TIỂU SỬ (BIO) (Hiệu ứng Đảo nổi)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp), clip = false)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(CardBackgroundColor) // Thẻ màu trắng
                         ) {
                             Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Rounded.Info, contentDescription = null, tint = primaryColor, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = "Tiểu sử", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    Text(text = "Tiểu sử", fontWeight = FontWeight.Bold, color = TextPrimaryColor)
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = user.bio?.takeIf { it.isNotBlank() } ?: "Người dùng này chưa có tiểu sử.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (user.bio.isNullOrBlank()) Color.Gray else MaterialTheme.colorScheme.onSurface,
+                                    color = if (user.bio.isNullOrBlank()) TextSecondaryColor else TextPrimaryColor,
                                     lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2f
                                 )
                             }
@@ -238,14 +246,14 @@ fun ProfileInfoItem(icon: ImageVector, label: String, value: String) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Gray
+                color = TextSecondaryColor
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = TextPrimaryColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
