@@ -35,6 +35,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.alo.presentation.theme.AppBackgroundColor
 
 
 @Composable
@@ -122,7 +123,7 @@ fun SearchTopBar(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(AppBackgroundColor)
                     .systemBarsPadding()
                     .imePadding()
             ) {

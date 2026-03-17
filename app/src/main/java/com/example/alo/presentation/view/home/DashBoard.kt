@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.view.chat.Message
 import com.example.alo.presentation.view.components.SearchTopBar
 import com.example.alo.presentation.view.chat.Contact
@@ -43,7 +44,7 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(AppBackgroundColor)
                     .statusBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
