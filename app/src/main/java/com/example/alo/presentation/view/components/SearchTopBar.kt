@@ -36,6 +36,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.alo.presentation.theme.AppBackgroundColor
+import com.example.alo.presentation.theme.TextPrimaryColor
+import com.example.alo.presentation.theme.TextSecondaryColor
 
 
 @Composable
@@ -219,7 +221,7 @@ fun UserSearchResultItem(
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(AppBackgroundColor),
             contentAlignment = Alignment.Center
         ) {
             if (!user.avatarUrl.isNullOrEmpty()) {
@@ -233,7 +235,7 @@ fun UserSearchResultItem(
                 Text(
                     text = user.displayName.firstOrNull()?.uppercase() ?: "?",
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = TextPrimaryColor
                 )
             }
         }
@@ -247,7 +249,8 @@ fun UserSearchResultItem(
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = TextPrimaryColor
             )
             Text(
                 text = "@${user.username}",
@@ -277,7 +280,7 @@ fun UserSearchResultItem(
                     onClick = { /* Bỏ qua, hoặc xử lý Hủy lời mời sau */ },
                     enabled = false
                 ) {
-                    Text("Đã gửi lời mời", fontSize = 12.sp)
+                    Text("Đã gửi lời mời", fontSize = 12.sp, color = TextSecondaryColor)
                 }
             }
             "request_received" -> {
