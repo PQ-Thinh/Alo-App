@@ -1,5 +1,7 @@
 package com.example.alo.presentation.view.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,9 +32,11 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,12 +46,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
+import com.example.alo.presentation.helper.MessageUiModel
 import com.example.alo.presentation.view.utils.formatMessageTime
 
 @Composable
@@ -60,10 +67,12 @@ fun MessageBubble(
     showAvatar: Boolean,
     showTime: Boolean,
     showDetails: Boolean,
+    showRawEncryption: Boolean = false,
     onMessageClick: () -> Unit,
-    onMessageLongClick: () -> Unit,
-    showRawEncryption: Boolean,
+    onMessageLongClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
@@ -132,7 +141,7 @@ fun MessageBubble(
                         .widthIn(max = 240.dp)
                 ) {
                     Column {
-                        // 1. NẾU CÓ TRÍCH DẪN -> HIỂN THỊ KHỐI QUOTE Ở TRÊN
+                        // 1. NẾU CÓ TRÍCH DẪN -> HIỂN THỊ KHỐI QUOTE
                         if (repliedMessage != null) {
                             val isRepliedMine = repliedMessage.senderId == message.senderId
                             val repliedSenderName = if (isRepliedMine) "Bạn" else partnerName
@@ -146,7 +155,6 @@ fun MessageBubble(
                                     .wrapContentWidth()
                                     .padding(end = 12.dp)
                             ) {
-
                                 Box(
                                     modifier = Modifier
                                         .width(4.dp)
@@ -161,8 +169,16 @@ fun MessageBubble(
                                         fontSize = 12.sp,
                                         color = if (isRepliedMine) Color(0xFF6C63FF) else Color(0xFF4CAF50)
                                     )
+
+                                    // Thay đổi chữ hiển thị dựa theo loại tin nhắn bị trích dẫn
+                                    val previewText = when (repliedMessage.messageType) {
+                                        "IMAGE" -> "[Hình ảnh]"
+                                        "FILE" -> "[Tài liệu] ${repliedMessage.attachments.firstOrNull()?.fileName ?: ""}"
+                                        else -> repliedMessage.encryptedContent
+                                    }
+
                                     Text(
-                                        text = repliedMessage.encryptedContent,
+                                        text = previewText,
                                         fontSize = 12.sp,
                                         color = Color.DarkGray,
                                         maxLines = 2,
@@ -172,83 +188,106 @@ fun MessageBubble(
                             }
                         }
 
-                        // 2. NỘI DUNG TIN NHẮN CHÍNH (XỬ LÝ TEXT VÀ IMAGE)
-                        // 2. NỘI DUNG TIN NHẮN CHÍNH (XỬ LÝ TEXT, IMAGE, VÀ FILE)
+                        // 2. NỘI DUNG TIN NHẮN CHÍNH (TEXT, IMAGE, FILE)
                         if (!showRawEncryption && message.messageType == "IMAGE" && message.attachments.isNotEmpty()) {
                             // --- HIỂN THỊ HÌNH ẢNH ---
                             val imageUrl = message.attachments.first().fileUrl
-                            AsyncImage(
-                                model = imageUrl,
-                                contentDescription = "Hình ảnh đính kèm",
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .heightIn(min = 150.dp, max = 300.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-
+                            Box(contentAlignment = Alignment.Center) {
+                                AsyncImage(
+                                    model = imageUrl,
+                                    contentDescription = "Hình ảnh đính kèm",
+                                    modifier = Modifier
+                                        .width(220.dp)
+                                        .heightIn(min = 150.dp, max = 300.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                // Hiển thị vòng quay mờ nếu đang tải ảnh
+                                if (MessageUiModel(message, true).isUploading) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp)
+                                    }
+                                }
+                            }
                         } else if (!showRawEncryption && message.messageType == "FILE" && message.attachments.isNotEmpty()) {
                             // --- HIỂN THỊ FILE TÀI LIỆU ---
                             val attachment = message.attachments.first()
+                            val ext = attachment.fileName?.substringAfterLast('.', "")?.lowercase()
+                            val iconColor = when (ext) {
+                                "pdf" -> Color(0xFFE53935)
+                                "doc", "docx" -> Color(0xFF1E88E5)
+                                "xls", "xlsx" -> Color(0xFF43A047)
+                                "zip", "rar" -> Color(0xFFFFB300)
+                                else -> Color(0xFF757575)
+                            }
+
                             Row(
                                 modifier = Modifier
                                     .widthIn(max = 240.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color.Black.copy(alpha = 0.05f))
-                                    .clickable {
-                                        // TODO sau này: Viết hàm dùng Intent để mở URL tải file về máy
-                                    }
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Icon File
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                        .background(iconColor.copy(alpha = 0.1f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.InsertDriveFile,
-                                        contentDescription = "Tài liệu",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                    Icon(Icons.Default.InsertDriveFile, contentDescription = "Tài liệu", tint = iconColor)
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                // Tên và Dung lượng
                                 Column(modifier = Modifier.weight(1f)) {
                                     attachment.fileName?.let {
                                         Text(
                                             text = it,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                     attachment.fileSize?.let {
                                         Text(
-                                            text = if (it > 1024 * 1024)
-                                                "${attachment.fileSize / (1024 * 1024)} MB"
-                                            else
-                                                "${attachment.fileSize / 1024} KB",
-                                            fontSize = 11.sp,
-                                            color = Color.Gray
+                                            text = if (it > 1024 * 1024) "${attachment.fileSize / (1024 * 1024)} MB" else "${attachment.fileSize / 1024} KB",
+                                            fontSize = 11.sp, color = Color.Gray
                                         )
+                                    }
+                                }
+
+                                if (MessageUiModel(message, true).isUploading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    // ĐÃ TẢI XONG: Hiển thị nút bấm để mở File qua Intent
+                                    IconButton(
+                                        onClick = {
+                                            if (attachment.fileUrl.isNotEmpty()) {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(attachment.fileUrl))
+                                                context.startActivity(intent)
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Mở File", tint = Color.Gray)
                                     }
                                 }
                             }
                         } else {
-                            // --- HIỂN THỊ TEXT / CHẾ ĐỘ HACKER ---
+                            // --- HIỂN THỊ TEXT ---
                             val displayContent = if (showRawEncryption) message.rawEncryptedContent else message.encryptedContent
                             Text(
                                 text = displayContent,
                                 color = if (showRawEncryption) Color(0xFFE91E63) else if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = if (showRawEncryption) 10.sp else 15.sp,
-                                fontFamily = if (showRawEncryption) androidx.compose.ui.text.font.FontFamily.Monospace else null
+                                fontFamily = if (showRawEncryption) FontFamily.Monospace else null
                             )
                         }
                     }
@@ -301,19 +340,15 @@ fun MessageBubble(
                     modifier = Modifier.padding(top = 4.dp, end = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Giờ gửi chi tiết
                     Text(
                         text = formatMessageTime(message.createdAt),
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
 
-                    // Kiểm tra trạng thái đã xem (Chỉ áp dụng cho tin nhắn mình gửi)
                     if (isMine) {
                         Spacer(modifier = Modifier.width(8.dp))
-
                         if (message.seenBy.isNotEmpty()) {
-
                             Box(
                                 modifier = Modifier
                                     .size(14.dp)

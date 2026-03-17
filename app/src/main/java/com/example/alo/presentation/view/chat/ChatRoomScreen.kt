@@ -94,11 +94,12 @@ fun ChatRoomScreen(
                     if (sizeIndex != -1) fileSize = cursor.getInt(sizeIndex)
                 }
 
-                viewModel.sendImageMessage(
+                viewModel.sendMediaMessage(
                     conversationId = conversationId,
                     byteArray = byteArray,
                     fileName = fileName,
-                    fileSize = fileSize
+                    fileSize = fileSize,
+                    isImage = true
                 )
             }
         }
@@ -127,11 +128,12 @@ fun ChatRoomScreen(
             inputStream?.close()
 
             if (byteArray != null) {
-                viewModel.sendFileMessage(
+                viewModel.sendMediaMessage(
                     conversationId = conversationId,
                     byteArray = byteArray,
                     fileName = fileName,
-                    fileSize = fileSize
+                    fileSize = fileSize,
+                    isImage = false
                 )
             }
         }
@@ -203,7 +205,6 @@ fun ChatRoomScreen(
                                 fontSize = 16.sp,
                                 maxLines = 1
                             )
-
                             Text(
                                 text = userStatus.statusText,
                                 fontSize = 12.sp,

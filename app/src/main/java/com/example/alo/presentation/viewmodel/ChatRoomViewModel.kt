@@ -6,7 +6,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.data.utils.CryptoHelper
-import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
@@ -227,82 +226,25 @@ class ChatRoomViewModel @Inject constructor(
             }
         }
     }
-    fun sendImageMessage(
+    fun sendMediaMessage(
         conversationId: String,
         byteArray: ByteArray,
         fileName: String,
-        fileSize: Int = 0
+        fileSize: Int = 0,
+        isImage: Boolean
     ) {
         viewModelScope.launch {
             try {
-                val imageUrl = attachmentRepository.uploadImage(byteArray, fileName)
-
-                val fallbackText = "[Hình ảnh]"
-                val encryptedJsonPayload = CryptoHelper.encryptMessage(
-                    context = context,
-                    plaintext = fallbackText,
-                    receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
-                    myPublicEncryptKeyBase64 = myPublicEncryptKey
-                )
-
-                if (encryptedJsonPayload.isEmpty()) {
-                    Log.e("CRYPTO_ERROR", "Lỗi mã hóa tin nhắn ảnh")
-                    return@launch
+                val fileUrl = if (isImage) {
+                    attachmentRepository.uploadImage(byteArray, fileName)
+                } else {
+                    attachmentRepository.uploadDocument(byteArray, fileName)
                 }
 
-                val generatedMessageId = messageRepository.sendMessage(
-                    conversationId = conversationId,
-                    senderId = _currentUserId.value,
-                    content = encryptedJsonPayload,
-                    messageType = "IMAGE",
-                    replyToId = null
-                )
+                // 2. Định nghĩa Type và mã hóa nội dung
+                val messageType = if (isImage) "IMAGE" else "FILE"
+                val fallbackText = if (isImage) "[Hình ảnh]" else "[Tệp đính kèm] $fileName"
 
-
-
-                attachmentRepository.sendAttachment(
-                    messageId = generatedMessageId,
-                    fileUrl = imageUrl,
-                    fileType = "IMAGE",
-                    fileName = fileName,
-                    fileSize = fileSize
-                )
-                val newAttachment = Attachment(
-                    id = "temp_${System.currentTimeMillis()}",
-                    messageId = generatedMessageId,
-                    fileUrl = imageUrl,
-                    fileType = "IMAGE",
-                    fileName = fileName,
-                    fileSize = fileSize,
-                    createdAt = ""
-                )
-                _messages.update { currentList ->
-                    currentList.map { msg ->
-                        if (msg.id == generatedMessageId) {
-                            msg.copy(attachments = listOf(newAttachment))
-                        } else msg
-                    }
-                }
-
-                Log.d("UPLOAD_SUCCESS", "Đã gửi ảnh thành công!")
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("UPLOAD_ERROR", "Lỗi gửi ảnh: ${e.message}")
-            }
-        }
-    }
-    fun sendFileMessage(
-        conversationId: String,
-        byteArray: ByteArray,
-        fileName: String,
-        fileSize: Int = 0
-    ) {
-        viewModelScope.launch {
-            try {
-                val fileUrl = attachmentRepository.uploadDocument(byteArray, fileName)
-
-                val fallbackText = "[Tệp đính kèm] $fileName"
                 val encryptedJsonPayload = CryptoHelper.encryptMessage(
                     context = context,
                     plaintext = fallbackText,
@@ -312,48 +254,33 @@ class ChatRoomViewModel @Inject constructor(
 
                 if (encryptedJsonPayload.isEmpty()) return@launch
 
+                // 3. Đẩy lên bảng Messages
                 val generatedMessageId = messageRepository.sendMessage(
                     conversationId = conversationId,
                     senderId = _currentUserId.value,
                     content = encryptedJsonPayload,
-                    messageType = "FILE",
+                    messageType = messageType,
                     replyToId = null
                 )
 
-                // 4. Lưu vào bảng attachments
+                // 4. Đẩy lên bảng Attachments
                 attachmentRepository.sendAttachment(
                     messageId = generatedMessageId,
                     fileUrl = fileUrl,
-                    fileType = "FILE",
+                    fileType = messageType,
                     fileName = fileName,
                     fileSize = fileSize
                 )
 
-                val newAttachment = Attachment(
-                    id = "temp_${System.currentTimeMillis()}",
-                    messageId = generatedMessageId,
-                    fileUrl = fileUrl,
-                    fileType = "FILE",
-                    fileName = fileName,
-                    fileSize = fileSize,
-                    createdAt = ""
-                )
 
-                _messages.update { currentList ->
-                    currentList.map { msg ->
-                        if (msg.id == generatedMessageId) {
-                            msg.copy(attachments = listOf(newAttachment))
-                        } else msg
-                    }
-                }
-
-                Log.d("UPLOAD_SUCCESS", "Đã gửi file thành công!")
+                Log.d("UPLOAD_SUCCESS", "Đã gửi $messageType thành công!")
 
             } catch (e: Exception) {
-                Log.e("UPLOAD_ERROR", "Lỗi gửi file: ${e.message}")
+                Log.e("UPLOAD_ERROR", "Lỗi gửi Media: ${e.message}")
             }
         }
     }
+
     fun toggleEncryptionView() {
         _isShowingRawEncryption.value = !_isShowingRawEncryption.value
     }
