@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -26,8 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.theme.AppBackgroundColor
+import com.example.alo.presentation.theme.CardBackgroundColor
+import com.example.alo.presentation.theme.ErrorColor
+import com.example.alo.presentation.theme.TextPrimaryColor
+import com.example.alo.presentation.theme.TextSecondaryColor
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -42,6 +48,7 @@ fun EditProfileScreen(
 ) {
     val profileState by userViewModel.profileState.collectAsState()
     val context = LocalContext.current
+    val primaryColor = Color(0xFF6C63FF)
 
     var isInitialized by remember { mutableStateOf(false) }
 
@@ -71,7 +78,6 @@ fun EditProfileScreen(
             var age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR)
             if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) age--
 
-            //val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             ageText = if (age >= 0) "$age tuổi" else "Không hợp lệ"
         }
     }
@@ -93,8 +99,8 @@ fun EditProfileScreen(
 
     // Hiển thị loading trong toàn bộ màn hình khi fetching / updating profile
     if (profileState is UserProfileState.Loading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        Box(modifier = Modifier.fillMaxSize().background(AppBackgroundColor), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = primaryColor)
         }
         return
     }
@@ -123,9 +129,8 @@ fun EditProfileScreen(
     }
 
     if (profileState !is UserProfileState.Success) {
-        // Fallback khi xảy ra lỗi không lấy được người dùng (ví dụ: error state)
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Có lỗi xảy ra khi tải hồ sơ.")
+        Box(modifier = Modifier.fillMaxSize().background(AppBackgroundColor), contentAlignment = Alignment.Center) {
+            Text("Có lỗi xảy ra khi tải hồ sơ.", color = ErrorColor)
         }
         return
     }
@@ -133,13 +138,30 @@ fun EditProfileScreen(
     val user = (profileState as UserProfileState.Success).user
     val isGoogleAccount = user.avatarId == "google_oauth_avatar"
 
+    // Định nghĩa bộ màu dùng chung cho toàn bộ TextFields để không bị lệch màu khi đổi mode
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPrimaryColor,
+        unfocusedTextColor = TextPrimaryColor,
+        disabledTextColor = TextSecondaryColor,
+        focusedBorderColor = primaryColor,
+        unfocusedBorderColor = Color(0xFFE0E0E0),
+        disabledBorderColor = Color(0xFFEEEEEE),
+        focusedLabelColor = primaryColor,
+        unfocusedLabelColor = TextSecondaryColor,
+        disabledLabelColor = TextSecondaryColor,
+        errorTextColor = ErrorColor,
+        errorBorderColor = ErrorColor,
+        errorLabelColor = ErrorColor,
+        errorSupportingTextColor = ErrorColor
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chỉnh sửa hồ sơ", fontSize = 18.sp) },
+                title = { Text("Chỉnh sửa hồ sơ", fontSize = 18.sp, color = TextPrimaryColor, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Trở về")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Trở về", tint = TextPrimaryColor)
                     }
                 },
                 actions = {
@@ -180,13 +202,14 @@ fun EditProfileScreen(
                             )
                         }
                     }) {
-                        Text("Lưu", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Lưu", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryColor)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBackgroundColor)
             )
         }
     ) { paddingValues ->
-        // Component chọn ngày (Material 3)
+        // Component chọn ngày
         if (showDatePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -198,150 +221,189 @@ fun EditProfileScreen(
                             ageText = format.format(Date(millis))
                         }
                     }) {
-                        Text("Chọn")
+                        Text("Chọn", color = primaryColor)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("Hủy") }
+                    TextButton(onClick = { showDatePicker = false }) { Text("Hủy", color = TextSecondaryColor) }
                 }
             ) {
                 DatePicker(state = datePickerState)
             }
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(AppBackgroundColor)
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()), // Cho phép cuộn để không bị che khuất trường ở dưới
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- 1. ẢNH ĐẠI DIỆN ---
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
-                    .clickable(enabled = !isGoogleAccount) {
-                        imagePicker.launch("image/*")
-                    },
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AsyncImage(
-                    model = selectedImageUri ?: user.avatarUrl,
-                    contentDescription = "Avatar",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                if (!isGoogleAccount) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) { Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = Color.White) }
-                }
-            }
-
-            if (isGoogleAccount) {
-                Text(
-                    text = "Tài khoản Google không thể đổi ảnh đại diện",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- 2. CÁC TRƯỜNG DỮ LIỆU ---
-            OutlinedTextField(
-                value = username,
-                onValueChange = {
-                    username = it
-                    usernameError = null
-                },
-                label = { Text("Username") },
-                isError = usernameError != null,
-                supportingText = { if (usernameError != null) Text(usernameError!!) },
-                enabled = !isGoogleAccount, // Khóa nếu là tk Google
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (isGoogleAccount) {
-                Text(
-                    text = "Tài khoản Google không thể đổi Username",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, top = 4.dp, bottom = 8.dp)
-                )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            OutlinedTextField(
-                value = displayName,
-                onValueChange = {
-                    displayName = it
-                    displayNameError = null
-                },
-                label = { Text("Tên hiển thị") },
-                isError = displayNameError != null,
-                supportingText = { if (displayNameError != null) Text(displayNameError!!) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // -- GIỚI TÍNH --
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Giới tính",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = gender == true, onClick = { gender = true })
-                    Text("Nam", modifier = Modifier.clickable { gender = true })
-                    Spacer(modifier = Modifier.width(16.dp))
-                    RadioButton(selected = gender == false, onClick = { gender = false })
-                    Text("Nữ", modifier = Modifier.clickable { gender = false })
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // -- NGÀY SINH --
-            Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
-                OutlinedTextField(
-                    value = ageText,
-                    onValueChange = { },
-                    label = { Text("Ngày sinh (dd/MM/yyyy)") },
-                    readOnly = true,
-                    enabled = false,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                // --- 1. ẢNH ĐẠI DIỆN ---
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .shadow(elevation = 6.dp, shape = CircleShape)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE8EAF6))
+                        .clickable(enabled = !isGoogleAccount) {
+                            imagePicker.launch("image/*")
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = selectedImageUri ?: user.avatarUrl,
+                        contentDescription = "Avatar",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
-                )
+
+                    if (!isGoogleAccount) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = Color.White)
+                        }
+                    }
+                }
+
+                if (isGoogleAccount) {
+                    Text(
+                        text = "Tài khoản Google không thể đổi ảnh đại diện",
+                        color = ErrorColor,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // --- 2. CÁC TRƯỜNG DỮ LIỆU (ĐẢO NỔI) ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp), clip = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CardBackgroundColor) // Thẻ trắng
+                        .padding(16.dp) // Padding bên trong thẻ
+                ) {
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = {
+                            username = it
+                            usernameError = null
+                        },
+                        label = { Text("Username") },
+                        isError = usernameError != null,
+                        supportingText = { if (usernameError != null) Text(usernameError!!) },
+                        enabled = !isGoogleAccount,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    if (isGoogleAccount) {
+                        Text(
+                            text = "Tài khoản Google không thể đổi Username",
+                            color = ErrorColor,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(start = 4.dp, bottom = 8.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = {
+                            displayName = it
+                            displayNameError = null
+                        },
+                        label = { Text("Tên hiển thị") },
+                        isError = displayNameError != null,
+                        supportingText = { if (displayNameError != null) Text(displayNameError!!) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // -- GIỚI TÍNH --
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                        Text(
+                            text = "Giới tính",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondaryColor
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = gender == true,
+                                onClick = { gender = true },
+                                colors = RadioButtonDefaults.colors(selectedColor = primaryColor, unselectedColor = TextSecondaryColor)
+                            )
+                            Text("Nam", color = TextPrimaryColor, modifier = Modifier.clickable { gender = true })
+                            Spacer(modifier = Modifier.width(24.dp))
+                            RadioButton(
+                                selected = gender == false,
+                                onClick = { gender = false },
+                                colors = RadioButtonDefaults.colors(selectedColor = primaryColor, unselectedColor = TextSecondaryColor)
+                            )
+                            Text("Nữ", color = TextPrimaryColor, modifier = Modifier.clickable { gender = false })
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // -- NGÀY SINH --
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
+                        OutlinedTextField(
+                            value = ageText,
+                            onValueChange = { },
+                            label = { Text("Ngày sinh (dd/MM/yyyy)") },
+                            readOnly = true,
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // -- TIỂU SỬ --
+                    OutlinedTextField(
+                        value = bio,
+                        onValueChange = { bio = it },
+                        label = { Text("Tiểu sử") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // -- SỐ ĐIỆN THOẠI --
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Số điện thoại") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = bio,
-                onValueChange = { bio = it },
-                label = { Text("Tiểu sử") },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Số điện thoại") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(32.dp)) // Tạo khoảng trống dưới cùng
         }
     }
 }
