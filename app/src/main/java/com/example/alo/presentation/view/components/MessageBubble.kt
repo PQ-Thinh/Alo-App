@@ -203,7 +203,7 @@ fun MessageBubble(
                                     contentScale = ContentScale.Crop
                                 )
                                 // Hiển thị vòng quay mờ nếu đang tải ảnh
-                                if (MessageUiModel(message, true).isUploading) {
+                                if (MessageUiModel(message, false).isUploading) {
                                     Box(
                                         modifier = Modifier
                                             .matchParentSize()
@@ -260,7 +260,7 @@ fun MessageBubble(
                                     }
                                 }
 
-                                if (MessageUiModel(message, true).isUploading) {
+                                if (MessageUiModel(message, false).isUploading) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(24.dp),
                                         color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp

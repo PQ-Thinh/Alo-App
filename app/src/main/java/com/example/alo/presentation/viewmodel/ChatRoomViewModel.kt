@@ -48,6 +48,9 @@ class ChatRoomViewModel @Inject constructor(
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
+    private val _uploadingMessageIds = MutableStateFlow<Set<String>>(emptySet())
+    val uploadingMessageIds: StateFlow<Set<String>> = _uploadingMessageIds.asStateFlow()
+
     private val _messageText = MutableStateFlow("")
     val messageText: StateFlow<String> = _messageText.asStateFlow()
 
