@@ -43,3 +43,5 @@ val TextPrimaryColor = Color(0xFF1D1D1D) // Đen tuyền cho chữ chính
 val TextSecondaryColor = Color(0xFF757575) // Xám cho chữ phụ
 val CardBackgroundColor = Color(0xFFFFFFFF) // Màu trắng cho đảo nổi
 val ErrorColor = Color(0xFFD32F2F) // Đỏ cho lỗi
+
+val primaryColor = Color(0xFF6C63FF)

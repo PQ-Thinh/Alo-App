@@ -37,12 +37,12 @@ import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -55,6 +55,10 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.helper.MessageUiModel
+import com.example.alo.presentation.theme.CardBackgroundColor
+import com.example.alo.presentation.theme.TextPrimaryColor
+import com.example.alo.presentation.theme.TextSecondaryColor
+import com.example.alo.presentation.theme.primaryColor
 import com.example.alo.presentation.view.utils.formatMessageTime
 
 @Composable
@@ -73,6 +77,15 @@ fun MessageBubble(
 ) {
     val context = LocalContext.current
 
+
+    // Đảo ngược góc bo tròn tuỳ vào người gửi
+    val bubbleShape = RoundedCornerShape(
+        topStart = 16.dp,
+        topEnd = 16.dp,
+        bottomStart = if (isMine || !showAvatar) 16.dp else 4.dp,
+        bottomEnd = if (!isMine || !showAvatar) 16.dp else 4.dp
+    )
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
@@ -83,7 +96,7 @@ fun MessageBubble(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(if (showAvatar) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent),
+                    .background(if (showAvatar) Color(0xFFE8EAF6) else Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
                 if (showAvatar) {
@@ -98,7 +111,8 @@ fun MessageBubble(
                         Text(
                             text = partnerName.firstOrNull()?.uppercase() ?: "?",
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor
                         )
                     }
                 }
@@ -110,21 +124,19 @@ fun MessageBubble(
             horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
             val hasReactions = message.reactions.isNotEmpty()
+            val isImageMessage = !showRawEncryption && message.messageType == "IMAGE" && message.attachments.isNotEmpty()
 
             Box(
                 modifier = Modifier.padding(bottom = if (hasReactions) 14.dp else 0.dp)
             ) {
+                // --- BUBBLE TIN NHẮN CHÍNH ---
                 Box(
                     modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isMine || !showAvatar) 16.dp else 4.dp,
-                                bottomEnd = if (!isMine || !showAvatar) 16.dp else 4.dp
-                            )
-                        )
-                        .background(if (isMine) Color(0xFFE5EFFF) else MaterialTheme.colorScheme.surfaceVariant)
+                        // Bóng đổ nhẹ cho nổi bật, xoá shadow đối với Ảnh vì ảnh tự nổi
+                        .shadow(elevation = if (isImageMessage) 0.dp else 2.dp, shape = bubbleShape)
+                        .clip(bubbleShape)
+                        // Nếu là ảnh: Nền trong suốt. Nếu Text/File: Mình -> Tím, Họ -> Trắng
+                        .background(if (isImageMessage) Color.Transparent else if (isMine) primaryColor else CardBackgroundColor)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = { onMessageClick() },
@@ -133,10 +145,11 @@ fun MessageBubble(
                         }
                         .defaultMinSize(minWidth = if (hasReactions) 70.dp else 0.dp)
                         .padding(
-                            start = if (message.messageType == "IMAGE") 4.dp else 14.dp,
-                            end = if (message.messageType == "IMAGE") 4.dp else 14.dp,
-                            top = if (message.messageType == "IMAGE") 4.dp else 10.dp,
-                            bottom = if (message.messageType == "IMAGE") { if (hasReactions) 10.dp else 4.dp } else { if (hasReactions) 16.dp else 10.dp }
+                            // Bỏ padding mặc định nếu chỉ hiển thị ảnh để ảnh tràn viền đẹp hơn
+                            start = if (isImageMessage) 0.dp else 14.dp,
+                            end = if (isImageMessage) 0.dp else 14.dp,
+                            top = if (isImageMessage) 0.dp else 10.dp,
+                            bottom = if (isImageMessage) { if (hasReactions) 10.dp else 0.dp } else { if (hasReactions) 16.dp else 10.dp }
                         )
                         .widthIn(max = 240.dp)
                 ) {
@@ -148,9 +161,15 @@ fun MessageBubble(
 
                             Row(
                                 modifier = Modifier
-                                    .padding(bottom = 8.dp)
+                                    // Thêm padding cho phần Quote
+                                    .padding(
+                                        start = if (isImageMessage) 4.dp else 0.dp,
+                                        end = if (isImageMessage) 4.dp else 0.dp,
+                                        top = if (isImageMessage) 4.dp else 0.dp,
+                                        bottom = 8.dp
+                                    )
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black.copy(alpha = 0.05f))
+                                    .background(if (isMine) Color.Black.copy(alpha = 0.15f) else Color(0xFFF0F0F0))
                                     .height(IntrinsicSize.Min)
                                     .wrapContentWidth()
                                     .padding(end = 12.dp)
@@ -159,18 +178,18 @@ fun MessageBubble(
                                     modifier = Modifier
                                         .width(4.dp)
                                         .fillMaxHeight()
-                                        .background(if (isRepliedMine) Color(0xFF6C63FF) else Color(0xFF4CAF50))
+                                        // Vạch màu trích dẫn
+                                        .background(if (isMine) Color.White.copy(alpha = 0.8f) else primaryColor)
                                 )
 
-                                Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                                     Text(
                                         text = repliedSenderName,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
-                                        color = if (isRepliedMine) Color(0xFF6C63FF) else Color(0xFF4CAF50)
+                                        color = if (isMine) Color.White else primaryColor
                                     )
 
-                                    // Thay đổi chữ hiển thị dựa theo loại tin nhắn bị trích dẫn
                                     val previewText = when (repliedMessage.messageType) {
                                         "IMAGE" -> "[Hình ảnh]"
                                         "FILE" -> "[Tài liệu] ${repliedMessage.attachments.firstOrNull()?.fileName ?: ""}"
@@ -180,7 +199,7 @@ fun MessageBubble(
                                     Text(
                                         text = previewText,
                                         fontSize = 12.sp,
-                                        color = Color.DarkGray,
+                                        color = if (isMine) Color.White.copy(alpha = 0.9f) else TextSecondaryColor,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -189,7 +208,7 @@ fun MessageBubble(
                         }
 
                         // 2. NỘI DUNG TIN NHẮN CHÍNH (TEXT, IMAGE, FILE)
-                        if (!showRawEncryption && message.messageType == "IMAGE" && message.attachments.isNotEmpty()) {
+                        if (isImageMessage) {
                             // --- HIỂN THỊ HÌNH ẢNH ---
                             val imageUrl = message.attachments.first().fileUrl
                             Box(contentAlignment = Alignment.Center) {
@@ -199,15 +218,17 @@ fun MessageBubble(
                                     modifier = Modifier
                                         .width(220.dp)
                                         .heightIn(min = 150.dp, max = 300.dp)
-                                        .clip(RoundedCornerShape(12.dp)),
+                                        // Bo ảnh theo shape của bong bóng chat
+                                        .clip(bubbleShape)
+                                        // Viền mỏng mờ để chặn ảnh hoà vào nền nếu ảnh màu trắng
+                                        .border(0.5.dp, Color.Black.copy(alpha = 0.05f), bubbleShape),
                                     contentScale = ContentScale.Crop
                                 )
-                                // Hiển thị vòng quay mờ nếu đang tải ảnh
                                 if (MessageUiModel(message, false).isUploading) {
                                     Box(
                                         modifier = Modifier
                                             .matchParentSize()
-                                            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                                            .background(Color.Black.copy(alpha = 0.3f), bubbleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp)
@@ -230,7 +251,7 @@ fun MessageBubble(
                                 modifier = Modifier
                                     .widthIn(max = 240.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black.copy(alpha = 0.05f))
+                                    .background(if (isMine) Color.White.copy(alpha = 0.25f) else Color(0xFFF5F6FA))
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -238,10 +259,14 @@ fun MessageBubble(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(iconColor.copy(alpha = 0.1f)),
+                                        .background( iconColor.copy(alpha = 0.1f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.InsertDriveFile, contentDescription = "Tài liệu", tint = iconColor)
+                                    Icon(
+                                        Icons.Default.InsertDriveFile,
+                                        contentDescription = "Tài liệu",
+                                        tint = iconColor
+                                    )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -249,13 +274,18 @@ fun MessageBubble(
                                     attachment.fileName?.let {
                                         Text(
                                             text = it,
-                                            fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            color = if (isMine) Color.White else TextPrimaryColor
                                         )
                                     }
                                     attachment.fileSize?.let {
                                         Text(
                                             text = if (it > 1024 * 1024) "${attachment.fileSize / (1024 * 1024)} MB" else "${attachment.fileSize / 1024} KB",
-                                            fontSize = 11.sp, color = Color.Gray
+                                            fontSize = 11.sp,
+                                            color = if (isMine) Color.White.copy(alpha = 0.7f) else TextSecondaryColor
                                         )
                                     }
                                 }
@@ -263,10 +293,9 @@ fun MessageBubble(
                                 if (MessageUiModel(message, false).isUploading) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(24.dp),
-                                        color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp
+                                        color = if (isMine) Color.White else primaryColor, strokeWidth = 2.dp
                                     )
                                 } else {
-                                    // ĐÃ TẢI XONG: Hiển thị nút bấm để mở File qua Intent
                                     IconButton(
                                         onClick = {
                                             if (attachment.fileUrl.isNotEmpty()) {
@@ -276,16 +305,20 @@ fun MessageBubble(
                                         },
                                         modifier = Modifier.size(32.dp)
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Mở File", tint = Color.Gray)
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = "Mở File",
+                                            tint = if (isMine) Color.White else TextSecondaryColor
+                                        )
                                     }
                                 }
                             }
                         } else {
-                            // --- HIỂN THỊ TEXT ---
+                            // --- HIỂN THỊ TEXT CHÍNH ---
                             val displayContent = if (showRawEncryption) message.rawEncryptedContent else message.encryptedContent
                             Text(
                                 text = displayContent,
-                                color = if (showRawEncryption) Color(0xFFE91E63) else if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (showRawEncryption) Color(0xFFE91E63) else if (isMine) Color.White else TextPrimaryColor,
                                 fontSize = if (showRawEncryption) 10.sp else 15.sp,
                                 fontFamily = if (showRawEncryption) FontFamily.Monospace else null
                             )
@@ -293,7 +326,7 @@ fun MessageBubble(
                     }
                 }
 
-                // --- THANH CẢM XÚC ---
+                // --- THANH CẢM XÚC (Reactions) ---
                 if (hasReactions) {
                     val reactionCounts = message.reactions
                         .groupBy { it.reactionIcon }
@@ -307,9 +340,10 @@ fun MessageBubble(
                         modifier = Modifier
                             .align(if (isMine) Alignment.BottomStart else Alignment.BottomEnd)
                             .offset(x = if (isMine) 10.dp else (-10).dp, y = 12.dp)
-                            .background(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
+                            .background(color = CardBackgroundColor, shape = RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                             .clickable { },
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -322,7 +356,7 @@ fun MessageBubble(
                             Text(
                                 text = totalReactions.toString(),
                                 fontSize = 11.sp,
-                                color = Color.Gray,
+                                color = TextSecondaryColor,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(start = 2.dp)
                             )
@@ -331,6 +365,7 @@ fun MessageBubble(
                 }
             }
 
+            // --- THỜI GIAN VÀ TRẠNG THÁI (ĐÃ XEM) ---
             AnimatedVisibility(
                 visible = showDetails,
                 enter = fadeIn() + slideInVertically(initialOffsetY = { -10 }),
@@ -343,7 +378,7 @@ fun MessageBubble(
                     Text(
                         text = formatMessageTime(message.createdAt),
                         fontSize = 11.sp,
-                        color = Color.Gray
+                        color = TextSecondaryColor
                     )
 
                     if (isMine) {
@@ -373,17 +408,18 @@ fun MessageBubble(
                                 }
                             }
                         } else {
-                            Text(text = "Đã nhận", fontSize = 11.sp, color = Color.Gray)
+                            Text(text = "Đã nhận", fontSize = 11.sp, color = TextSecondaryColor)
                         }
                     }
                 }
             }
 
+            // --- HIỂN THỊ THỜI GIAN BÊN NGOÀI KHỐI ---
             if (showTime) {
                 Text(
                     text = formatMessageTime(message.createdAt),
                     fontSize = 11.sp,
-                    color = Color.Gray,
+                    color = TextSecondaryColor,
                     modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
                 )
             }
