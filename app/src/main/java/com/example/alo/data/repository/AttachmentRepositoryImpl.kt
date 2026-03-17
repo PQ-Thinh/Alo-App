@@ -58,4 +58,21 @@ class AttachmentRepositoryImpl @Inject constructor(
             emptyList()
         }
     }
+
+    override suspend fun uploadDocument(
+        byteArray: ByteArray,
+        fileName: String
+    ): String {
+        return try {
+            val bucket = supabaseClient.storage["chat_files"]
+
+            bucket.upload(fileName, byteArray)
+
+            val publicUrl = bucket.publicUrl(fileName)
+            publicUrl
+        } catch (e: Exception) {
+            Log.e("AttachmentRepo", "Lỗi upload tài liệu lên Storage: ${e.message}")
+            throw e
+        }
+    }
 }

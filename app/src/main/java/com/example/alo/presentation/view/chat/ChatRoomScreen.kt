@@ -40,6 +40,7 @@ import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.MessageActionOverlay
 import com.example.alo.presentation.view.components.MessageBubble
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Lock
@@ -86,11 +87,51 @@ fun ChatRoomScreen(
 
             if (byteArray != null) {
                 val fileName = "img_${System.currentTimeMillis()}.jpg"
+                var fileSize = 0
+                context.contentResolver.query(selectedUri, null, null, null, null)?.use { cursor ->
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    cursor.moveToFirst()
+                    if (sizeIndex != -1) fileSize = cursor.getInt(sizeIndex)
+                }
 
                 viewModel.sendImageMessage(
                     conversationId = conversationId,
                     byteArray = byteArray,
-                    fileName = fileName
+                    fileName = fileName,
+                    fileSize = fileSize
+                )
+            }
+        }
+    }
+
+    // KHỞI TẠO TRÌNH CHỌN FILE TÀI LIỆU
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { selectedUri ->
+            var fileName = "document_${System.currentTimeMillis()}"
+            var fileSize = 0
+
+            // Lấy tên và kích thước thật của File
+            context.contentResolver.query(selectedUri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                cursor.moveToFirst()
+                if (nameIndex != -1) fileName = cursor.getString(nameIndex)
+                if (sizeIndex != -1) fileSize = cursor.getInt(sizeIndex)
+            }
+
+            // Đọc byte và Gửi
+            val inputStream = context.contentResolver.openInputStream(selectedUri)
+            val byteArray = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (byteArray != null) {
+                viewModel.sendFileMessage(
+                    conversationId = conversationId,
+                    byteArray = byteArray,
+                    fileName = fileName,
+                    fileSize = fileSize
                 )
             }
         }
@@ -232,7 +273,11 @@ fun ChatRoomScreen(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 },
-                onAttachFile = { /*TODO*/ }
+                onAttachFile = {
+                    filePickerLauncher.launch(
+                        arrayOf("*/*")
+                    )
+                }
             )
         }
     ) { paddingValues ->

@@ -292,6 +292,68 @@ class ChatRoomViewModel @Inject constructor(
             }
         }
     }
+    fun sendFileMessage(
+        conversationId: String,
+        byteArray: ByteArray,
+        fileName: String,
+        fileSize: Int = 0
+    ) {
+        viewModelScope.launch {
+            try {
+                val fileUrl = attachmentRepository.uploadDocument(byteArray, fileName)
+
+                val fallbackText = "[Tệp đính kèm] $fileName"
+                val encryptedJsonPayload = CryptoHelper.encryptMessage(
+                    context = context,
+                    plaintext = fallbackText,
+                    receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
+                    myPublicEncryptKeyBase64 = myPublicEncryptKey
+                )
+
+                if (encryptedJsonPayload.isEmpty()) return@launch
+
+                val generatedMessageId = messageRepository.sendMessage(
+                    conversationId = conversationId,
+                    senderId = _currentUserId.value,
+                    content = encryptedJsonPayload,
+                    messageType = "FILE",
+                    replyToId = null
+                )
+
+                // 4. Lưu vào bảng attachments
+                attachmentRepository.sendAttachment(
+                    messageId = generatedMessageId,
+                    fileUrl = fileUrl,
+                    fileType = "FILE",
+                    fileName = fileName,
+                    fileSize = fileSize
+                )
+
+                val newAttachment = Attachment(
+                    id = "temp_${System.currentTimeMillis()}",
+                    messageId = generatedMessageId,
+                    fileUrl = fileUrl,
+                    fileType = "FILE",
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    createdAt = ""
+                )
+
+                _messages.update { currentList ->
+                    currentList.map { msg ->
+                        if (msg.id == generatedMessageId) {
+                            msg.copy(attachments = listOf(newAttachment))
+                        } else msg
+                    }
+                }
+
+                Log.d("UPLOAD_SUCCESS", "Đã gửi file thành công!")
+
+            } catch (e: Exception) {
+                Log.e("UPLOAD_ERROR", "Lỗi gửi file: ${e.message}")
+            }
+        }
+    }
     fun toggleEncryptionView() {
         _isShowingRawEncryption.value = !_isShowingRawEncryption.value
     }

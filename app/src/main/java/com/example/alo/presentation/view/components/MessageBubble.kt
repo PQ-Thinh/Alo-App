@@ -29,6 +29,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -169,8 +173,9 @@ fun MessageBubble(
                         }
 
                         // 2. NỘI DUNG TIN NHẮN CHÍNH (XỬ LÝ TEXT VÀ IMAGE)
-                        if (message.messageType == "IMAGE" && message.attachments.isNotEmpty()) {
-                            // Hiển thị Hình Ảnh
+                        // 2. NỘI DUNG TIN NHẮN CHÍNH (XỬ LÝ TEXT, IMAGE, VÀ FILE)
+                        if (!showRawEncryption && message.messageType == "IMAGE" && message.attachments.isNotEmpty()) {
+                            // --- HIỂN THỊ HÌNH ẢNH ---
                             val imageUrl = message.attachments.first().fileUrl
                             AsyncImage(
                                 model = imageUrl,
@@ -181,12 +186,69 @@ fun MessageBubble(
                                     .clip(RoundedCornerShape(12.dp)),
                                 contentScale = ContentScale.Crop
                             )
+
+                        } else if (!showRawEncryption && message.messageType == "FILE" && message.attachments.isNotEmpty()) {
+                            // --- HIỂN THỊ FILE TÀI LIỆU ---
+                            val attachment = message.attachments.first()
+                            Row(
+                                modifier = Modifier
+                                    .widthIn(max = 240.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.05f))
+                                    .clickable {
+                                        // TODO sau này: Viết hàm dùng Intent để mở URL tải file về máy
+                                    }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Icon File
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.InsertDriveFile,
+                                        contentDescription = "Tài liệu",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                // Tên và Dung lượng
+                                Column(modifier = Modifier.weight(1f)) {
+                                    attachment.fileName?.let {
+                                        Text(
+                                            text = it,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    attachment.fileSize?.let {
+                                        Text(
+                                            text = if (it > 1024 * 1024)
+                                                "${attachment.fileSize / (1024 * 1024)} MB"
+                                            else
+                                                "${attachment.fileSize / 1024} KB",
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
                         } else {
+                            // --- HIỂN THỊ TEXT / CHẾ ĐỘ HACKER ---
                             val displayContent = if (showRawEncryption) message.rawEncryptedContent else message.encryptedContent
                             Text(
                                 text = displayContent,
-                                color = if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 15.sp
+                                color = if (showRawEncryption) Color(0xFFE91E63) else if (isMine) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = if (showRawEncryption) 10.sp else 15.sp,
+                                fontFamily = if (showRawEncryption) androidx.compose.ui.text.font.FontFamily.Monospace else null
                             )
                         }
                     }
