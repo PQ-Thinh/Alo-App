@@ -1,7 +1,9 @@
 package com.example.alo.presentation.view.profile
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +23,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +35,7 @@ import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.ErrorColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
+import com.example.alo.presentation.view.utils.ProfileBackgrounds
 import com.example.alo.presentation.viewmodel.AuthViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 
@@ -45,6 +49,7 @@ fun ProfileScreen(
 ) {
     val profileState by viewModel.profileState.collectAsState()
     val primaryColor = Color(0xFF6C63FF)
+    var selectedBackground by remember { mutableStateOf("bg_1") }
 
     LaunchedEffect(Unit) {
         viewModel.fetchCurrentUserProfile()
@@ -104,31 +109,50 @@ fun ProfileScreen(
                         // AVATAR
                         Box(
                             modifier = Modifier
-                                .size(110.dp)
-                                .border(3.dp, primaryColor.copy(alpha = 0.3f), CircleShape)
-                                .padding(4.dp)
+                                .fillMaxWidth()
+                                .height(200.dp), // Tổng chiều cao của khu vực Header
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            if (user.avatarUrl != null) {
+                            // Ảnh nền (Banner) nằm dưới cùng, chiếm 140.dp phía trên
+                            Image(
+                                painter = painterResource(
+                                    id = ProfileBackgrounds.getDrawable(
+                                        selectedBackground
+                                    )
+                                ),
+                                contentDescription = "Background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .clip(RoundedCornerShape(16.dp)) // Bo góc cho đẹp
+                            )
+
+                            // Avatar đè lên, căn lề dưới (nằm giao giữa nền và khoảng trắng)
+                            Box(
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .shadow(elevation = 6.dp, shape = CircleShape)
+                                    .background(
+                                        AppBackgroundColor,
+                                        CircleShape
+                                    ) // Tạo viền cắt với nền
+                                    .padding(4.dp) // Độ dày của viền cắt
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE8EAF6))
+                                    ,
+                                contentAlignment = Alignment.Center
+                            ) {
                                 AsyncImage(
                                     model = user.avatarUrl,
                                     contentDescription = "Avatar",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                    modifier = Modifier.fillMaxSize()
                                 )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFE8EAF6)), // Nền mặc định avatar
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(50.dp), tint = primaryColor)
-                                }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = user.displayName,
                             style = MaterialTheme.typography.titleLarge,

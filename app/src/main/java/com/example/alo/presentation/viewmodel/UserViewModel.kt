@@ -10,6 +10,7 @@ import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.helper.ProfileSetupEvent
 import com.example.alo.presentation.helper.ProfileSetupState
 import com.example.alo.presentation.helper.UserProfileState
+import com.example.alo.presentation.view.utils.ProfileBackgrounds
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers

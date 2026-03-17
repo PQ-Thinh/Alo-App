@@ -5,6 +5,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +44,7 @@ import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
 import com.example.alo.presentation.view.components.ChatBottomBar
+import com.example.alo.presentation.view.components.EmptyChatGreeting
 import com.example.alo.presentation.view.components.MessageActionOverlay
 import com.example.alo.presentation.view.components.MessageBubble
 import com.example.alo.presentation.view.components.TypingIndicatorBubble
@@ -76,6 +79,8 @@ fun ChatRoomScreen(
     val conversationId = viewModel.conversationId
 
     val isShowingRawEncryption by viewModel.isShowingRawEncryption.collectAsState()
+
+    val isFriend by viewModel.isFriend.collectAsState()
 
     // KHỞI TẠO TRÌNH CHỌN ẢNH
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -153,6 +158,7 @@ fun ChatRoomScreen(
     Scaffold(
         containerColor = AppBackgroundColor, // Đồng bộ nền ứng dụng
         topBar = {
+            Column(modifier = Modifier.fillMaxWidth().background(AppBackgroundColor)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -278,6 +284,23 @@ fun ChatRoomScreen(
                     }
                 }
             }
+                AnimatedVisibility(visible = !isFriend) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFFF3E0))
+                            .padding(vertical = 8.dp, horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Người này chưa có trong danh sách bạn bè. Hãy cẩn thận khi chia sẻ thông tin cá nhân.",
+                            fontSize = 12.sp,
+                            color = Color(0xFFE65100),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
         },
         bottomBar = {
             ChatBottomBar(
@@ -304,84 +327,108 @@ fun ChatRoomScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            state = listState,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppBackgroundColor)
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            reverseLayout = true,
+                .background(AppBackgroundColor)
         ) {
-            if (isPartnerTyping) {
-                item {
-                    TypingIndicatorBubble(partnerAvatar = partnerAvatar, partnerName = partnerName)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-            items(
-                count = messages.size,
-                key = { index -> messages[index].id }
-            ) { index ->
-
-                val message = messages[index]
-                val isMine = message.senderId == currentUserId
-
-                val repliedMessage = message.replyToId?.let { id ->
-                    messages.find { it.id == id }
-                }
-
-                val previousMessage = if (index < messages.size - 1) messages[index + 1] else null
-                val nextMessage = if (index > 0) messages[index - 1] else null
-
-                val showTimeHeader = shouldShowTimeHeader(
-                    currentMessageTime = message.createdAt,
-                    previousMessageTime = previousMessage?.createdAt
+            // THÊM KIỂM TRA Ở ĐÂY
+            if (messages.isEmpty()) {
+                EmptyChatGreeting(
+                    partnerName = partnerName,
+                    partnerAvatar = partnerAvatar
                 )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(AppBackgroundColor)
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
+                    reverseLayout = true,
+                ) {
 
-                val isLastInGroup = nextMessage?.senderId != message.senderId
-                val showSmallTime = nextMessage?.senderId != message.senderId
-
-                Column {
-                    if (showTimeHeader) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = formatTimeHeader(message.createdAt),
-                                fontSize = 12.sp,
-                                color = TextSecondaryColor,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier
-                                    .background(CardBackgroundColor, RoundedCornerShape(12.dp)) // Header Time cũng làm dạng đảo nhỏ
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    if (isPartnerTyping) {
+                        item {
+                            TypingIndicatorBubble(
+                                partnerAvatar = partnerAvatar,
+                                partnerName = partnerName
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
+                    items(
+                        count = messages.size,
+                        key = { index -> messages[index].id }
+                    ) { index ->
 
-                    MessageBubble(
-                        message = message,
-                        repliedMessage = repliedMessage,
-                        isMine = isMine,
-                        partnerAvatar = partnerAvatar,
-                        partnerName = partnerName,
-                        showAvatar = isLastInGroup,
-                        showTime = showSmallTime,
-                        showDetails = activeDetailsMessageId == message.id,
+                        val message = messages[index]
+                        val isMine = message.senderId == currentUserId
 
-                        onMessageClick = {
-                            activeDetailsMessageId = if (activeDetailsMessageId == message.id) null else message.id
-                        },
-                        onMessageLongClick = {
-                            activeDetailsMessageId = null
-                            selectedMessageForOverlay = message
-                        },
-                        showRawEncryption = isShowingRawEncryption
-                    )
-                    Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
+                        val repliedMessage = message.replyToId?.let { id ->
+                            messages.find { it.id == id }
+                        }
+
+                        val previousMessage =
+                            if (index < messages.size - 1) messages[index + 1] else null
+                        val nextMessage = if (index > 0) messages[index - 1] else null
+
+                        val showTimeHeader = shouldShowTimeHeader(
+                            currentMessageTime = message.createdAt,
+                            previousMessageTime = previousMessage?.createdAt
+                        )
+
+                        val isLastInGroup = nextMessage?.senderId != message.senderId
+                        val showSmallTime = nextMessage?.senderId != message.senderId
+
+                        Column {
+                            if (showTimeHeader) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = formatTimeHeader(message.createdAt),
+                                        fontSize = 12.sp,
+                                        color = TextSecondaryColor,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier
+                                            .background(
+                                                CardBackgroundColor,
+                                                RoundedCornerShape(12.dp)
+                                            ) // Header Time cũng làm dạng đảo nhỏ
+                                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            MessageBubble(
+                                message = message,
+                                repliedMessage = repliedMessage,
+                                isMine = isMine,
+                                partnerAvatar = partnerAvatar,
+                                partnerName = partnerName,
+                                showAvatar = isLastInGroup,
+                                showTime = showSmallTime,
+                                showDetails = activeDetailsMessageId == message.id,
+
+                                onMessageClick = {
+                                    activeDetailsMessageId =
+                                        if (activeDetailsMessageId == message.id) null else message.id
+                                },
+                                onMessageLongClick = {
+                                    activeDetailsMessageId = null
+                                    selectedMessageForOverlay = message
+                                },
+                                showRawEncryption = isShowingRawEncryption
+                            )
+                            Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
+                        }
+                    }
                 }
             }
         }

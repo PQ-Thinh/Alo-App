@@ -132,10 +132,8 @@ fun MessageBubble(
                 // --- BUBBLE TIN NHẮN CHÍNH ---
                 Box(
                     modifier = Modifier
-                        // Bóng đổ nhẹ cho nổi bật, xoá shadow đối với Ảnh vì ảnh tự nổi
                         .shadow(elevation = if (isImageMessage) 0.dp else 2.dp, shape = bubbleShape)
                         .clip(bubbleShape)
-                        // Nếu là ảnh: Nền trong suốt. Nếu Text/File: Mình -> Tím, Họ -> Trắng
                         .background(if (isImageMessage) Color.Transparent else if (isMine) primaryColor else CardBackgroundColor)
                         .pointerInput(Unit) {
                             detectTapGestures(

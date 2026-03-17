@@ -39,6 +39,12 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.res.painterResource
+import com.example.alo.presentation.view.utils.ProfileBackgrounds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +64,7 @@ fun EditProfileScreen(
     var bio by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var ageText by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf<Boolean?>(null) } // true: Nam, false: Nữ
+    var gender by remember { mutableStateOf<Boolean?>(null) }
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
@@ -70,6 +76,8 @@ fun EditProfileScreen(
     // State chọn ngày sinh
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+
+    var selectedBackground by remember { mutableStateOf("bg_1") }
 
     LaunchedEffect(datePickerState.selectedDateMillis) {
         datePickerState.selectedDateMillis?.let { millis ->
@@ -138,7 +146,6 @@ fun EditProfileScreen(
     val user = (profileState as UserProfileState.Success).user
     val isGoogleAccount = user.avatarId == "google_oauth_avatar"
 
-    // Định nghĩa bộ màu dùng chung cho toàn bộ TextFields để không bị lệch màu khi đổi mode
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = TextPrimaryColor,
         unfocusedTextColor = TextPrimaryColor,
@@ -250,30 +257,52 @@ fun EditProfileScreen(
                 // --- 1. ẢNH ĐẠI DIỆN ---
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
-                        .shadow(elevation = 6.dp, shape = CircleShape)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE8EAF6))
-                        .clickable(enabled = !isGoogleAccount) {
-                            imagePicker.launch("image/*")
-                        },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .height(200.dp), // Tổng chiều cao của khu vực Header
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    AsyncImage(
-                        model = selectedImageUri ?: user.avatarUrl,
-                        contentDescription = "Avatar",
+                    // Ảnh nền (Banner) nằm dưới cùng, chiếm 140.dp phía trên
+                    Image(
+                        painter = painterResource(id = ProfileBackgrounds.getDrawable(selectedBackground)),
+                        contentDescription = "Background",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(16.dp)) // Bo góc cho đẹp
                     )
 
-                    if (!isGoogleAccount) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = Color.White)
+                    // Avatar đè lên, căn lề dưới (nằm giao giữa nền và khoảng trắng)
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .align(Alignment.BottomCenter)
+                            .shadow(elevation = 6.dp, shape = CircleShape)
+                            .background(AppBackgroundColor, CircleShape) // Tạo viền cắt với nền
+                            .padding(4.dp) // Độ dày của viền cắt
+                            .clip(CircleShape)
+                            .background(Color(0xFFE8EAF6))
+                            .clickable(enabled = !isGoogleAccount) {
+                                imagePicker.launch("image/*")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = selectedImageUri ?: user.avatarUrl,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        if (!isGoogleAccount) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = Color.White)
+                            }
                         }
                     }
                 }
@@ -285,6 +314,35 @@ fun EditProfileScreen(
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 8.dp)
                     )
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                ) {
+                    Text("Chọn ảnh bìa", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimaryColor)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(ProfileBackgrounds.backgrounds) { (bgName, bgResId) ->
+                            val isSelected = selectedBackground == bgName
+                            Image(
+                                painter = painterResource(id = bgResId),
+                                contentDescription = "Background option",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(100.dp, 60.dp) // Khung ảnh thu nhỏ
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(
+                                        width = if (isSelected) 3.dp else 0.dp,
+                                        color = if (isSelected) primaryColor else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable { selectedBackground = bgName }
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 

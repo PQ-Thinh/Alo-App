@@ -10,6 +10,7 @@ import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
+import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.domain.repository.MessageRepository
 import com.example.alo.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +33,8 @@ class ChatRoomViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val conversationRepository: ConversationRepository,
     private val userRepository: UserRepository,
-    private val attachmentRepository: AttachmentRepository
+    private val attachmentRepository: AttachmentRepository,
+    private val friendRepository: FriendRepository
 ) : ViewModel() {
 
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
@@ -65,6 +67,9 @@ class ChatRoomViewModel @Inject constructor(
 
     private val _isShowingRawEncryption = MutableStateFlow(false)
     val isShowingRawEncryption: StateFlow<Boolean> = _isShowingRawEncryption.asStateFlow()
+
+    private val _isFriend = MutableStateFlow(true)
+    val isFriend: StateFlow<Boolean> = _isFriend.asStateFlow()
 
 
 
@@ -105,6 +110,9 @@ class ChatRoomViewModel @Inject constructor(
                         if (pId.isNotEmpty()) {
                             val partnerProfile = userRepository.getCurrentUser(pId)
                             partnerPublicEncryptKey = partnerProfile?.publicEncryptKey ?: ""
+
+                            val status = friendRepository.checkFriendStatus(user.id, pId)
+                            _isFriend.value = (status == "friends")
 
                             partnerPublicSignKey = partnerProfile?.publicSignKey
                         }
