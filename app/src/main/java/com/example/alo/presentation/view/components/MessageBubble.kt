@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowCircleDown
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -304,7 +305,7 @@ fun MessageBubble(
                                         modifier = Modifier.size(32.dp)
                                     ) {
                                         Icon(
-                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            Icons.Default.ArrowCircleDown,
                                             contentDescription = "Mở File",
                                             tint = if (isMine) Color.White else TextSecondaryColor
                                         )

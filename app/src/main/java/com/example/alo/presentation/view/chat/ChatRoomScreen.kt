@@ -330,7 +330,7 @@ fun ChatRoomScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                //.padding(paddingValues)
                 .background(AppBackgroundColor)
         ) {
             // THÊM KIỂM TRA Ở ĐÂY
