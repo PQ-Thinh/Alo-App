@@ -315,9 +315,10 @@ fun MessageBubble(
                         } else {
                             // --- HIỂN THỊ TEXT CHÍNH ---
                             val displayContent = if (showRawEncryption) message.rawEncryptedContent else message.encryptedContent
+                            val colorRaw = if (isMine) Color.White else TextPrimaryColor
                             Text(
                                 text = displayContent,
-                                color = if (showRawEncryption) Color(0xFFE91E63) else if (isMine) Color.White else TextPrimaryColor,
+                                color = if (showRawEncryption && isMine) Color.White else colorRaw,
                                 fontSize = if (showRawEncryption) 10.sp else 15.sp,
                                 fontFamily = if (showRawEncryption) FontFamily.Monospace else null
                             )

@@ -5,11 +5,10 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -82,121 +81,137 @@ fun SignUpScreen(
         }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .imePadding()
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
+        item {
 
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Brush.linearGradient(colors = listOf(Color(0xFF6C63FF), Color(0xFF9D95FF)))),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.mipmap.maloi),
-                contentDescription = "App Logo",
-                modifier = Modifier.size(50.dp)
-            )
-        }
+            Column(
+                modifier = Modifier
+                    .fillParentMaxHeight()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(40.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text("Tạo tài khoản mới", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground))
-        Text("Đăng ký để bắt đầu trải nghiệm", style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.padding(top = 8.dp))
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text("Nhập email của bạn") },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email Icon") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Tạo mật khẩu") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = "Toggle password")
+                // --- LOGO ---
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Brush.linearGradient(colors = listOf(Color(0xFF6C63FF), Color(0xFF9D95FF)))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.mipmap.maloi),
+                        contentDescription = "App Logo",
+                        modifier = Modifier.size(50.dp)
+                    )
                 }
-            },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
-        )
 
-        Text(
-            text = "Ít nhất 8 ký tự, gồm chữ hoa, thường, số và ký tự đặc biệt (@,$,!,%,*,?,&).",
-            color = Color.Gray,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, start = 8.dp, bottom = 12.dp)
-        )
+                Spacer(modifier = Modifier.height(24.dp))
 
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            placeholder = { Text("Xác nhận mật khẩu") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirm Password Icon") },
-            trailingIcon = {
-                val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Icon(imageVector = image, contentDescription = "Toggle confirm password")
+                Text("Tạo tài khoản mới", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground))
+                Text("Đăng ký để bắt đầu trải nghiệm", style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.padding(top = 8.dp))
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // --- FORM NHẬP LIỆU ---
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = { Text("Nhập email của bạn") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email Icon") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    placeholder = { Text("Tạo mật khẩu") },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
+                    trailingIcon = {
+                        val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = "Toggle password")
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
+                )
+
+                Text(
+                    text = "Ít nhất 8 ký tự, gồm chữ hoa, thường, số và ký tự đặc biệt (@,$,!,%,*,?,&).",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, start = 8.dp, bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    placeholder = { Text("Xác nhận mật khẩu") },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirm Password Icon") },
+                    trailingIcon = {
+                        val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(imageVector = image, contentDescription = "Toggle confirm password")
+                        }
+                    },
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { handleSignUp() }),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // --- NÚT ĐĂNG KÝ ---
+                Button(
+                    onClick = { handleSignUp() },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                    enabled = userState !is UserState.Loading
+                ) {
+                    if (userState is UserState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Đăng Ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
-            },
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { handleSignUp() }),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant, focusedBorderColor = Color(0xFF6C63FF))
-        )
 
-        Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = { handleSignUp() },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
-            enabled = userState !is UserState.Loading
-        ) {
-            if (userState is UserState.Loading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Đăng Ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(modifier = Modifier.padding(bottom = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Đã có tài khoản?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = { navController.popBackStack() }) {
-                Text("Đăng nhập", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold)
+                // --- FOOTER CHUYỂN TRANG ---
+                Row(
+                    modifier = Modifier.padding(bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Đã có tài khoản?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { navController.popBackStack() }) {
+                        Text("Đăng nhập", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
