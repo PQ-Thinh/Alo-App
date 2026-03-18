@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.alo.data.service.StreamVideoManager
 import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
 import com.example.alo.presentation.helper.UserState
@@ -32,7 +33,8 @@ class AuthViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val notificationService: PushNotiRepository,
     private val userDeviceRepository: UserDeviceRepository,
-    private val pushNotiRepository: PushNotiRepository
+    private val pushNotiRepository: PushNotiRepository,
+    private val streamVideoManager: StreamVideoManager
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -218,7 +220,7 @@ class AuthViewModel @Inject constructor(
                     Log.e("Logout", "Lỗi gọi Supabase Logout: ${e.message}")
                 }
             }
-
+            streamVideoManager.disconnect()
             _userState.value = UserState.Success("Đăng xuất thành công")
         }
     }

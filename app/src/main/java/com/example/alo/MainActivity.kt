@@ -18,6 +18,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.example.alo.data.service.StreamVideoManager
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
