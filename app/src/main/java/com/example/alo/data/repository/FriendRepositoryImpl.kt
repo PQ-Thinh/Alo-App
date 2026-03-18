@@ -34,7 +34,6 @@ class FriendRepositoryImpl @Inject constructor(
                 .decodeList<FriendRequestDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi lấy danh sách kết bạn: ${e.message}")
             emptyList()
         }
     }
@@ -48,7 +47,6 @@ class FriendRepositoryImpl @Inject constructor(
             supabaseClient.postgrest.rpc("upsert_friend_request", params)
             true
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi gửi lời mời: ${e.message}")
             false
         }
     }
@@ -91,7 +89,6 @@ class FriendRepositoryImpl @Inject constructor(
                 else -> "none"
             }
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi check status: ${e.message}")
             "none"
         }
     }
@@ -118,7 +115,6 @@ class FriendRepositoryImpl @Inject constructor(
 
             senders.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi lấy danh sách lời mời: ${e.message}")
             emptyList()
         }
     }
@@ -134,7 +130,6 @@ class FriendRepositoryImpl @Inject constructor(
 
             true
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi chấp nhận kết bạn qua RPC: ${e.message}")
             false
         }
     }
@@ -151,7 +146,6 @@ class FriendRepositoryImpl @Inject constructor(
             }
             true
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi từ chối kết bạn: ${e.message}")
             false
         }
     }
@@ -183,7 +177,6 @@ class FriendRepositoryImpl @Inject constructor(
 
             friendsProfiles.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("FriendRepo", "Lỗi lấy danh sách bạn bè: ${e.message}")
             emptyList()
         }
     }

@@ -46,7 +46,6 @@ class ConversationRepositoryImpl @Inject constructor(
                 .decodeList<ConversationDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("ConversationRepo", "Lỗi lấy danh sách phòng chat: ${e.message}")
             emptyList()
         }
     }
@@ -60,10 +59,8 @@ class ConversationRepositoryImpl @Inject constructor(
 
             val conversationId = response.decodeAs<String>()
 
-            Log.d("ConversationRepo", "Đã lấy/tạo phòng chat ID: $conversationId")
             conversationId
         } catch (e: Exception) {
-            Log.e("ConversationRepo", "Lỗi tạo phòng chat: ${e.message}")
             null
         }
     }
@@ -76,7 +73,7 @@ class ConversationRepositoryImpl @Inject constructor(
             )
             supabaseClient.postgrest.rpc("reset_unread_count", params)
         } catch (e: Exception) {
-            Log.e("ConversationRepo", "Lỗi reset unread_count: ${e.message}")
+            throw e
         }
     }
 
@@ -101,7 +98,7 @@ class ConversationRepositoryImpl @Inject constructor(
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    Log.e("ConversationRepo", "Lỗi đóng channel: ${e.message}")
+                    throw e
                 }
             }
         }

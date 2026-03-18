@@ -79,7 +79,7 @@ class MessageRepositoryImpl @Inject constructor(
             )
             supabaseClient.postgrest.rpc("add_message_reaction", params)
         } catch (e: Exception) {
-            Log.e("MessageRepo", "Lỗi thả cảm xúc: ${e.message}")
+            throw e
         }
     }
 
@@ -92,7 +92,7 @@ class MessageRepositoryImpl @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e("MessageRepo", "Lỗi thu hồi cảm xúc: ${e.message}")
+            throw e
         }
     }
 
@@ -139,7 +139,7 @@ class MessageRepositoryImpl @Inject constructor(
                             return@collect
                         }
                     } catch (e: Exception) {
-                        Log.e("MessageRepo", "Lỗi Realtime Image: ${e.message}")
+                        throw e
                     }
                 }
 
@@ -163,7 +163,7 @@ class MessageRepositoryImpl @Inject constructor(
                         send(fullUpdatedMsg)
                     }
                 } catch (e: Exception) {
-                    Log.e("MessageRepo", "Lỗi fetch tin nhắn update realtime: ${e.message}")
+                    throw e
                 }
             }
         }
@@ -183,7 +183,7 @@ class MessageRepositoryImpl @Inject constructor(
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    Log.e("MessageRepo", "Lỗi khi đóng channel: ${e.message}")
+                    throw e
                 }
             }
         }

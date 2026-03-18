@@ -25,7 +25,6 @@ class AttachmentRepositoryImpl @Inject constructor(
             val publicUrl = bucket.publicUrl(fileName)
             publicUrl
         } catch (e: Exception) {
-            Log.e("AttachmentRepo", "Lỗi upload ảnh lên Storage: ${e.message}")
             throw e
         }
     }
@@ -40,9 +39,7 @@ class AttachmentRepositoryImpl @Inject constructor(
                 fileSize = fileSize
             )
             supabaseClient.postgrest["attachments"].insert(attachmentBody)
-            Log.d("AttachmentRepo", "Đã lưu attachment vào DB thành công!")
         } catch (e: Exception) {
-            Log.e("AttachmentRepo", "Lỗi gửi file đính kèm: ${e.message}")
             throw e
         }
     }
@@ -54,7 +51,6 @@ class AttachmentRepositoryImpl @Inject constructor(
                 .decodeList<AttachmentDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            Log.e("AttachmentRepo", "Lỗi lấy tệp đính kèm: ${e.message}")
             emptyList()
         }
     }
@@ -71,7 +67,6 @@ class AttachmentRepositoryImpl @Inject constructor(
             val publicUrl = bucket.publicUrl(fileName)
             publicUrl
         } catch (e: Exception) {
-            Log.e("AttachmentRepo", "Lỗi upload tài liệu lên Storage: ${e.message}")
             throw e
         }
     }
