@@ -113,7 +113,6 @@ class ChatRoomViewModel @Inject constructor(
 
                             val status = friendRepository.checkFriendStatus(user.id, pId)
                             _isFriend.value = (status == "friends")
-
                             partnerPublicSignKey = partnerProfile?.publicSignKey
                         }
                     }

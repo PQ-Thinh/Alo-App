@@ -1,6 +1,5 @@
 package com.example.alo.data.repository
 
-import android.util.Log
 import com.example.alo.data.remote.dto.FriendDto
 import com.example.alo.data.remote.dto.FriendRequestDto
 import com.example.alo.data.remote.dto.UserDto
