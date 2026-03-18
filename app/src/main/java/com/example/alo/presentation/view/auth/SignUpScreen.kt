@@ -5,10 +5,11 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -81,23 +82,25 @@ fun SignUpScreen(
         }
     }
 
-    LazyColumn(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .imePadding()
     ) {
-        item {
-
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
             Column(
                 modifier = Modifier
-                    .fillParentMaxHeight()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .heightIn(min = this@BoxWithConstraints.maxHeight),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // --- LOGO ---
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -119,7 +122,6 @@ fun SignUpScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // --- FORM NHẬP LIỆU ---
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -184,7 +186,6 @@ fun SignUpScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // --- NÚT ĐĂNG KÝ ---
                 Button(
                     onClick = { handleSignUp() },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -202,11 +203,7 @@ fun SignUpScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- FOOTER CHUYỂN TRANG ---
-                Row(
-                    modifier = Modifier.padding(bottom = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.padding(bottom = 32.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Đã có tài khoản?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { navController.popBackStack() }) {
                         Text("Đăng nhập", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold)
