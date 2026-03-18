@@ -43,7 +43,6 @@ import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
-import com.example.alo.presentation.view.call.VideoCallScreen
 import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.EmptyChatGreeting
 import com.example.alo.presentation.view.components.MessageActionOverlay
@@ -269,7 +268,7 @@ fun ChatRoomScreen(
                         )
                     }
                     IconButton(onClick = {
-                        navController.navigate(Screen.VideoCall.createRoute(conversationId))
+
                     }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Call,

@@ -16,12 +16,10 @@ import com.example.alo.presentation.view.auth.OtpVerificationScreen
 import com.example.alo.presentation.view.auth.ResetPasswordOtpScreen
 import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
-import com.example.alo.presentation.view.call.VideoCallScreen
 import com.example.alo.presentation.view.chat.ChatRoomScreen
 import com.example.alo.presentation.view.home.AnimatedSplashScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.profile.EditProfileScreen
-import com.example.alo.presentation.view.profile.ProfileScreen
 import com.example.alo.presentation.viewmodel.UserViewModel
 
 @Composable
@@ -140,12 +138,6 @@ fun AppNavigation(
                 userViewModel = userViewModel
             )
         }
-        composable(
-            route = Screen.VideoCall.route,
-            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val conversationId = backStackEntry.arguments?.getString("conversationId") ?: return@composable
-            VideoCallScreen(navController = navController, conversationId = conversationId)
-        }
+
     }
 }
