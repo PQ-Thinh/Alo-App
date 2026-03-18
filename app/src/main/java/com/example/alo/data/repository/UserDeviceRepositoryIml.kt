@@ -22,7 +22,6 @@ class UserDeviceRepositoryImpl @Inject constructor(
             )
             true
         } catch (e: Exception) {
-            Log.e("FCM_DEBUG", "4. LỖI GỌI RPC Supabase: ${e.message}", e)
             false
         }
     }

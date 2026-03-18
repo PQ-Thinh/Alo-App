@@ -44,7 +44,7 @@ class  AuthRepositoryImpl @Inject constructor(
             } catch (e: Exception) {
                 e.printStackTrace()
                 try {
-                    supabaseClient.auth.signOut(io.github.jan.supabase.auth.SignOutScope.LOCAL)
+                    supabaseClient.auth.signOut(SignOutScope.LOCAL)
                 } catch (e2: Exception) {
                     e2.printStackTrace()
                 }

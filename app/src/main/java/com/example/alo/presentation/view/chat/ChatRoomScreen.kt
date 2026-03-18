@@ -157,7 +157,7 @@ fun ChatRoomScreen(
     val userStatus = getUserStatus(partnerLastSeen)
 
     Scaffold(
-        containerColor = AppBackgroundColor, // Đồng bộ nền ứng dụng
+        containerColor = AppBackgroundColor,
         topBar = {
             Column(modifier = Modifier.fillMaxWidth().background(AppBackgroundColor)) {
             Row(
@@ -165,14 +165,14 @@ fun ChatRoomScreen(
                     .fillMaxWidth()
                     .background(AppBackgroundColor)
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp), // Padding tổng thể
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // --- ĐẢO TRÁI: Nút Back + User Info ---
                 Row(
                     modifier = Modifier
-                        .weight(1f) // Cố định vùng để chữ dài không đẩy cụm nút bấm bên phải
+                        .weight(1f)
                         .padding(end = 12.dp)
                         .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp))
                         .clip(RoundedCornerShape(24.dp))

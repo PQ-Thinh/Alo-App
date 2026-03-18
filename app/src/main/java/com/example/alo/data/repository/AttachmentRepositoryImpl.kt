@@ -1,6 +1,5 @@
 package com.example.alo.data.repository
 
-import android.util.Log
 import com.example.alo.data.remote.dto.AttachmentDto
 import com.example.alo.data.utils.AttachmentInsertDto
 import com.example.alo.domain.model.Attachment
@@ -19,9 +18,7 @@ class AttachmentRepositoryImpl @Inject constructor(
     ): String {
         return try {
             val bucket = supabaseClient.storage["chat_images"]
-
             bucket.upload(fileName, byteArray)
-
             val publicUrl = bucket.publicUrl(fileName)
             publicUrl
         } catch (e: Exception) {

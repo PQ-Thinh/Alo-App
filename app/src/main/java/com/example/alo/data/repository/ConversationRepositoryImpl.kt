@@ -1,6 +1,5 @@
 package com.example.alo.data.repository
 
-import android.util.Log
 import com.example.alo.data.remote.dto.ChatListDto
 import com.example.alo.data.remote.dto.ConversationDto
 import com.example.alo.domain.model.ChatList
