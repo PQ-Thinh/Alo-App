@@ -10,29 +10,29 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.example.alo.data.service.StreamVideoManager
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
 import com.example.alo.presentation.view.navigation.AppNavigation
 import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import io.getstream.video.android.compose.ui.components.call.ringing.RingingCallContent
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
-
-    @Inject
-    lateinit var authRepository: AuthRepository
 
     @Inject
     lateinit var userRepository: UserRepository
@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+
             AloTheme {
                 val startDestination by splashViewModel.startDestination.collectAsState()
 

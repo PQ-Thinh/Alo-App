@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.BuildConfig
-import com.example.alo.data.service.StreamVideoManager
 import com.example.alo.data.utils.CryptoHelper
 import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.AuthRepository
@@ -33,7 +32,6 @@ class UserViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
-    private val streamVideoManager: StreamVideoManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileSetupState())
@@ -128,24 +126,12 @@ class UserViewModel @Inject constructor(
             _profileState.value = UserProfileState.Loading
             try {
                 val authUser = authRepository.getCurrentAuthUser()
-                val streamApiKey = BuildConfig.getStreamKey
-
                 if (authUser == null) {
                     _profileState.value = UserProfileState.Error("Bạn chưa đăng nhập!")
                     return@launch
                 }
 
                 val user = userRepository.getCurrentUser(authUser.id)
-
-                val devToken = "development"
-
-                streamVideoManager.initialize(
-                    apiKey = streamApiKey,
-                    userId = user?.id ?: "",
-                    userName = user?.displayName ?: "",
-                    avatarUrl = user?.avatarUrl ?: "",
-                    token = devToken
-                )
 
                 if (user != null) {
                     val isGoogleAccount = user.avatarId == "google_oauth_avatar"
