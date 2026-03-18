@@ -43,11 +43,13 @@ import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
+import com.example.alo.presentation.view.call.VideoCallScreen
 import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.EmptyChatGreeting
 import com.example.alo.presentation.view.components.MessageActionOverlay
 import com.example.alo.presentation.view.components.MessageBubble
 import com.example.alo.presentation.view.components.TypingIndicatorBubble
+import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
@@ -257,7 +259,7 @@ fun ChatRoomScreen(
                 ) {
                     IconButton(
                         onClick = { viewModel.toggleEncryptionView() },
-                        modifier = Modifier.size(36.dp) // Thu gọn size nút cho thanh lịch
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = if (isShowingRawEncryption) Icons.Default.Lock else Icons.Default.LockOpen,
@@ -266,7 +268,9 @@ fun ChatRoomScreen(
                             modifier = Modifier.size(20.dp) // Kích thước icon bên trong
                         )
                     }
-                    IconButton(onClick = {}, modifier = Modifier.size(36.dp)) {
+                    IconButton(onClick = {
+                        navController.navigate(Screen.VideoCall.createRoute(conversationId))
+                    }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Call,
                             contentDescription = "Call",
