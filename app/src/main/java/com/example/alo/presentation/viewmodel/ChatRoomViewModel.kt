@@ -150,6 +150,8 @@ class ChatRoomViewModel @Inject constructor(
                 if (decryptedNewMsg.senderId != user?.id && !decryptedNewMsg.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
                         messageRepository.markMessageAsSeen(decryptedNewMsg.id, user!!.id)
+
+                        conversationRepository.resetUnreadCount(conversationId, user.id)
                     }
                 }
 

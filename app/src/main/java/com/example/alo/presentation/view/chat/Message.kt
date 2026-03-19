@@ -424,8 +424,8 @@ fun ChatOnlineItem(
                 } else {
                     val shortTimeText = userStatus.statusText
                         .replace("Hoạt động ", "")
-                        .replace(" phút trước", "phút")
-                        .replace(" giờ trước", "giờ")
+                        .replace(" phút trước", " phút")
+                        .replace(" giờ trước", " giờ")
                         .replace(" ngày trước", " ngày")
                         .replace("Vừa mới truy cập", "1p")
 
