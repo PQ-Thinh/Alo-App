@@ -18,6 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +47,8 @@ import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.ErrorColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
-
-
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 
 @Composable
@@ -56,6 +59,15 @@ fun Message(
     val state by viewModel.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+
+    var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(30_000L)
+            currentTimeTrigger = System.currentTimeMillis()
+        }
+    }
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.fetchChatList(isSilentRefresh = true)
@@ -150,8 +162,9 @@ fun Message(
 
             else -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    val onlineUsers = state.chatList.filter { getUserStatus(it.targetLastSeen).isOnline }
-
+                    val onlineUsers = remember(state.chatList, currentTimeTrigger) {
+                        state.chatList.filter { getUserStatus(it.targetLastSeen).isOnline }
+                    }
                     if (onlineUsers.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -178,10 +191,13 @@ fun Message(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 items(onlineUsers, key = { it.conversationId }) { chat ->
+                                    val userStatus = remember(chat.targetLastSeen, currentTimeTrigger) {
+                                        getUserStatus(chat.targetLastSeen)
+                                    }
                                     ChatOnlineItem(
                                         chat = chat,
                                         onClick = { onNavigateToChatRoom(chat.conversationId) },
-                                        userStatus = getUserStatus(chat.targetLastSeen)
+                                        userStatus = userStatus
                                     )
                                 }
                             }
@@ -208,7 +224,8 @@ fun Message(
                             ChatItem(
                                 chat = chat,
                                 onClick = { onNavigateToChatRoom(chat.conversationId) },
-                                userStatus = userStatus
+                                userStatus = userStatus,
+                                currentTimeTrigger = currentTimeTrigger
                             )
                         }
                     }
@@ -222,34 +239,33 @@ fun Message(
 fun ChatItem(
     chat: ChatList,
     onClick: () -> Unit,
-    userStatus: UserStatus
+    userStatus: UserStatus,
+    currentTimeTrigger: Long
 ) {
     val hasUnread = chat.unreadCount > 0
-    // Màu cho item chưa đọc (tím rất nhạt) hoặc màu Trắng thuần
     val backgroundColor = if (hasUnread) Color(0xFFF4F3FF) else CardBackgroundColor
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp) // Margin tạo khoảng cách giữa các khối đảo
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .shadow(
-                elevation = 4.dp, // Đổ bóng nhẹ
+                elevation = 4.dp,
                 shape = RoundedCornerShape(16.dp),
                 clip = false
             )
-            .clip(RoundedCornerShape(16.dp)) // Bo cong 4 góc
+            .clip(RoundedCornerShape(16.dp))
             .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp), // Padding bên trong đảo
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar
         Box(modifier = Modifier.size(60.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(Color(0xFFE8EAF6)), // Nền mặc định avatar
+                    .background(Color(0xFFE8EAF6)),
                 contentAlignment = Alignment.Center
             ) {
                 if (!chat.chatAvatar.isNullOrEmpty()) {

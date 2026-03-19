@@ -80,6 +80,7 @@ class ChatRoomViewModel @Inject constructor(
 
     private var typingJob: Job? = null
     private var lastTypingTime = 0L
+    private var partnerStatusJob: Job? = null
 
     init {
         initializeChatRoom()
@@ -114,6 +115,7 @@ class ChatRoomViewModel @Inject constructor(
                             val status = friendRepository.checkFriendStatus(user.id, pId)
                             _isFriend.value = (status == "friends")
                             partnerPublicSignKey = partnerProfile?.publicSignKey
+                            observePartnerStatus(pId)
                         }
                     }
                 } catch (e: Exception) {}
@@ -157,6 +159,16 @@ class ChatRoomViewModel @Inject constructor(
                     } else {
                         currentList.map { if (it.id == decryptedNewMsg.id) decryptedNewMsg else it }
                     }
+                }
+            }
+        }
+    }
+    private fun observePartnerStatus(targetUserId: String) {
+        partnerStatusJob?.cancel()
+        partnerStatusJob = viewModelScope.launch {
+            userRepository.observeUserStatus(targetUserId).collect { newLastSeen ->
+                if (newLastSeen != null) {
+                    _partnerLastSeen.value = newLastSeen
                 }
             }
         }

@@ -53,6 +53,8 @@ import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +84,15 @@ fun ChatRoomScreen(
     val isShowingRawEncryption by viewModel.isShowingRawEncryption.collectAsState()
 
     val isFriend by viewModel.isFriend.collectAsState()
+
+    var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(30_000L)
+            currentTimeTrigger = System.currentTimeMillis()
+        }
+    }
 
     // KHỞI TẠO TRÌNH CHỌN ẢNH
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -154,7 +165,9 @@ fun ChatRoomScreen(
             listState.animateScrollToItem(0)
         }
     }
-    val userStatus = getUserStatus(partnerLastSeen)
+    val userStatus = remember(partnerLastSeen, currentTimeTrigger) {
+        getUserStatus(partnerLastSeen)
+    }
 
     Scaffold(
         containerColor = AppBackgroundColor,

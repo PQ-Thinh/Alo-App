@@ -121,7 +121,8 @@ class ChatListViewModel @Inject constructor(
                         error = null
                     )
                 }
-
+                val targetIds = decryptedChats.mapNotNull { it.targetUserId }.filter { it.isNotBlank() }.distinct()
+                observeOnlineStatus(targetIds)
             } catch (e: Exception) {
                 if (currentList.isNotEmpty()) {
                     _state.update { it.copy(isLoading = false) }
