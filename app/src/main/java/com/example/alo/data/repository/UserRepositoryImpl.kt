@@ -7,7 +7,7 @@ import com.example.alo.domain.model.User
 import com.example.alo.domain.repository.UserRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.filter.TextSearchType
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +19,16 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
-import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.postgrest.query.filter.TextSearchType
+import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.decodeRecord
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.onCompletion
 
 
 class UserRepositoryImpl @Inject constructor(
@@ -126,5 +135,43 @@ class UserRepositoryImpl @Inject constructor(
     override fun stopHeartbeat() {
         heartbeatJob?.cancel()
         heartbeatJob = null
+    }
+
+    override fun observeUserStatus(targetUserId: String): Flow<String?> {
+        val statusChannel = supabaseClient.realtime.channel("user_status_$targetUserId")
+
+        return statusChannel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "users"
+            filter("id", FilterOperator.EQ, targetUserId)
+        }.map { action ->
+            val userDto = action.decodeRecord<UserDto>()
+            userDto.lastSeen
+        }.onStart {
+            supabaseClient.realtime.connect()
+            statusChannel.subscribe()
+            Log.d("UserRepository", "Bắt đầu theo dõi online của user: $targetUserId")
+        }.onCompletion {
+            statusChannel.unsubscribe()
+            Log.d("UserRepository", "Đã ngừng theo dõi user: $targetUserId")
+        }
+    }
+
+    override fun observeListUsersStatus(userIds: List<String>): Flow<Pair<String, String?>> {
+
+        if (userIds.isEmpty()) return kotlinx.coroutines.flow.emptyFlow()
+        val idsString = userIds.joinToString(",")
+        val statusChannel = supabaseClient.realtime.channel("users_status_list_${UUID.randomUUID()}")
+        return statusChannel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "users"
+            filter("id", FilterOperator.IN, idsString)
+        }.map { action ->
+            val userDto = action.decodeRecord<UserDto>()
+            Pair(userDto.id, userDto.lastSeen)
+        }.onStart {
+            supabaseClient.realtime.connect()
+            statusChannel.subscribe()
+        }.onCompletion {
+            statusChannel.unsubscribe()
+        }
     }
 }

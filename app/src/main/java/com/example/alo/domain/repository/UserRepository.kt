@@ -1,6 +1,7 @@
 package com.example.alo.domain.repository
 
 import com.example.alo.domain.model.User
+import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     suspend fun getCurrentUser(userId: String): User?
@@ -11,5 +12,7 @@ interface UserRepository {
     suspend fun updateLastSeen()
     fun startHeartbeat()
     fun stopHeartbeat()
+    fun observeUserStatus(targetUserId: String): Flow<String?>
+    fun observeListUsersStatus(userIds: List<String>): Flow<Pair<String, String?>>
 
 }

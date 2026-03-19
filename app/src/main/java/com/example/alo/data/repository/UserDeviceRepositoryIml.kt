@@ -1,7 +1,6 @@
 package com.example.alo.data.repository
 
 
-import android.util.Log
 import com.example.alo.domain.repository.UserDeviceRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest

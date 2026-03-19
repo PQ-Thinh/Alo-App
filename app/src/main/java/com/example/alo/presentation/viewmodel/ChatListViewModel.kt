@@ -10,6 +10,7 @@ import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.helper.ChatListState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -30,6 +31,8 @@ class ChatListViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(ChatListState())
     val state: StateFlow<ChatListState> = _state.asStateFlow()
+
+    private var usersStatusJob: Job? = null
 
     init {
         fetchChatList()
@@ -132,5 +135,29 @@ class ChatListViewModel @Inject constructor(
                 }
             }
         }
+    }
+    private fun observeOnlineStatus(userIds: List<String>) {
+        usersStatusJob?.cancel()
+        if (userIds.isEmpty()) return
+
+        usersStatusJob = viewModelScope.launch {
+            userRepository.observeListUsersStatus(userIds).collect { (updatedUserId, newLastSeen) ->
+                _state.update { currentState ->
+                    val updatedList = currentState.chatList.map { chat ->
+                        if (chat.targetUserId == updatedUserId) {
+                            chat.copy(targetLastSeen = newLastSeen)
+                        } else {
+                            chat
+                        }
+                    }
+                    currentState.copy(chatList = updatedList)
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        usersStatusJob?.cancel()
     }
 }
