@@ -27,7 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -162,35 +165,37 @@ fun Message(
 
             else -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    val onlineUsers = remember(state.chatList, currentTimeTrigger) {
-                        state.chatList.filter { getUserStatus(it.targetLastSeen).isOnline }
+                    val recentActiveUsers = remember(state.chatList, currentTimeTrigger) {
+                        state.chatList
+                            .sortedByDescending { it.targetLastSeen }
+                            .take(15)
                     }
-                    if (onlineUsers.isNotEmpty()) {
+
+                    if (recentActiveUsers.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Đang hoạt động",
+                            text = "Liên hệ gần đây",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextSecondaryColor,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
 
-                        // Nền đảo nổi cho danh sách Online
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
-                                .shadow(elevation = 3.dp, shape = RoundedCornerShape(20.dp)), // Đổ bóng nhẹ
+                                .shadow(elevation = 3.dp, shape = RoundedCornerShape(20.dp)),
                             shape = RoundedCornerShape(20.dp),
-                            color = CardBackgroundColor // Luôn màu trắng
+                            color = CardBackgroundColor
                         ) {
                             LazyRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(onlineUsers, key = { it.conversationId }) { chat ->
+                                items(recentActiveUsers, key = { it.conversationId }) { chat ->
                                     val userStatus = remember(chat.targetLastSeen, currentTimeTrigger) {
                                         getUserStatus(chat.targetLastSeen)
                                     }
@@ -378,8 +383,10 @@ fun ChatOnlineItem(
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
     ) {
-        // Avatar
+        // Khung chứa Avatar và Badge trạng thái
         Box(modifier = Modifier.size(60.dp)) {
+
+            // 1. Ảnh Avatar
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -405,20 +412,59 @@ fun ChatOnlineItem(
                 }
             }
 
-            if (userStatus.isOnline) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .border(2.dp, CardBackgroundColor, CircleShape) // Border tiệp màu với đảo trắng
-                )
+            Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                if (userStatus.isOnline) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4CAF50))
+                            .border(2.dp, CardBackgroundColor, CircleShape)
+                    )
+                } else {
+                    val shortTimeText = userStatus.statusText
+                        .replace("Hoạt động ", "")
+                        .replace(" phút trước", "p")
+                        .replace(" giờ trước", "h")
+                        .replace(" ngày trước", " ngày")
+                        .replace("Vừa mới truy cập", "1p")
+
+                    Box(
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 16.dp)
+                            .height(16.dp)
+                            .border(1.5.dp, CardBackgroundColor, CircleShape)
+                            .background(color = Color(0xFFF5F5F5), shape = CircleShape)
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center // Giữ nguyên cái này ở Box
+                    ) {
+                        Text(
+                            text = shortTimeText,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF9E9E9E),
+                            maxLines = 1,
+                            textAlign = TextAlign.Center,
+                            style = TextStyle(
+                                // Gọt bỏ hoàn toàn lớp lót đệm tàng hình của Font Android
+                                platformStyle = PlatformTextStyle(
+                                    includeFontPadding = false
+                                ),
+                                // Ép dòng chữ phải nằm chính giữa trục dọc của khung Text
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both
+                                )
+                            )
+                        )
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // 3. Tên người dùng (Luôn cố định 1 dòng)
         val shortName = chat.chatName?.split(" ")?.lastOrNull() ?: "?"
         Text(
             text = shortName,
