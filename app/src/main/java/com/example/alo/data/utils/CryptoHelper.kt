@@ -20,20 +20,18 @@ object CryptoHelper {
     // URI của Master Key trong phần cứng Android Keystore
     private const val MASTER_KEY_URI = "android-keystore://alo_app_master_key"
 
-    // Tên file SharedPreferences lưu các Keys đã bị mã hóa
+    // Tên file SharedPreferences
     private const val PREF_FILE_NAME = "alo_app_crypto_keys"
 
-    // Tên của 2 bộ khóa (Keyset)
     private const val ENCRYPT_KEYSET_NAME = "encrypt_keyset"
     private const val SIGN_KEYSET_NAME = "sign_keyset"
     private var cachedDecryptHandle: KeysetHandle? = null//cache save key
 
 
     /**
-     * Hàm này GỌI 1 LẦN DUY NHẤT khi app khởi chạy
+     *  Đăng ký các thuật toán Mã hóa Lai (ECDH + AES) và Chữ ký (Ed25519)
      */
     fun initTink() {
-        // Đăng ký các thuật toán Mã hóa Lai (ECDH + AES) và Chữ ký (Ed25519)
         HybridConfig.register()
         SignatureConfig.register()
     }

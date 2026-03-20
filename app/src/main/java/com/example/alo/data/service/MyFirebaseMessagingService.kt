@@ -15,17 +15,39 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.example.alo.MainActivity
 import com.example.alo.R
+import com.example.alo.domain.repository.UserDeviceRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.inject.Inject
 import kotlin.random.Random
 
+@AndroidEntryPoint
 class MyFirebaseMessagingService : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var userDeviceRepository: UserDeviceRepository
+
+
+
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("FCM_DEBUG", "FCM Token bị làm mới: $token")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val deviceName = "${Build.MODEL}"
+
+                userDeviceRepository.saveFcmToken(token, deviceName)
+                Log.d("FCM_DEBUG", "Cập nhật Token lên Supabase thành công")
+            } catch (e: Exception) {
+                Log.e("FCM_ERROR", "Lỗi cập nhật Token lên Supabase", e)
+            }
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -118,7 +140,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             iconCompat
         )
             .setDesiredHeight(600) // Chiều cao cửa sổ chat khi bấm vào bong bóng
-            .setAutoExpandBubble(true) // Tự động mở bong bóng nếu app đang ở background
+            .setAutoExpandBubble(false) // Tự động mở bong bóng nếu app đang ở background
             .setSuppressNotification(true)
             .build()
 
@@ -147,6 +169,8 @@ private fun getBitmapFromUrl(imageUrl: String?): android.graphics.Bitmap? {
     return try {
         val url = URL(imageUrl)
         val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
         connection.doInput = true
         connection.connect()
         val input = connection.inputStream

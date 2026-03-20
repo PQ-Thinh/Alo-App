@@ -73,12 +73,9 @@ class ChatListViewModel @Inject constructor(
                     return@launch
                 }
 
-                //Tải danh sách thô (chứa JSON) từ DB về
                 val rawChats = conversationRepository.getChatList(currentUser.id)
 
-                // ====================================================================
                 // GIẢI MÃ PREVIEW CHO TỪNG PHÒNG CHAT (CHẠY SONG SONG)
-                // ====================================================================
                 val decryptedChats = rawChats.map { chat ->
                     async {
                         val previewJson = chat.lastMessagePreview
@@ -111,7 +108,7 @@ class ChatListViewModel @Inject constructor(
 
                         chat.copy(lastMessagePreview = clearText)
                     }
-                }.awaitAll() // Đợi tất cả các tiến trình giải mã hoàn tất
+                }.awaitAll()
 
                 //  Đẩy danh sách đã giải mã đẹp đẽ lên UI
                 _state.update {

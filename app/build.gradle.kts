@@ -19,8 +19,8 @@ android {
         applicationId = "com.example.alo"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.7"
+        versionCode = 4
+        versionName = "0.1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
