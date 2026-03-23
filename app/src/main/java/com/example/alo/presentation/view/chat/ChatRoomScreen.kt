@@ -1,6 +1,7 @@
 package com.example.alo.presentation.view.chat
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
@@ -8,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -126,6 +128,27 @@ fun ChatRoomScreen(
             )
         } else {
             Toast.makeText(context, "Vui lòng cấp quyền Camera và Mic để gọi video!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val startCallAction = {
+        val areAllGranted = permissionsToRequest.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+        if (areAllGranted) {
+            callViewModel.startCall(
+                callId = conversationId,
+                memberIds = listOf(partnerId)
+            )
+            navController.navigate(
+                Screen.OutgoingCall.createRoute(
+                    callId = conversationId,
+                    calleeName = partnerName,
+                    calleeAvatar = partnerAvatar
+                )
+            )
+        } else {
+            permissionLauncher.launch(permissionsToRequest)
         }
     }
 
@@ -323,9 +346,7 @@ fun ChatRoomScreen(
                         )
                     }
                     IconButton(onClick = {
-                        
-                        permissionLauncher.launch(permissionsToRequest)
-
+                        startCallAction()
                     }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Call,
@@ -335,8 +356,7 @@ fun ChatRoomScreen(
                         )
                     }
                     IconButton(onClick = {
-
-                        permissionLauncher.launch(permissionsToRequest)
+                        startCallAction()
                     }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Videocam,

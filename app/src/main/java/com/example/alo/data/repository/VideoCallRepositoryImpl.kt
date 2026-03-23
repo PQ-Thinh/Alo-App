@@ -96,6 +96,9 @@ class VideoCallRepositoryImpl @Inject constructor(
         memberIds: List<String>
     ): Call {
         return withContext(Dispatchers.IO) {
+            if (!StreamVideo.isInstalled) {
+                throw IllegalStateException("Video Call System chưa được khởi tạo. Vui lòng đăng xuất và đăng nhập lại.")
+            }
             val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
             // Tạo call và ring members
             call.create(memberIds = memberIds, ring = true)
@@ -108,6 +111,9 @@ class VideoCallRepositoryImpl @Inject constructor(
      */
     override suspend fun joinCall(callId: String): Call {
         return withContext(Dispatchers.IO) {
+            if (!StreamVideo.isInstalled) {
+                throw IllegalStateException("Video Call System chưa được khởi tạo. Vui lòng đăng xuất và đăng nhập lại.")
+            }
             val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
             call.join()
             call

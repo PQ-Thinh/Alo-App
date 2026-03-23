@@ -1,29 +1,58 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  console.log(`[Stream-Token] Nhận request: ${req.method} ${req.url}`);
+
+  // 1. Xử lý CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
-    // Chỉ chấp nhận POST
+    // 2. Chỉ chấp nhận POST
     if (req.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 })
+      console.error(`[Stream-Token] Lỗi: Method ${req.method} không được hỗ trợ`);
+      return new Response("Method Not Allowed", { status: 405, headers: corsHeaders })
     }
 
-    // Lấy thông tin từ request body
-    const { userId } = await req.json()
+    // 3. Lấy thông tin từ request body
+    const bodyText = await req.text()
+    console.log(`[Stream-Token] Request Body: ${bodyText}`);
+    
+    let userId: string;
+    try {
+      const bodyJson = JSON.parse(bodyText);
+      userId = bodyJson.userId;
+    } catch (e) {
+      console.error(`[Stream-Token] Lỗi parse JSON body`);
+      return new Response(JSON.stringify({ error: "Lỗi parse JSON payload" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
+    }
 
     if (!userId || typeof userId !== "string") {
+      console.error(`[Stream-Token] Lỗi: userId không hợp lệ (${userId})`);
       return new Response(
         JSON.stringify({ error: "userId là bắt buộc" }),
-        { headers: { "Content-Type": "application/json" }, status: 400 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       )
     }
 
-    // Lấy Stream credentials từ environment variables (Supabase secrets)
+    console.log(`[Stream-Token] Đang Mint token cho userId: ${userId}`);
+
+    // 4. Lấy Stream credentials từ environment variables (Supabase secrets)
     const streamApiKey = Deno.env.get("STREAM_API_KEY")
     const streamApiSecret = Deno.env.get("STREAM_API_SECRET")
 
     if (!streamApiKey || !streamApiSecret) {
-      throw new Error("Stream API Key hoặc Secret chưa được cấu hình trong Supabase secrets")
+      console.error("[Stream-Token] Lỗi: Thiếu STREAM_API_KEY hoặc STREAM_API_SECRET trong Supabase Secrets");
+      throw new Error("Stream API Key hoặc Secret chưa được cấu hình. Hãy kiểm tra Supabase Dashboard -> Edge Functions -> Secrets.")
     }
+    
+    console.log(`[Stream-Token] Đã tìm thấy cấu hình Stream API Key: ${streamApiKey.substring(0, 5)}...`);
 
     // ─────────────────────────────────────────────────────────────
     // Tạo Stream JWT token bằng cách ký thủ công (không cần SDK)
@@ -67,22 +96,24 @@ serve(async (req) => {
 
     const token = `${signingInput}.${signature}`
 
-    console.log(`Stream token tạo thành công cho userId: ${userId}`)
+    console.log(`[Stream-Token] => Tạo token thành công cho userId: ${userId}`);
 
     return new Response(
       JSON.stringify({ token }),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200
       }
     )
 
   } catch (error: any) {
-    console.error("Lỗi tạo Stream token:", error.message)
+    console.error("[Stream-Token] Lỗi hệ thống khi tạo token:", error.message);
+    if (error.stack) console.error(error.stack);
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500
       }
     )

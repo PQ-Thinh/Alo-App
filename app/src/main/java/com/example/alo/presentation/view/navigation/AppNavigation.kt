@@ -39,12 +39,7 @@ fun AppNavigation(
     val navController = rememberNavController()
     val callViewModel: CallViewModel = hiltViewModel()
 
-    // Khởi tạo Stream client ngay sau khi user đã login
-    LaunchedEffect(startDestination) {
-        if (startDestination == Screen.Dashboard.route) {
-            callViewModel.initStreamClient()
-        }
-    }
+    // (Stream client khởi tạo được di chuyển vào DashboardScreen route)
 
     // Navigate to chat room from push notification
     LaunchedEffect(pushConversationId) {
@@ -139,6 +134,9 @@ fun AppNavigation(
         }
 
         composable(Screen.Dashboard.route) {
+            LaunchedEffect(Unit) {
+                callViewModel.initStreamClient()
+            }
             DashboardScreen(
                 navController = navController,
                 onNavigateToChatRoom = { conversationId ->
@@ -157,8 +155,10 @@ fun AppNavigation(
                 navArgument("conversationId") { type = NavType.StringType }
             )
         ) {
-
-            ChatRoomScreen(navController = navController)
+            ChatRoomScreen(
+                navController = navController,
+                callViewModel = callViewModel
+            )
         }
         composable(Screen.EditProfile.route) {
             val userViewModel: UserViewModel = hiltViewModel()
@@ -189,7 +189,6 @@ fun AppNavigation(
                 backStackEntry.arguments?.getString("calleeAvatar") ?: "", "UTF-8"
             ).takeIf { it.isNotBlank() }
 
-            val callViewModel: CallViewModel = hiltViewModel()
             val state = callViewModel.uiState.collectAsState().value
 
             if (state is CallUiState.Calling) {
@@ -217,8 +216,6 @@ fun AppNavigation(
             val callerName = URLDecoder.decode(
                 backStackEntry.arguments?.getString("callerName") ?: "Không rõ", "UTF-8"
             )
-            val callViewModel: CallViewModel = hiltViewModel()
-
             IncomingCallScreen(
                 callerName = callerName,
                 callerAvatar = null,
@@ -242,8 +239,6 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
-            val callViewModel: CallViewModel = hiltViewModel()
-
             val state = callViewModel.uiState.collectAsState().value
             if (state is CallUiState.InCall) {
                 ActiveCallScreen(
