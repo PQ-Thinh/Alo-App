@@ -27,9 +27,9 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String) = "edit_profile/$userId"
     }
 
-    object OutgoingCall : Screen("outgoing_call/{callId}/{calleeName}") {
-        fun createRoute(callId: String, calleeName: String) =
-            "outgoing_call/$callId/${calleeName.encodeUrl()}"
+    object OutgoingCall : Screen("outgoing_call/{callId}/{calleeName}/{calleeAvatar}") {
+        fun createRoute(callId: String, calleeName: String, calleeAvatar: String = "") =
+            "outgoing_call/$callId/${calleeName.encodeUrl()}/${calleeAvatar.encodeUrl()}"
     }
 
     object IncomingCall : Screen("incoming_call/{callId}/{callerName}") {

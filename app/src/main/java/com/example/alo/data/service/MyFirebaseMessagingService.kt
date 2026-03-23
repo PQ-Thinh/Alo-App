@@ -187,7 +187,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
             action = "ACTION_INCOMING_CALL"
-            putExtra("pushCallId", callId)
+            putExtra("callId", callId)
             putExtra("callerName", callerName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }

@@ -56,6 +56,7 @@ import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.utils.formatTimeHeader
 import com.example.alo.presentation.view.utils.getUserStatus
 import com.example.alo.presentation.view.utils.shouldShowTimeHeader
+import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.ChatRoomViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -65,7 +66,9 @@ import kotlinx.coroutines.isActive
 fun ChatRoomScreen(
     navController: NavController,
     viewModel: ChatRoomViewModel = hiltViewModel(),
+    callViewModel: CallViewModel = hiltViewModel()
 ) {
+    val partnerId by viewModel.partnerId.collectAsState()
     val partnerLastSeen by viewModel.partnerLastSeen.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val messageText by viewModel.messageText.collectAsState()
@@ -73,6 +76,7 @@ fun ChatRoomScreen(
 
     val partnerName by viewModel.partnerName.collectAsState()
     val partnerAvatar by viewModel.partnerAvatar.collectAsState()
+
 
     val listState = rememberLazyListState()
     var activeDetailsMessageId by remember { mutableStateOf<String?>(null) }
@@ -107,10 +111,19 @@ fun ChatRoomScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissionsMap ->
         val areGranted = permissionsMap.values.all { it }
-
         if (areGranted) {
-
-            //callViewModel.startCall(callId = conversationId, memberIds = listOf(receiverId))
+            // Permissions granted → start the call
+            callViewModel.startCall(
+                callId = conversationId,
+                memberIds = listOf(partnerId)
+            )
+            navController.navigate(
+                Screen.OutgoingCall.createRoute(
+                    callId = conversationId,
+                    calleeName = partnerName,
+                    calleeAvatar = partnerAvatar
+                )
+            )
         } else {
             Toast.makeText(context, "Vui lòng cấp quyền Camera và Mic để gọi video!", Toast.LENGTH_SHORT).show()
         }
@@ -310,7 +323,7 @@ fun ChatRoomScreen(
                         )
                     }
                     IconButton(onClick = {
-
+                        
                         permissionLauncher.launch(permissionsToRequest)
 
                     }, modifier = Modifier.size(36.dp)) {

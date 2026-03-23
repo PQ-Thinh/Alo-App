@@ -33,9 +33,18 @@ import androidx.compose.runtime.collectAsState
 fun AppNavigation(
     startDestination: String,
     pushConversationId: String?,
-    pushCallId: String? = null
+    pushCallId: String? = null,
+    pushCallerName: String? = null
 ) {
     val navController = rememberNavController()
+    val callViewModel: CallViewModel = hiltViewModel()
+
+    // Khởi tạo Stream client ngay sau khi user đã login
+    LaunchedEffect(startDestination) {
+        if (startDestination == Screen.Dashboard.route) {
+            callViewModel.initStreamClient()
+        }
+    }
 
     // Navigate to chat room from push notification
     LaunchedEffect(pushConversationId) {
@@ -47,7 +56,9 @@ fun AppNavigation(
     // Navigate to incoming call from FCM push
     LaunchedEffect(pushCallId) {
         if (pushCallId != null) {
-            navController.navigate(Screen.IncomingCall.createRoute(pushCallId, "Cuộc gọi đến"))
+            navController.navigate(
+                Screen.IncomingCall.createRoute(pushCallId, pushCallerName ?: "Cuộc gọi đến")
+            )
         }
     }
 
@@ -166,27 +177,26 @@ fun AppNavigation(
             route = Screen.OutgoingCall.route,
             arguments = listOf(
                 navArgument("callId") { type = NavType.StringType },
-                navArgument("calleeName") { type = NavType.StringType }
+                navArgument("calleeName") { type = NavType.StringType },
+                navArgument("calleeAvatar") { type = NavType.StringType; defaultValue = "" }
             )
         ) { backStackEntry ->
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
             val calleeName = URLDecoder.decode(
                 backStackEntry.arguments?.getString("calleeName") ?: "", "UTF-8"
             )
+            val calleeAvatar = URLDecoder.decode(
+                backStackEntry.arguments?.getString("calleeAvatar") ?: "", "UTF-8"
+            ).takeIf { it.isNotBlank() }
+
             val callViewModel: CallViewModel = hiltViewModel()
-            val uiState = callViewModel.uiState
+            val state = callViewModel.uiState.collectAsState().value
 
-            LaunchedEffect(Unit) {
-                // callViewModel.startCall đã được gọi từ ChatRoomScreen
-                // Nếu state chưa phải Calling, có thể retry ở đây
-            }
-
-            val state = uiState.collectAsState().value
             if (state is CallUiState.Calling) {
                 OutgoingCallScreen(
                     call = state.call,
                     calleeName = calleeName,
-                    calleeAvatar = null,
+                    calleeAvatar = calleeAvatar,
                     onCallEnded = {
                         callViewModel.endCall()
                         navController.popBackStack()

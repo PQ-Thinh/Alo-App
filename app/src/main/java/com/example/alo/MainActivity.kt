@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
 
     private var pushConversationId = mutableStateOf<String?>(null)
     private var pushCallId = mutableStateOf<String?>(null)
+    private var pushCallerName = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
         pushConversationId.value = intent?.getStringExtra("conversationId")
         pushCallId.value = intent?.getStringExtra("callId")
+        pushCallerName.value = intent?.getStringExtra("callerName")
 
         // Đăng ký Heartbeat
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -80,12 +82,14 @@ class MainActivity : ComponentActivity() {
 
                 val conversationIdToNavigate by pushConversationId
                 val callIdToNavigate by pushCallId
+                val callerNameToNavigate by pushCallerName
 
                 if (startDestination != null) {
                     AppNavigation(
                         startDestination = startDestination!!,
                         pushConversationId = conversationIdToNavigate,
-                        pushCallId = callIdToNavigate
+                        pushCallId = callIdToNavigate,
+                        pushCallerName = callerNameToNavigate
                     )
                 }
             }
@@ -99,6 +103,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         pushConversationId.value = intent.getStringExtra("conversationId")
         pushCallId.value = intent.getStringExtra("callId")
+        pushCallerName.value = intent.getStringExtra("callerName")
     }
 
     private fun askNotificationPermission() {
