@@ -165,12 +165,16 @@ class VideoCallRepositoryImpl @Inject constructor(
      */
     override suspend fun joinCall(callId: String): Call {
         return withContext(Dispatchers.IO) {
-            if (!StreamVideo.isInstalled) {
-                throw IllegalStateException("Video Call System chưa được khởi tạo. Vui lòng đăng xuất và đăng nhập lại.")
+            val call = StreamVideo.instance().call("default", callId)
+
+            val result = call.join(create = false)
+
+            if (result.isFailure) {
+                val errorMsg = result.errorOrNull()?.message ?: "Unknown Error"
+                Log.e("Stream_Bug", "Không thể join phòng: $errorMsg")
+                throw Exception("Lỗi Join Room: $errorMsg")
             }
-            val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
-            call.join()
-            call
+            return@withContext call
         }
     }
     override suspend fun rejectCall(callId: String) {

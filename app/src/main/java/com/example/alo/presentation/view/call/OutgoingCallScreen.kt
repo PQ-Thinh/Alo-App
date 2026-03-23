@@ -1,7 +1,5 @@
 package com.example.alo.presentation.view.call
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -17,23 +15,12 @@ import io.getstream.video.android.compose.theme.VideoTheme
 import io.getstream.video.android.compose.ui.components.call.ringing.RingingCallContent
 import com.example.alo.presentation.helper.CallUiState
 
-/**
- * Màn hình cuộc gọi đi (Outgoing call).
- * Dùng RingingCallContent của Stream SDK để hiển thị trạng thái đang ring.
- *
- * @param uiState    Trạng thái hiện tại của cuộc gọi (Initializing, Calling, Error...).
- * @param calleeName Tên người nhận (hiển thị cho đẹp).
- * @param calleeAvatar URL avatar người nhận.
- * @param onCallEnded Callback khi cuộc gọi kết thúc/bị từ chối/hủy.
- */
 @Composable
 fun OutgoingCallScreen(
     uiState: CallUiState,
-    calleeName: String,
-    calleeAvatar: String?,
-    onCallEnded: () -> Unit
+    onCallEnded: () -> Unit,
+    onCallAccepted: () -> Unit
 ) {
-
     VideoTheme {
         when (uiState) {
             is CallUiState.Initializing -> {
@@ -54,61 +41,77 @@ fun OutgoingCallScreen(
             is CallUiState.Calling -> {
                 val call = uiState.call
                 // Stream SDK cung cấp RingingCallContent xử lý cả outgoing ring + incoming accept
-            RingingCallContent(
-                call = call,
-                modifier = Modifier.fillMaxSize(),
-                onBackPressed = onCallEnded,
-                onAcceptedContent = {
-                    // Khi đối phương accept → chuyển sang ActiveCallScreen
-                    ActiveCallScreen(call = call, onCallEnded = onCallEnded)
-                },
-                onRejectedContent = {
-                    // Bị từ chối → hiển thị overlay thông báo rồi đóng
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1A1A2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Cuộc gọi bị từ chối", color = Color.White, fontSize = 20.sp)
-                            Spacer(modifier = Modifier.height(24.dp))
-                            FilledIconButton(
-                                onClick = onCallEnded,
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = Color(0xFFE53935)
-                                ),
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                RingingCallContent(
+                    call = call,
+                    modifier = Modifier.fillMaxSize(),
+                    onBackPressed = onCallEnded,
+                    onAcceptedContent = {
+                        // CHỈ vẽ Loading, việc chuyển màn ActiveCallScreen sẽ do AppNavigation lo
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF1A1A2E)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color.White)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Đã kết nối, đang vào phòng...", color = Color.White)
                             }
                         }
-                    }
+
+                        // Bắn sự kiện ra ngoài ngay lập tức
+                        LaunchedEffect(Unit) {
+                            onCallAccepted()
+                        }
+                    },
+                    onRejectedContent = {
+                        // Bị từ chối → hiển thị overlay thông báo rồi đóng
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF1A1A2E)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Cuộc gọi bị từ chối", color = Color.White, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                FilledIconButton(
+                                    onClick = onCallEnded,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = Color(0xFFE53935)
+                                    ),
+                                    modifier = Modifier.size(64.dp)
+                                ) {
+                                    Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                                }
+                            }
+                        }
                     },
                     onNoAnswerContent = {
                         // Không trả lời → hiển thị thông báo rồi đóng
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1A1A2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Không có phản hồi", color = Color.White, fontSize = 20.sp)
-                            Spacer(modifier = Modifier.height(24.dp))
-                            FilledIconButton(
-                                onClick = onCallEnded,
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = Color(0xFFE53935)
-                                ),
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF1A1A2E)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Không có phản hồi", color = Color.White, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                FilledIconButton(
+                                    onClick = onCallEnded,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = Color(0xFFE53935)
+                                    ),
+                                    modifier = Modifier.size(64.dp)
+                                ) {
+                                    Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                                }
                             }
                         }
                     }
-
-                })
+                )
             }
             is CallUiState.Error -> {
                 // Báo lỗi nếu không tạo được cuộc gọi
@@ -128,10 +131,8 @@ fun OutgoingCallScreen(
                 }
             }
             else -> {
-
                 Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E)))
             }
-
         }
     }
 }

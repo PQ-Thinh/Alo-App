@@ -2,7 +2,10 @@ package com.example.alo.presentation.view.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,11 +14,9 @@ import androidx.navigation.navArgument
 import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.view.auth.CreateNewPasswordScreen
 import com.example.alo.presentation.view.auth.ForgotPasswordScreen
-import com.example.alo.presentation.view.home.IntroScreen
 import com.example.alo.presentation.view.auth.LoginScreen
 import com.example.alo.presentation.view.auth.OtpVerificationScreen
 import com.example.alo.presentation.view.auth.ResetPasswordOtpScreen
-import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.view.auth.SignUpScreen
 import com.example.alo.presentation.view.call.ActiveCallScreen
 import com.example.alo.presentation.view.call.IncomingCallScreen
@@ -23,11 +24,12 @@ import com.example.alo.presentation.view.call.OutgoingCallScreen
 import com.example.alo.presentation.view.chat.ChatRoomScreen
 import com.example.alo.presentation.view.home.AnimatedSplashScreen
 import com.example.alo.presentation.view.home.DashboardScreen
+import com.example.alo.presentation.view.home.IntroScreen
 import com.example.alo.presentation.view.profile.EditProfileScreen
+import com.example.alo.presentation.view.profile.ProfileSetupScreen
 import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.net.URLDecoder
-import androidx.compose.runtime.collectAsState
 
 @Composable
 fun AppNavigation(
@@ -38,8 +40,6 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     val callViewModel: CallViewModel = hiltViewModel()
-
-    // (Stream client khởi tạo được di chuyển vào DashboardScreen route)
 
     // Navigate to chat room from push notification
     LaunchedEffect(pushConversationId) {
@@ -57,7 +57,6 @@ fun AppNavigation(
         }
     }
 
-    // Nếu mở App từ Push Notification (Bấm vào thông báo), bỏ qua Splash Screen để tránh Splash Screen chèn mất màn hình Call sau 3 giây.
     val actualStart = if (pushCallId != null || pushConversationId != null) {
         startDestination
     } else {
@@ -77,6 +76,7 @@ fun AppNavigation(
                 }
             )
         }
+
         composable(route = Screen.Intro.route) {
             IntroScreen(navController = navController)
         }
@@ -88,6 +88,7 @@ fun AppNavigation(
         composable(route = Screen.SignUp.route) {
             SignUpScreen(navController = navController)
         }
+
         composable(
             route = Screen.OtpVerification.route,
             arguments = listOf(navArgument("email") { type = NavType.StringType })
@@ -95,6 +96,7 @@ fun AppNavigation(
             val email = backStackEntry.arguments?.getString("email") ?: ""
             OtpVerificationScreen(navController = navController, email = email)
         }
+
         composable(
             route = Screen.ProfileSetup.route,
             arguments = listOf(
@@ -111,6 +113,7 @@ fun AppNavigation(
                 }
             )
         }
+
         composable(route = Screen.ForgotPassword.route) {
             ForgotPasswordScreen(navController = navController)
         }
@@ -155,7 +158,6 @@ fun AppNavigation(
             )
         }
 
-
         composable(
             route = Screen.ChatRoom.route,
             arguments = listOf(
@@ -167,92 +169,97 @@ fun AppNavigation(
                 callViewModel = callViewModel
             )
         }
-        composable(Screen.EditProfile.route) {
-            val userViewModel: UserViewModel = hiltViewModel()
-            EditProfileScreen(
-                navController = navController,
-                userViewModel = userViewModel
-            )
-        }
 
         // ──────────────────────────────────────────
-        // VIDEO CALL ROUTES
+        // Gọi Graph riêng biệt của Video Call
         // ──────────────────────────────────────────
+        videoCallGraph(navController, callViewModel)
+    }
+}
 
-        // Outgoing call
-        composable(
-            route = Screen.OutgoingCall.route,
-            arguments = listOf(
-                navArgument("callId") { type = NavType.StringType },
-                navArgument("calleeName") { type = NavType.StringType },
-                navArgument("calleeAvatar") { type = NavType.StringType; defaultValue = "" }
-            )
-        ) { backStackEntry ->
-            val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
-            val calleeName = URLDecoder.decode(
-                backStackEntry.arguments?.getString("calleeName") ?: "", "UTF-8"
-            )
-            val calleeAvatar = URLDecoder.decode(
-                backStackEntry.arguments?.getString("calleeAvatar") ?: "", "UTF-8"
-            ).takeIf { it.isNotBlank() }
+// ──────────────────────────────────────────
+// TÁCH RIÊNG LUỒNG VIDEO CALL ROUTES VÀO ĐÂY
+// ──────────────────────────────────────────
+fun NavGraphBuilder.videoCallGraph(
+    navController: NavController,
+    callViewModel: CallViewModel
+) {
+    // 1. Outgoing call
+    composable(
+        route = Screen.OutgoingCall.route,
+        arguments = listOf(
+            navArgument("callId") { type = NavType.StringType },
+            navArgument("calleeName") { type = NavType.StringType },
+            navArgument("calleeAvatar") { type = NavType.StringType; defaultValue = "" }
+        )
+    ) { backStackEntry ->
+        val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
+        val calleeName = URLDecoder.decode(backStackEntry.arguments?.getString("calleeName") ?: "", "UTF-8")
+        val calleeAvatar = URLDecoder.decode(backStackEntry.arguments?.getString("calleeAvatar") ?: "", "UTF-8").takeIf { it.isNotBlank() }
 
-            val state = callViewModel.uiState.collectAsState().value
+        val state = callViewModel.uiState.collectAsState().value
 
-            OutgoingCallScreen(
-                uiState = state,
-                calleeName = calleeName,
-                calleeAvatar = calleeAvatar,
+        OutgoingCallScreen(
+            uiState = state,
+            onCallEnded = {
+                callViewModel.endCall()
+                navController.popBackStack()
+            },
+            onCallAccepted = {
+                navController.navigate(Screen.ActiveCall.createRoute(callId)) {
+                    popUpTo(Screen.OutgoingCall.route) { inclusive = true }
+                }
+            }
+        )
+    }
+
+    // 2. Incoming call (từ FCM)
+    composable(
+        route = Screen.IncomingCall.route,
+        arguments = listOf(
+            navArgument("callId") { type = NavType.StringType },
+            navArgument("callerName") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
+        val callerName = URLDecoder.decode(backStackEntry.arguments?.getString("callerName") ?: "Không rõ", "UTF-8")
+
+        IncomingCallScreen(
+            callerName = callerName,
+            callerAvatar = null,
+            onAccept = {
+                callViewModel.acceptCall(callId)
+                navController.navigate(Screen.ActiveCall.createRoute(callId)) {
+                    popUpTo(Screen.IncomingCall.route) { inclusive = true }
+                }
+            },
+            onDecline = {
+                callViewModel.rejectCall(callId)
+                navController.popBackStack()
+            }
+        )
+    }
+
+    // 3. Active call
+    composable(
+        route = Screen.ActiveCall.route,
+        arguments = listOf(
+            navArgument("callId") { type = NavType.StringType }
+        )
+    ) {
+        val state = callViewModel.uiState.collectAsState().value
+        if (state is CallUiState.InCall) {
+            ActiveCallScreen(
+                call = state.call,
                 onCallEnded = {
                     callViewModel.endCall()
                     navController.popBackStack()
                 }
             )
-        }
-
-        // Incoming call (từ FCM)
-        composable(
-            route = Screen.IncomingCall.route,
-            arguments = listOf(
-                navArgument("callId") { type = NavType.StringType },
-                navArgument("callerName") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
-            val callerName = URLDecoder.decode(
-                backStackEntry.arguments?.getString("callerName") ?: "Không rõ", "UTF-8"
-            )
-            IncomingCallScreen(
-                callerName = callerName,
-                callerAvatar = null,
-                onAccept = {
-                    callViewModel.acceptCall(callId)
-                    navController.navigate(Screen.ActiveCall.createRoute(callId)) {
-                        popUpTo(Screen.IncomingCall.route) { inclusive = true }
-                    }
-                },
-                onDecline = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // Active call
-        composable(
-            route = Screen.ActiveCall.route,
-            arguments = listOf(
-                navArgument("callId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
-            val state = callViewModel.uiState.collectAsState().value
-            if (state is CallUiState.InCall) {
-                ActiveCallScreen(
-                    call = state.call,
-                    onCallEnded = {
-                        callViewModel.endCall()
-                        navController.popBackStack()
-                    }
-                )
+        } else {
+            // Chống kẹt màn hình: Nếu state rớt khỏi InCall (Bị cúp máy), lập tức tắt màn hình
+            LaunchedEffect(Unit) {
+                navController.popBackStack()
             }
         }
     }
