@@ -1,7 +1,10 @@
 package com.example.alo.presentation.view.chat
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +46,7 @@ import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
+import com.example.alo.presentation.view.call.ActiveCallScreen
 import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.EmptyChatGreeting
 import com.example.alo.presentation.view.components.MessageActionOverlay
@@ -86,6 +90,31 @@ fun ChatRoomScreen(
     val isFriend by viewModel.isFriend.collectAsState()
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+
+    val permissionsToRequest = remember {
+        mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        ).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }.toTypedArray()
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissionsMap ->
+        val areGranted = permissionsMap.values.all { it }
+
+        if (areGranted) {
+
+            //callViewModel.startCall(callId = conversationId, memberIds = listOf(receiverId))
+        } else {
+            Toast.makeText(context, "Vui lòng cấp quyền Camera và Mic để gọi video!", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -282,6 +311,8 @@ fun ChatRoomScreen(
                     }
                     IconButton(onClick = {
 
+                        permissionLauncher.launch(permissionsToRequest)
+
                     }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Call,
@@ -290,7 +321,10 @@ fun ChatRoomScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = {}, modifier = Modifier.size(36.dp)) {
+                    IconButton(onClick = {
+
+                        permissionLauncher.launch(permissionsToRequest)
+                    }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Videocam,
                             contentDescription = "Video Call",

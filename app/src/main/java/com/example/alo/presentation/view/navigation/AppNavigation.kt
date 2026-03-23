@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.view.auth.CreateNewPasswordScreen
 import com.example.alo.presentation.view.auth.ForgotPasswordScreen
 import com.example.alo.presentation.view.home.IntroScreen
@@ -24,15 +25,15 @@ import com.example.alo.presentation.view.home.AnimatedSplashScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.profile.EditProfileScreen
 import com.example.alo.presentation.viewmodel.CallViewModel
-import com.example.alo.presentation.viewmodel.CallUiState
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.net.URLDecoder
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun AppNavigation(
     startDestination: String,
     pushConversationId: String?,
-    pushCallId: String? = null        // FCM incoming call payload
+    pushCallId: String? = null
 ) {
     val navController = rememberNavController()
 
@@ -180,7 +181,7 @@ fun AppNavigation(
                 // Nếu state chưa phải Calling, có thể retry ở đây
             }
 
-            val state = uiState.value
+            val state = uiState.collectAsState().value
             if (state is CallUiState.Calling) {
                 OutgoingCallScreen(
                     call = state.call,
@@ -233,7 +234,7 @@ fun AppNavigation(
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
             val callViewModel: CallViewModel = hiltViewModel()
 
-            val state = callViewModel.uiState.value
+            val state = callViewModel.uiState.collectAsState().value
             if (state is CallUiState.InCall) {
                 ActiveCallScreen(
                     call = state.call,
@@ -245,4 +246,4 @@ fun AppNavigation(
             }
         }
     }
-}
+}

@@ -10,6 +10,7 @@ import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
 import io.getstream.video.android.model.User
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
@@ -35,7 +36,7 @@ class VideoCallRepositoryImpl @Inject constructor(
     override suspend fun getStreamUserToken(userId: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val responseText = supabaseClient.funtion.invoke(
+                val responseText = supabaseClient.functions.invoke(
                     function = "stream-token",
                     body = buildJsonObject { put("userId", userId) }
                 )

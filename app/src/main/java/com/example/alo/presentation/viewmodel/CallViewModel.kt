@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.domain.repository.VideoCallRepository
+import com.example.alo.presentation.helper.CallUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.video.android.core.Call
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,14 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed class CallUiState {
-    object Idle : CallUiState()
-    object Initializing : CallUiState()
-    data class Calling(val call: Call) : CallUiState()   // outgoing – đang ring
-    data class InCall(val call: Call) : CallUiState()    // đã kết nối (active)
-    object Ended : CallUiState()
-    data class Error(val message: String) : CallUiState()
-}
+
 
 @HiltViewModel
 class CallViewModel @Inject constructor(

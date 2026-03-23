@@ -59,6 +59,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             val senderName = remoteMessage.data["senderName"] ?: "Người dùng"
             val conversationId = remoteMessage.data["conversationId"]
             val senderAvatar = remoteMessage.data["senderAvatar"]
+            val callId = remoteMessage.data["callId"]
 
             Log.d("FCM_DEBUG", "Nhận tin nhắn từ: $senderName, Type: $type")
 
@@ -69,6 +70,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     conversationId = conversationId,
                     avatarUrl = senderAvatar
                 )
+            }
+            else if (type == "INCOMING_CALL" && callId != null) {
+                showIncomingCallNotification(callerName = senderName, callId = callId)
             }
         }
     }
@@ -93,6 +97,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             }
             notificationManager.createNotificationChannel(channel)
         }
+
 
 
         // Tạo Intent để mở MainActivity và truyền conversationId
@@ -162,6 +167,50 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // Hiển thị thông báo (Dùng conversationId làm ID để các tin nhắn cùng người sẽ gộp chung 1 bong bóng)
         val notificationId = conversationId?.hashCode() ?: Random.nextInt()
         notificationManager.notify(notificationId, notificationBuilder.build())
+    }
+    private fun showIncomingCallNotification(callerName: String, callId: String) {
+        val channelId = "alo_call_channel"
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Cuộc gọi đến",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Thông báo khi có người gọi video"
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), null)
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
+            action = "ACTION_INCOMING_CALL"
+            putExtra("pushCallId", callId)
+            putExtra("callerName", callerName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+
+        val fullScreenPendingIntent = PendingIntent.getActivity(this, callId.hashCode(), fullScreenIntent, flag)
+
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.mipmap.maloi_icon)
+            .setContentTitle("Cuộc gọi đến")
+            .setContentText("$callerName đang gọi video cho bạn...")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setAutoCancel(true)
+            .setOngoing(true)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+
+        notificationManager.notify(callId.hashCode(), notificationBuilder.build())
     }
 }
 private fun getBitmapFromUrl(imageUrl: String?): android.graphics.Bitmap? {

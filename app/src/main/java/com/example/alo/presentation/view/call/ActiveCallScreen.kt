@@ -36,13 +36,13 @@ fun ActiveCallScreen(
                 actions = listOf(
                     {
                         ToggleMicrophoneAction(
-                            isMicrophoneEnabled = call.microphone.isEnabled,
+                            isMicrophoneEnabled = call.microphone.isEnabled.value,
                             onCallAction = { call.microphone.setEnabled(it.isEnabled) }
                         )
                     },
                     {
                         ToggleCameraAction(
-                            isCameraEnabled = call.camera.isEnabled,
+                            isCameraEnabled = call.camera.isEnabled.value,
                             onCallAction = { call.camera.setEnabled(it.isEnabled) }
                         )
                     },
