@@ -8,6 +8,8 @@ import com.example.alo.domain.repository.UserRepository
 import com.example.alo.domain.repository.VideoCallRepository
 import com.example.alo.presentation.helper.CallUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.getstream.android.video.generated.models.CallEndedEvent
+import io.getstream.android.video.generated.models.CallRejectedEvent
 import io.getstream.video.android.core.Call
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +83,20 @@ class CallViewModel @Inject constructor(
                         )
                     }
                 }
+                // Lắng nghe sự kiện để tự động gác máy nếu bị từ chối hoặc hết giờ
+                call.subscribe { event ->
+                    try {
+                        when (event) {
+                            is CallRejectedEvent,
+                            is CallEndedEvent -> {
+                                Log.d(TAG, "Cuộc gọi bị từ chối/kết thúc bởi hệ thống/đối tác")
+                                _uiState.value = CallUiState.Ended
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Lỗi khi xử lý CallEvent", e)
+                    }
+                }
 
                 _uiState.value = CallUiState.Calling(call)
                 Log.d(TAG, "Outgoing call bắt đầu: $callId")
@@ -99,6 +115,21 @@ class CallViewModel @Inject constructor(
             try {
                 _uiState.value = CallUiState.Initializing
                 val call = videoCallRepository.joinCall(callId = callId)
+                
+                // Lắng nghe xem người kia có gác máy giữa chừng không
+                call.subscribe { event ->
+                    try {
+                        when (event) {
+                            is CallEndedEvent -> {
+                                Log.d(TAG, "Cuộc gọi kết thúc do người kia Out")
+                                _uiState.value = CallUiState.Ended
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Lỗi khi xử lý CallEvent", e)
+                    }
+                }
+
                 _uiState.value = CallUiState.InCall(call)
                 Log.d(TAG, "Đã chấp nhận cuộc gọi: $callId")
             } catch (e: Exception) {

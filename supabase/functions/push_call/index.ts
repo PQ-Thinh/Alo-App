@@ -33,6 +33,7 @@ serve(async (req) => {
 
     // 2. Parse Body từ client Android
     const payload = await req.json()
+    console.log("[push-call] 1. Nhận Payload từ Android Client:", JSON.stringify(payload))
     const { senderId, receiverIds, callId } = payload
 
     if (!senderId || !receiverIds || !callId || receiverIds.length === 0) {
@@ -56,10 +57,15 @@ serve(async (req) => {
       .single()
 
     // 5. Lấy FCM Token của những người nhận
-    const { data: devices } = await supabaseAdmin
+    console.log(`[push-call] 3. Đang tra cứu FCM token trong user_devices cho danh sách id:`, receiverIds)
+    const { data: devices, error: deviceError } = await supabaseAdmin
       .from('user_devices')
       .select('fcm_token')
       .in('user_id', receiverIds)
+
+    if (deviceError) {
+      console.error("[push-call] Lỗi truy vấn bảng user_devices:", deviceError)
+    }
 
     if (!devices || devices.length === 0) {
        console.log(`[push-call] Không tìm thấy FCM Token nào cho ${receiverIds}`)
@@ -69,6 +75,7 @@ serve(async (req) => {
     }
 
     const tokens = devices.map((d: any) => d.fcm_token)
+    console.log(`[push-call] 4. Đã tìm thấy ${tokens.length} token:`, tokens)
 
     // 6. Gửi Firebase FCM với type = INCOMING_CALL (Khớp với MyFirebaseMessagingService bên Android)
     const message = {
@@ -86,7 +93,7 @@ serve(async (req) => {
     }
 
     const response = await admin.messaging().sendEachForMulticast(message)
-    console.log(`[push-call] Đã gửi FCM cho cuộc gọi ${callId}:`, response)
+    console.log(`[push-call] 5. Kết quả gửi FCM tới ${tokens.length} thiết bị:`, JSON.stringify(response))
 
     return new Response(JSON.stringify({ success: true, firebaseResponse: response }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }

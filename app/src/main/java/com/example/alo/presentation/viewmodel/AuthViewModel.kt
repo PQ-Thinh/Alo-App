@@ -12,6 +12,7 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.PushNotiRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
+import com.example.alo.domain.repository.VideoCallRepository
 import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,6 +34,7 @@ class AuthViewModel @Inject constructor(
     private val notificationService: PushNotiRepository,
     private val userDeviceRepository: UserDeviceRepository,
     private val pushNotiRepository: PushNotiRepository,
+    private val videoCallRepository: VideoCallRepository
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Idle)
@@ -210,6 +212,12 @@ class AuthViewModel @Inject constructor(
                     notificationService.deleteDeviceToken()
                 } catch (e: Exception) {
                     Log.e("Logout", "Lỗi xóa FCM Token: ${e.message}")
+                }
+
+                try {
+                    videoCallRepository.logoutStreamClient()
+                } catch (e: Exception) {
+                    Log.e("Logout", "Lỗi đăng xuất StreamVideo: ${e.message}")
                 }
 
                 try {

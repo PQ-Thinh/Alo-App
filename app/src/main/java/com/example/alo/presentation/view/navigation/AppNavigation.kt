@@ -1,14 +1,5 @@
 package com.example.alo.presentation.view.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,10 +28,6 @@ import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.net.URLDecoder
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun AppNavigation(
@@ -204,56 +191,15 @@ fun AppNavigation(
 
             val state = callViewModel.uiState.collectAsState().value
 
-            when (state) {
-                is CallUiState.Initializing -> {
-                    // Màn hình loading khi đang kết nối API để tạo cuộc gọi
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1A1A2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Color.White)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Đang kết nối...", color = Color.White)
-                        }
-                    }
+            OutgoingCallScreen(
+                uiState = state,
+                calleeName = calleeName,
+                calleeAvatar = calleeAvatar,
+                onCallEnded = {
+                    callViewModel.endCall()
+                    navController.popBackStack()
                 }
-                is CallUiState.Calling -> {
-                    // Khi đã có Call object hợp lệ, RingingCallContent sẽ hiển thị
-                    OutgoingCallScreen(
-                        call = state.call,
-                        calleeName = calleeName,
-                        calleeAvatar = calleeAvatar,
-                        onCallEnded = {
-                            callViewModel.endCall()
-                            navController.popBackStack()
-                        }
-                    )
-                }
-                is CallUiState.Error -> {
-                    // Báo lỗi nếu không tạo được cuộc gọi
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1A1A2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Lỗi: ${(state as CallUiState.Error).message}", color = Color(0xFFE53935))
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { navController.popBackStack() }) { 
-                                Text("Quay lại") 
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    // Fallback an toàn thay cho white screen
-                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E)))
-                }
-            }
+            )
         }
 
         // Incoming call (từ FCM)

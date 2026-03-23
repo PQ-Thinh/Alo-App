@@ -17,6 +17,8 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
@@ -129,8 +131,8 @@ class VideoCallRepositoryImpl @Inject constructor(
                     put("callId", callId)
                     put("senderId", senderId)
                     // Convert List<String> -> JsonArray
-                    put("receiverIds", kotlinx.serialization.json.buildJsonArray {
-                        receiverIds.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
+                    put("receiverIds", buildJsonArray {
+                        receiverIds.forEach { add(JsonPrimitive(it)) }
                     })
                 }
                 
