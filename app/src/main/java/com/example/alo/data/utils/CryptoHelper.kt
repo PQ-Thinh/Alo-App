@@ -41,14 +41,14 @@ object CryptoHelper {
      * Trả về Pair<PublicEncryptKey, PublicSignKey> dạng Base64 để bạn upload lên Supabase
      */
     fun generateAndGetPublicKeys(context: Context): Pair<String, String> {
-        // Lấy hoặc Tạo cặp khóa Mã hóa (ECIES) bằng hàm thông minh
+        // Lấy hoặc Tạo cặp khóa Mã hóa (ECIES)
         val encryptKeysetHandle = getValidKeysetHandle(
             context,
             ENCRYPT_KEYSET_NAME,
             KeyTemplates.get("ECIES_P256_HKDF_HMAC_SHA256_AES128_GCM")
         )
 
-        // Lấy hoặc Tạo cặp khóa Chữ ký (ED25519) bằng hàm thông minh
+        // Lấy hoặc Tạo cặp khóa Chữ ký (ED25519)
         val signKeysetHandle = getValidKeysetHandle(
             context,
             SIGN_KEYSET_NAME,
@@ -62,7 +62,7 @@ object CryptoHelper {
         return Pair(publicEncryptKeyBase64, publicSignKeyBase64)
     }
     /**
-     * HÀM HỖ TRỢ : Khởi tạo Keyset thông minh (Chống lỗi Crash do Backup/Uninstall)
+     * HÀM HỖ TRỢ : Khởi tạo Keyset(Chống lỗi Crash do Backup/Uninstall)
      */
     private fun getValidKeysetHandle(context: Context, keysetName: String, template: com.google.crypto.tink.KeyTemplate): KeysetHandle {
         return try {
@@ -96,7 +96,6 @@ object CryptoHelper {
         val publicKeysetHandle = privateKeysetHandle.publicKeysetHandle
         val outputStream = ByteArrayOutputStream()
 
-        // Vì đây chỉ là Public Key, việc lưu dạng Cleartext (không mã hóa) để gửi qua mạng là bình thường
         CleartextKeysetHandle.write(
             publicKeysetHandle,
             JsonKeysetWriter.withOutputStream(outputStream)
@@ -122,8 +121,8 @@ object CryptoHelper {
     fun encryptMessage(
         context: Context,
         plaintext: String,
-        receiverPublicEncryptKeyBase64: String, // Public Key của người nhận (Bob)
-        myPublicEncryptKeyBase64: String        // Public Key của chính mình (Alice)
+        receiverPublicEncryptKeyBase64: String,
+        myPublicEncryptKeyBase64: String
     ): String {
         try {
             val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
@@ -133,7 +132,6 @@ object CryptoHelper {
             // 1. MÃ HÓA CHO NGƯỜI NHẬN (BOB)
             val receiverKeyHandle = getPublicKeyHandleFromBase64(receiverPublicEncryptKeyBase64)
             val receiverHybridEncrypt = receiverKeyHandle.getPrimitive(HybridEncrypt::class.java)
-            // null ở tham số thứ 2 là contextInfo (chúng ta không cần dùng tới)
             val receiverCiphertext = receiverHybridEncrypt.encrypt(plaintextBytes, emptyContextInfo)
             val receiverCiphertextBase64 = Base64.encodeToString(receiverCiphertext, Base64.NO_WRAP)
 
@@ -167,9 +165,8 @@ object CryptoHelper {
 
         } catch (e: Exception) {
             android.util.Log.e("CRYPTO_ERROR", "Lỗi mã hóa tin nhắn: ${e.message}", e)
-            return "" // Trả về rỗng nếu có lỗi để chặn việc gửi tin nhắn lỗi lên Server
+            return ""
         }
-        // Biến lưu tạm Private Key vào RAM để giải mã hàng loạt tin nhắn mà không bị lag UI
 
     }
     /**

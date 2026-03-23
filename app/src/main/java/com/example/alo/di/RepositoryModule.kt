@@ -82,4 +82,8 @@ abstract class RepositoryModule {
         pushNotiRepositoryImpl: PushNotiRepositoryImpl
     ): PushNotiRepository
 
+    @Binds @Singleton
+    abstract fun bindVideoCallRepository(impl: VideoCallRepositoryImpl
+    ): VideoCallRepository
+
 }

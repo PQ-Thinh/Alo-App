@@ -5,7 +5,6 @@ import com.example.alo.R
 object ProfileBackgrounds {
     val backgrounds = listOf(
         "bg_1" to R.drawable.bg_1,
-        "bg_2" to R.drawable.bg_3,
         "bg_3" to R.drawable.bg_2
     )
 
