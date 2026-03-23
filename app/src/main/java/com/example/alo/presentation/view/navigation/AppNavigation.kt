@@ -57,9 +57,16 @@ fun AppNavigation(
         }
     }
 
+    // Nếu mở App từ Push Notification (Bấm vào thông báo), bỏ qua Splash Screen để tránh Splash Screen chèn mất màn hình Call sau 3 giây.
+    val actualStart = if (pushCallId != null || pushConversationId != null) {
+        startDestination
+    } else {
+        "animated_splash"
+    }
+
     NavHost(
         navController = navController,
-        startDestination = "animated_splash"
+        startDestination = actualStart
     ) {
         composable("animated_splash") {
             AnimatedSplashScreen(

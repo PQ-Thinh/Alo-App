@@ -14,6 +14,8 @@ import io.github.jan.supabase.functions.functions
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.content.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -24,6 +26,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
+
+@Serializable
+private data class PushCallPayload(
+    val callId: String,
+    val senderId: String,
+    val receiverIds: List<String>
+)
 
 @Singleton
 class VideoCallRepositoryImpl @Inject constructor(
@@ -127,17 +136,21 @@ class VideoCallRepositoryImpl @Inject constructor(
     ) {
         withContext(Dispatchers.IO) {
             try {
-                val payload = buildJsonObject {
-                    put("callId", callId)
-                    put("senderId", senderId)
-                    // Convert List<String> -> JsonArray
-                    put("receiverIds", buildJsonArray {
-                        receiverIds.forEach { add(JsonPrimitive(it)) }
-                    })
-                }
+                val payload = PushCallPayload(
+                    callId = callId,
+                    senderId = senderId,
+                    receiverIds = receiverIds
+                )
+                
+                val payloadString = kotlinx.serialization.json.Json.encodeToString(PushCallPayload.serializer(), payload)
                 
                 val response: HttpResponse = supabaseClient.functions.invoke("push_call") {
-                    setBody(payload)
+                    setBody(
+                        TextContent(
+                            text = payloadString,
+                            contentType = ContentType.Application.Json
+                        )
+                    )
                 }
                 Log.d(TAG, "Push call response: ${response.bodyAsText()}")
             } catch (e: Exception) {
