@@ -1,5 +1,7 @@
 package com.example.alo.presentation.view.call
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ fun OutgoingCallScreen(
     calleeAvatar: String?,
     onCallEnded: () -> Unit
 ) {
+
     VideoTheme {
         when (uiState) {
             is CallUiState.Initializing -> {

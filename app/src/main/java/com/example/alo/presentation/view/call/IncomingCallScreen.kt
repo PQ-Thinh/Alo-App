@@ -1,5 +1,8 @@
 package com.example.alo.presentation.view.call
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +39,20 @@ fun IncomingCallScreen(
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[Manifest.permission.CAMERA] ?: false
+        val micGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+
+        if (cameraGranted && micGranted) {
+            // Có quyền -> Bắt máy
+            onAccept()
+        } else {
+            // Không cho quyền -> Cúp máy luôn cho an toàn
+            onDecline()
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -122,7 +139,14 @@ fun IncomingCallScreen(
                 // Accept
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     FilledIconButton(
-                        onClick = onAccept,
+                        onClick = {
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.CAMERA,
+                                    Manifest.permission.RECORD_AUDIO
+                                )
+                            )
+                        },
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = Color(0xFF43A047)
                         ),

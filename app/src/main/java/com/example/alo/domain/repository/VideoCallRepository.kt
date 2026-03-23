@@ -8,5 +8,6 @@ interface VideoCallRepository {
     suspend fun createAndJoinCall(callId: String, memberIds: List<String>): Call
     suspend fun pushIncomingCall(callId: String, senderId: String, receiverIds: List<String>)
     suspend fun joinCall(callId: String): Call
+    suspend fun rejectCall(callId: String)
     fun logoutStreamClient()
 }

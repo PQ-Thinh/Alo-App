@@ -11,6 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.android.video.generated.models.CallEndedEvent
 import io.getstream.android.video.generated.models.CallRejectedEvent
 import io.getstream.video.android.core.Call
+import io.getstream.video.android.core.StreamVideo
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -114,14 +116,29 @@ class CallViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = CallUiState.Initializing
+                Log.d(TAG, "Bắt đầu tiến trình Accept Call: $callId")
+
+                if (!StreamVideo.isInstalled) {
+                    Log.d(TAG, "Stream SDK chưa ready (App mở từ nền). Đang khởi tạo khẩn cấp...")
+                    val authUser = authRepository.getCurrentAuthUser() ?: throw Exception("Chưa đăng nhập.")
+                    val userProfile = userRepository.getCurrentUser(authUser.id)
+
+                    videoCallRepository.initStreamClient(
+                        userId = authUser.id,
+                        displayName = userProfile?.displayName ?: authUser.email,
+                        avatarUrl = userProfile?.avatarUrl
+                    )
+                }
+
                 val call = videoCallRepository.joinCall(callId = callId)
-                
-                // Lắng nghe xem người kia có gác máy giữa chừng không
+
+                call.accept()
+
                 call.subscribe { event ->
                     try {
                         when (event) {
                             is CallEndedEvent -> {
-                                Log.d(TAG, "Cuộc gọi kết thúc do người kia Out")
+                                Log.d(TAG, "Cuộc gọi kết thúc do đối tác gác máy")
                                 _uiState.value = CallUiState.Ended
                             }
                         }
@@ -131,14 +148,24 @@ class CallViewModel @Inject constructor(
                 }
 
                 _uiState.value = CallUiState.InCall(call)
-                Log.d(TAG, "Đã chấp nhận cuộc gọi: $callId")
+                Log.d(TAG, "Đã join phòng call thành công: $callId")
             } catch (e: Exception) {
-                Log.e(TAG, "Lỗi join call: ${e.message}", e)
+                Log.e(TAG, "Lỗi join call khốc liệt: ${e.message}", e)
                 _uiState.value = CallUiState.Error("Không thể tham gia cuộc gọi: ${e.message}")
             }
         }
     }
-
+    fun rejectCall(callId: String) {
+        viewModelScope.launch {
+            try {
+                videoCallRepository.rejectCall(callId = callId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi từ chối cuộc gọi: ${e.message}", e)
+            } finally {
+                _uiState.value = CallUiState.Ended
+            }
+        }
+    }
     // ────────────────────────────────────────────────────
     // Khi người kia picked up (Calling → InCall)
     // ────────────────────────────────────────────────────

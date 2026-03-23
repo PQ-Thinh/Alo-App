@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,6 +58,17 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent?.getStringExtra("conversationId")
         pushCallId.value = intent?.getStringExtra("callId")
         pushCallerName.value = intent?.getStringExtra("callerName")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
 
         // Đăng ký Heartbeat
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

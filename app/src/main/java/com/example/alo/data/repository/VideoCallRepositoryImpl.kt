@@ -19,20 +19,16 @@ import io.ktor.http.content.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Serializable
-private data class PushCallPayload(
-    val callId: String,
-    val senderId: String,
-    val receiverIds: List<String>
-)
 
 @Singleton
 class VideoCallRepositoryImpl @Inject constructor(
@@ -60,9 +56,9 @@ class VideoCallRepositoryImpl @Inject constructor(
                 
                 val responseText = response.bodyAsText()
                 Log.d(TAG, "Raw Response từ stream-token: $responseText")
-                
-                val regex = Regex(""""token"\s*:\s*"([^"]+)"""")
-                return@withContext regex.find(responseText)?.groupValues?.get(1)
+
+                val jsonObj = Json.parseToJsonElement(responseText).jsonObject
+                return@withContext jsonObj["token"]?.jsonPrimitive?.content
                     ?: throw Exception("Không tìm thấy token. Server trả về: $responseText")
             } catch (e: Exception) {
                 Log.e(TAG, "Lấy Stream token thất bại: ${e.message}", e)
@@ -83,8 +79,13 @@ class VideoCallRepositoryImpl @Inject constructor(
     ) {
         withContext(Dispatchers.IO) {
             if (StreamVideo.isInstalled) {
-                Log.d(TAG, "StreamVideo đã được khởi tạo sẵn.")
-                return@withContext
+                if (StreamVideo.instance().user.id == userId) {
+                    Log.d(TAG, "StreamVideo đã được khởi tạo đúng cho user: $userId")
+                    return@withContext
+                } else {
+                    Log.w(TAG, "Phát hiện phiên bản cũ của user khác. Đang dọn dẹp...")
+                    StreamVideo.instance().logOut()
+                }
             }
 
             val token = getStreamUserToken(userId)
@@ -172,7 +173,18 @@ class VideoCallRepositoryImpl @Inject constructor(
             call
         }
     }
-
+    override suspend fun rejectCall(callId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                if (!StreamVideo.isInstalled) return@withContext
+                val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
+                call.reject()
+                Log.d(TAG, "Đã gửi lệnh Reject cuộc gọi: $callId lên Stream")
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi khi reject cuộc gọi", e)
+            }
+        }
+    }
     /**
      * Đăng xuất khỏi StreamVideo khi user logout.
      */
@@ -183,3 +195,10 @@ class VideoCallRepositoryImpl @Inject constructor(
         }
     }
 }
+
+@Serializable
+private data class PushCallPayload(
+    val callId: String,
+    val senderId: String,
+    val receiverIds: List<String>
+)

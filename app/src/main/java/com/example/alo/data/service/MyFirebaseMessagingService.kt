@@ -63,17 +63,29 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
             Log.d("FCM_DEBUG", "Nhận tin nhắn từ: $senderName, Type: $type")
 
-            if (type == "NEW_MESSAGE") {
-                showNotification(
-                    title = senderName,
-                    message = "Bạn có một tin nhắn mới",
-                    conversationId = conversationId,
-                    avatarUrl = senderAvatar
-                )
+            when (type) {
+                "NEW_MESSAGE" -> {
+                    showNotification(
+                        title = senderName,
+                        message = "Bạn có một tin nhắn mới",
+                        conversationId = conversationId,
+                        avatarUrl = senderAvatar
+                    )
+                }
+                "INCOMING_CALL" -> {
+                    if (callId != null) {
+                        showIncomingCallNotification(callerName = senderName, callId = callId)
+                    }
+                }
+                "CALL_CANCELLED", "MISSED_CALL" -> {
+                    if (callId != null) {
+                        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                        notificationManager.cancel(callId.hashCode())
+                        Log.d("FCM_DEBUG", "Đã hủy chuông cuộc gọi nhỡ: $callId")
+                    }
+                }
             }
-            else if (type == "INCOMING_CALL" && callId != null) {
-                showIncomingCallNotification(callerName = senderName, callId = callId)
-            }
+
         }
     }
 
