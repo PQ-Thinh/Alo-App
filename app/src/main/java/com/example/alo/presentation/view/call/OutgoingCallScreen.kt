@@ -16,7 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
+import io.getstream.video.android.compose.theme.VideoTheme
 import io.getstream.video.android.compose.ui.components.call.ringing.RingingCallContent
 import io.getstream.video.android.core.Call
 
@@ -36,40 +36,62 @@ fun OutgoingCallScreen(
     calleeAvatar: String?,
     onCallEnded: () -> Unit
 ) {
-    // Stream SDK cung cấp RingingCallContent xử lý cả outgoing ring + incoming accept
-    RingingCallContent(
-        call = call,
-        modifier = Modifier.fillMaxSize(),
-        onBackPressed = onCallEnded,
-        onAcceptedContent = {
-            // Khi đối phương accept → chuyển sang ActiveCallScreen
-            ActiveCallScreen(call = call, onCallEnded = onCallEnded)
-        },
-        onRejectedContent = {
-            // Bị từ chối → hiển thị overlay thông báo rồi đóng
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A2E)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Cuộc gọi bị từ chối", color = Color.White, fontSize = 20.sp)
-                    Spacer(modifier = Modifier.height(24.dp))
-                    FilledIconButton(
-                        onClick = onCallEnded,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = Color(0xFFE53935)
-                        ),
-                        modifier = Modifier.size(64.dp)
-                    ) {
-                        Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+    VideoTheme {
+        // Stream SDK cung cấp RingingCallContent xử lý cả outgoing ring + incoming accept
+        RingingCallContent(
+            call = call,
+            modifier = Modifier.fillMaxSize(),
+            onBackPressed = onCallEnded,
+            onAcceptedContent = {
+                // Khi đối phương accept → chuyển sang ActiveCallScreen
+                ActiveCallScreen(call = call, onCallEnded = onCallEnded)
+            },
+            onRejectedContent = {
+                // Bị từ chối → hiển thị overlay thông báo rồi đóng
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF1A1A2E)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Cuộc gọi bị từ chối", color = Color.White, fontSize = 20.sp)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        FilledIconButton(
+                            onClick = onCallEnded,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = Color(0xFFE53935)
+                            ),
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                        }
+                    }
+                }
+            },
+            onNoAnswerContent = {
+                // Không trả lời → hiển thị thông báo rồi đóng
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF1A1A2E)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Không có phản hồi", color = Color.White, fontSize = 20.sp)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        FilledIconButton(
+                            onClick = onCallEnded,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = Color(0xFFE53935)
+                            ),
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
+                        }
                     }
                 }
             }
-        },
-        onNoAnswerContent = {
-            LaunchedEffect(Unit) { onCallEnded() }
-        }
-    )
+        )
+    }
 }

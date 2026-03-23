@@ -68,6 +68,20 @@ class CallViewModel @Inject constructor(
                     callId = callId,
                     memberIds = memberIds
                 )
+                
+                // Kích hoạt API Push Notification "cây nhà lá vườn" (đã code trên Supabase)
+                val authUser = authRepository.getCurrentAuthUser()
+                if (authUser != null) {
+                    val receiverIds = memberIds.filter { it != authUser.id }
+                    if (receiverIds.isNotEmpty()) {
+                        videoCallRepository.pushIncomingCall(
+                            callId = callId,
+                            senderId = authUser.id,
+                            receiverIds = receiverIds
+                        )
+                    }
+                }
+
                 _uiState.value = CallUiState.Calling(call)
                 Log.d(TAG, "Outgoing call bắt đầu: $callId")
             } catch (e: Exception) {
