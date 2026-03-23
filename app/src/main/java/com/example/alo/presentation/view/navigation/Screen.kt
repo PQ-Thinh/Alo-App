@@ -27,7 +27,24 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String) = "edit_profile/$userId"
     }
 
+    object OutgoingCall : Screen("outgoing_call/{callId}/{calleeName}") {
+        fun createRoute(callId: String, calleeName: String) =
+            "outgoing_call/$callId/${calleeName.encodeUrl()}"
+    }
+
+    object IncomingCall : Screen("incoming_call/{callId}/{callerName}") {
+        fun createRoute(callId: String, callerName: String) =
+            "incoming_call/$callId/${callerName.encodeUrl()}"
+    }
+
+    object ActiveCall : Screen("active_call/{callId}") {
+        fun createRoute(callId: String) = "active_call/$callId"
+    }
 }
+
+private fun String.encodeUrl(): String =
+    java.net.URLEncoder.encode(this, "UTF-8")
+
 sealed class Graph(val route: String) {
     object Root : Graph("root_graph")
     object Auth : Graph("auth_graph")

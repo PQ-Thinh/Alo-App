@@ -27,7 +27,6 @@ import com.example.alo.presentation.theme.AloTheme
 import com.example.alo.presentation.view.navigation.AppNavigation
 import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import io.getstream.video.android.compose.ui.components.call.ringing.RingingCallContent
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -48,12 +47,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private var pushConversationId = mutableStateOf<String?>(null)
+    private var pushCallId = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         pushConversationId.value = intent?.getStringExtra("conversationId")
+        pushCallId.value = intent?.getStringExtra("callId")
 
         // Đăng ký Heartbeat
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -77,13 +78,14 @@ class MainActivity : ComponentActivity() {
             AloTheme {
                 val startDestination by splashViewModel.startDestination.collectAsState()
 
-                // Lắng nghe state của conversationId
                 val conversationIdToNavigate by pushConversationId
+                val callIdToNavigate by pushCallId
 
                 if (startDestination != null) {
                     AppNavigation(
                         startDestination = startDestination!!,
-                        pushConversationId = conversationIdToNavigate
+                        pushConversationId = conversationIdToNavigate,
+                        pushCallId = callIdToNavigate
                     )
                 }
             }
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pushConversationId.value = intent.getStringExtra("conversationId")
+        pushCallId.value = intent.getStringExtra("callId")
     }
 
     private fun askNotificationPermission() {

@@ -18,9 +18,6 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
         tools:ignore="PhotoAndVideoPolicy" />
 
-<service android:name="io.getstream.video.android.core.notifications.internal.service.CallService"
-    android:foregroundServiceType="camera|microphone" />
-
     <application
         android:name=".AloApplication"
         android:allowBackup="true"
@@ -54,6 +51,12 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Stream Video SDK: xử lý cuộc gọi khi app ở background -->
+        <service
+            android:name="io.getstream.video.android.core.notifications.internal.service.CallService"
+            android:foregroundServiceType="camera|microphone"
+            android:exported="false" />
     </application>
 
-</manifest>
+</manifest>

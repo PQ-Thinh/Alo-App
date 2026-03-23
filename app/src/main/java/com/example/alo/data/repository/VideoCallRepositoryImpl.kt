@@ -2,6 +2,7 @@ package com.example.alo.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.example.alo.BuildConfig
 import com.example.alo.domain.repository.VideoCallRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.getstream.video.android.core.Call
@@ -9,9 +10,6 @@ import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
 import io.getstream.video.android.model.User
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.functions.functions
-import io.github.jan.supabase.functions.Functions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
@@ -37,16 +35,14 @@ class VideoCallRepositoryImpl @Inject constructor(
     override suspend fun getStreamUserToken(userId: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val response = supabaseClient.functions.invoke(
+                val responseText = supabaseClient.funtion.invoke(
                     function = "stream-token",
-                    body = buildJsonObject { put("userId", userId }
+                    body = buildJsonObject { put("userId", userId) }
                 )
-                // Parse token từ response body
-                val bodyText = response.body.toString()
-                // Đơn giản parse: tìm "token":"<value>"
-                val regex = Regex("\"token\"\\s*:\\s*\"([^\"]+)\"")
-                regex.find(bodyText)?.groupValues?.get(1)
-                    ?: throw Exception("Token không tìm thấy trong response: $bodyText")
+                // Parse token từ response
+                val regex = Regex(""""token"\s*:\s*"([^"]+)"""")
+                regex.find(responseText.toString())?.groupValues?.get(1)
+                    ?: throw Exception("Không tìm thấy token trong response")
             } catch (e: Exception) {
                 Log.e(TAG, "Lấy Stream token thất bại: ${e.message}", e)
                 throw e
@@ -56,7 +52,8 @@ class VideoCallRepositoryImpl @Inject constructor(
 
     /**
      * Khởi tạo StreamVideo singleton client.
-     * Phải gọi hàm này sau khi user đăng nhập thành công.
+     * Phải gọi sau khi user đăng nhập thành công.
+     * Nếu đã khởi tạo rồi thì bỏ qua.
      */
     override suspend fun initStreamClient(
         userId: String,
@@ -64,9 +61,8 @@ class VideoCallRepositoryImpl @Inject constructor(
         avatarUrl: String?
     ) {
         withContext(Dispatchers.IO) {
-            // Nếu đã có instance rồi thì bỏ qua
             if (StreamVideo.isInstalled) {
-                Log.d(TAG, "StreamVideo đã được khởi tạo.")
+                Log.d(TAG, "StreamVideo đã được khởi tạo sẵn.")
                 return@withContext
             }
 
@@ -80,18 +76,19 @@ class VideoCallRepositoryImpl @Inject constructor(
 
             StreamVideoBuilder(
                 context = context,
-                apiKey = com.example.alo.BuildConfig.streamApiKey,
-                token = io.getstream.video.android.core.GEO.GlobalEdgeNetwork,
+                apiKey = BuildConfig.getStreamKey,
                 user = user,
-                tokenProvider = { token }
+                token = token
             ).build()
 
-            Log.d(TAG, "StreamVideo đã khởi tạo cho user: $userId")
+            Log.d(TAG, "StreamVideo khởi tạo thành công cho user: $userId")
         }
     }
 
     /**
-     * Tạo cuộc gọi mới, thêm members và ring họ.
+     * Tạo cuộc gọi mới, ring tới các members.
+     * [callId] nên là conversationId hoặc UUID duy nhất của cuộc gọi.
+     * [memberIds] là danh sách userId (Supabase auth UID) của người nhận.
      */
     override suspend fun createAndJoinCall(
         callId: String,
@@ -99,16 +96,14 @@ class VideoCallRepositoryImpl @Inject constructor(
     ): Call {
         return withContext(Dispatchers.IO) {
             val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
-            val members = memberIds.map {
-                io.getstream.video.android.model.MemberRequest(userId = it)
-            }
+            // Tạo call và ring members
             call.create(memberIds = memberIds, ring = true)
             call
         }
     }
 
     /**
-     * Tham gia vào cuộc gọi đang có (khi nhận incoming call từ FCM).
+     * Tham gia vào cuộc gọi đang có (khi nhận FCM incoming call và Accept).
      */
     override suspend fun joinCall(callId: String): Call {
         return withContext(Dispatchers.IO) {
@@ -119,12 +114,12 @@ class VideoCallRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Đăng xuất khỏi StreamVideo client (khi user logout khỏi app).
+     * Đăng xuất khỏi StreamVideo khi user logout.
      */
     override fun logoutStreamClient() {
         if (StreamVideo.isInstalled) {
             StreamVideo.instance().logOut()
-            Log.d(TAG, "StreamVideo đã logout.")
+            Log.d(TAG, "StreamVideo logout thành công.")
         }
     }
 }

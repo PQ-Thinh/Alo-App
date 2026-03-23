@@ -9,6 +9,7 @@ import com.example.alo.data.repository.ParticipantRepositoryImpl
 import com.example.alo.data.repository.PushNotiRepositoryImpl
 import com.example.alo.data.repository.UserDeviceRepositoryImpl
 import com.example.alo.data.repository.UserRepositoryImpl
+import com.example.alo.data.repository.VideoCallRepositoryImpl
 import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
@@ -18,6 +19,7 @@ import com.example.alo.domain.repository.ParticipantRepository
 import com.example.alo.domain.repository.PushNotiRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
+import com.example.alo.domain.repository.VideoCallRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -82,8 +84,10 @@ abstract class RepositoryModule {
         pushNotiRepositoryImpl: PushNotiRepositoryImpl
     ): PushNotiRepository
 
-    @Binds @Singleton
-    abstract fun bindVideoCallRepository(impl: VideoCallRepositoryImpl
+    @Binds
+    @Singleton
+    abstract fun bindVideoCallRepository(
+        videoCallRepositoryImpl: VideoCallRepositoryImpl
     ): VideoCallRepository
 
 }

@@ -99,6 +99,7 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.storage)
     implementation(libs.supabase.realtime)
+    implementation("io.github.jan-tennert.supabase:functions-kt")
 
     //fireBase
     implementation(platform(libs.firebase.bom))

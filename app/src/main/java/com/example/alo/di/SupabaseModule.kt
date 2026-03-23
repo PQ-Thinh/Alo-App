@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import javax.inject.Singleton
 import com.example.alo.BuildConfig
@@ -28,6 +29,7 @@ object SupabaseModule {
             install(Postgrest)
             install(Storage)
             install(Realtime)
+            install(Functions)
         }
     }
 }
