@@ -15,6 +15,7 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.example.alo.MainActivity
 import com.example.alo.R
+import com.example.alo.data.service.CallForegroundService
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -82,6 +83,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                         notificationManager.cancel(callId.hashCode())
                         Log.d("FCM_DEBUG", "Đã hủy chuông cuộc gọi nhỡ: $callId")
+                        CallForegroundService.stop(this)
                     }
                 }
             }
@@ -196,6 +198,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             }
             notificationManager.createNotificationChannel(channel)
         }
+
+        // Start foreground ringtone service to survive lockscreen/background
+        CallForegroundService.startIncoming(this, callId, callerName)
 
         val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
             action = "ACTION_INCOMING_CALL"

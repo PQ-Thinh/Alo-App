@@ -11,6 +11,7 @@
         tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-permission android:name="android.permission.CAMERA" />
@@ -66,6 +67,11 @@
             android:name="io.getstream.video.android.core.notifications.internal.service.CallService"
             android:foregroundServiceType="camera|microphone"
             android:exported="false" />
+
+        <service
+            android:name=".data.service.CallForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
 
         <receiver
             android:name=".data.receiver.CallActionReceiver"

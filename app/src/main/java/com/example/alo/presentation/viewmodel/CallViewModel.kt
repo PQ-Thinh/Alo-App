@@ -9,8 +9,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.repository.AuthRepository
+import com.example.alo.domain.repository.MessageRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.domain.repository.VideoCallRepository
+import com.example.alo.data.service.CallForegroundService
 import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.helper.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,12 +37,13 @@ class CallViewModel @Inject constructor(
     private val videoCallRepository: VideoCallRepository,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
+    private val messageRepository: MessageRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "CallViewModel"
-        private const val CALL_TIMEOUT_MS = 20_000L
+        private const val CALL_TIMEOUT_MS = 45_000L
     }
 
     private val connectivityManager: ConnectivityManager by lazy {
@@ -61,6 +64,7 @@ class CallViewModel @Inject constructor(
     private var callTimeoutJob: Job? = null
     private var cancelPushSent: Boolean = false
     private var isRejoining: Boolean = false
+    private var callStartTimestamp: Long? = null
 
     // ────────────────────────────────────────────────────
     // Khởi tạo Stream client (gọi ngay sau login success)
@@ -101,9 +105,15 @@ class CallViewModel @Inject constructor(
             currentMemberIds = memberIds
             isCaller = true
             cancelPushSent = false
+            callStartTimestamp = null
             try {
                 _uiState.value = CallUiState.Initializing
                 val startTime = System.currentTimeMillis()
+                CallForegroundService.startOutgoing(
+                    context = appContext,
+                    callId = callId,
+                    peerName = null
+                )
                 val call = videoCallRepository.createAndJoinCall(
                     callId = callId,
                     memberIds = memberIds
@@ -130,10 +140,12 @@ class CallViewModel @Inject constructor(
                             is CallRejectedEvent,
                             is CallEndedEvent -> {
                                 Log.d(TAG, "Cuộc gọi bị từ chối/kết thúc bởi hệ thống/đối tác")
+                                logCallMessage(reason = "CALL_MISSED")
                                 _uiState.value = CallUiState.Ended
                                 stopNetworkMonitor()
                                 callTimeoutJob?.cancel()
                                 activeCall = null
+                                CallForegroundService.stop(appContext)
                             }
                         }
                     } catch (e: Exception) {
@@ -161,6 +173,7 @@ class CallViewModel @Inject constructor(
             }
             isCaller = false
             currentCallId = callId
+            callStartTimestamp = null
             try {
                 _uiState.value = CallUiState.Initializing
                 Log.d(TAG, "Bắt đầu tiến trình Accept Call: $callId")
@@ -183,16 +196,20 @@ class CallViewModel @Inject constructor(
                 startNetworkMonitor()
 
                 call.accept()
+                callStartTimestamp = System.currentTimeMillis()
+                CallForegroundService.notifyConnected(appContext, callId)
 
                 call.subscribe { event ->
                     try {
                         when (event) {
                             is CallEndedEvent -> {
                                 Log.d(TAG, "Cuộc gọi kết thúc do đối tác gác máy")
+                                logCallMessage(reason = "CALL_ENDED")
                                 _uiState.value = CallUiState.Ended
                                 stopNetworkMonitor()
                                 callTimeoutJob?.cancel()
                                 activeCall = null
+                                CallForegroundService.stop(appContext)
                             }
                         }
                     } catch (e: Exception) {
@@ -216,6 +233,7 @@ class CallViewModel @Inject constructor(
                 Log.e(TAG, "Lỗi từ chối cuộc gọi: ${e.message}", e)
             } finally {
                 _uiState.value = CallUiState.Ended
+                CallForegroundService.stop(appContext)
             }
         }
     }
@@ -225,6 +243,8 @@ class CallViewModel @Inject constructor(
     fun onCallAccepted(call: Call) {
         _uiState.value = CallUiState.InCall(call)
         callTimeoutJob?.cancel()
+        callStartTimestamp = System.currentTimeMillis()
+        currentCallId?.let { CallForegroundService.notifyConnected(appContext, it) }
     }
 
     // ────────────────────────────────────────────────────
@@ -240,8 +260,12 @@ class CallViewModel @Inject constructor(
                         if (isCaller && !cancelPushSent) {
                             sendCancelPush()
                         }
+                        logCallMessage(reason = "CALL_CANCELLED")
                     }
-                    is CallUiState.InCall -> current.call.leave()
+                    is CallUiState.InCall -> {
+                        current.call.leave()
+                        logCallMessage(reason = "CALL_ENDED")
+                    }
                     else -> Unit
                 }
             } catch (e: Exception) {
@@ -251,6 +275,7 @@ class CallViewModel @Inject constructor(
                 callTimeoutJob?.cancel()
                 activeCall = null
                 _uiState.value = CallUiState.Ended
+                CallForegroundService.stop(appContext)
             }
         }
     }
@@ -261,6 +286,7 @@ class CallViewModel @Inject constructor(
         currentCallId = null
         currentMemberIds = emptyList()
         isCaller = false
+        callStartTimestamp = null
     }
 
     override fun onCleared() {
@@ -323,6 +349,7 @@ class CallViewModel @Inject constructor(
             if (_uiState.value is CallUiState.Calling) {
                 Log.d(TAG, "Call timeout, ending callId=$currentCallId")
                 sendCancelPush("MISSED_CALL")
+                logCallMessage(reason = "CALL_MISSED")
                 endCall()
             }
         }
@@ -342,6 +369,36 @@ class CallViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Gửi CANCEL push thất bại: ${e.message}")
+        }
+    }
+
+    private fun logCallMessage(reason: String, durationMs: Long? = null) {
+        val conversationId = currentCallId ?: return
+        viewModelScope.launch {
+            try {
+                val authUser = authRepository.getCurrentAuthUser() ?: return@launch
+                val measuredMs = durationMs ?: callStartTimestamp?.let { start ->
+                    System.currentTimeMillis() - start
+                }
+                val formattedDuration = measuredMs?.let { ms ->
+                    val totalSec = (ms / 1000).coerceAtLeast(0)
+                    val min = totalSec / 60
+                    val sec = totalSec % 60
+                    String.format("%d:%02d", min, sec)
+                }
+                val preview = when (reason) {
+                    "CALL_MISSED" -> "\uD83D\uDCDE Cuộc gọi nhỡ"
+                    "CALL_CANCELLED" -> "\uD83D\uDCDE Cuộc gọi đã hủy"
+                    else -> "\uD83D\uDCF9 Cuộc gọi video - ${formattedDuration ?: "--:--"}"
+                }
+                messageRepository.sendMessage(
+                    conversationId = conversationId,
+                    messageType = reason,
+                    senderId = authUser.id,
+                    content = preview
+                )
+            } catch (_: Exception) {
+            }
         }
     }
 }

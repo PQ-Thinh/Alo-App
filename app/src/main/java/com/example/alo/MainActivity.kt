@@ -26,6 +26,7 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
 import com.example.alo.presentation.view.navigation.AppNavigation
+import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -33,6 +34,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
+    private val callViewModel: CallViewModel by viewModels()
 
     @Inject
     lateinit var userRepository: UserRepository
@@ -139,5 +141,22 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val ACTION_INCOMING_CALL_ACCEPT = "ACTION_INCOMING_CALL_ACCEPT"
         const val ACTION_INCOMING_CALL_DECLINE = "ACTION_INCOMING_CALL_DECLINE"
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val state = callViewModel.uiState.value
+            if (state is com.example.alo.presentation.helper.CallUiState.InCall) {
+                try {
+                    enterPictureInPictureMode(
+                        android.app.PictureInPictureParams.Builder()
+                            .setAspectRatio(android.util.Rational(9, 16))
+                            .build()
+                    )
+                } catch (_: Exception) {
+                }
+            }
+        }
     }
 }
