@@ -391,12 +391,26 @@ class CallViewModel @Inject constructor(
                     "CALL_CANCELLED" -> "\uD83D\uDCDE Cuộc gọi đã hủy"
                     else -> "\uD83D\uDCF9 Cuộc gọi video - ${formattedDuration ?: "--:--"}"
                 }
-                messageRepository.sendMessage(
-                    conversationId = conversationId,
-                    messageType = reason,
-                    senderId = authUser.id,
-                    content = preview
-                )
+                try {
+                    messageRepository.sendCallLog(
+                        conversationId = conversationId,
+                        senderId = authUser.id,
+                        messageType = reason,
+                        content = preview,
+                        durationSec = measuredMs?.let { (it / 1000).toInt() },
+                        direction = if (isCaller) "outgoing" else "incoming",
+                        reason = reason,
+                        isVideo = true
+                    )
+                } catch (_: Exception) {
+                    // fallback: vẫn lưu text thường nếu call_log insert lỗi
+                    messageRepository.sendMessage(
+                        conversationId = conversationId,
+                        messageType = reason,
+                        senderId = authUser.id,
+                        content = preview
+                    )
+                }
             } catch (_: Exception) {
             }
         }

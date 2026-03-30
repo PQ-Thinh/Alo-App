@@ -16,6 +16,10 @@ data class MessageDto(
     @SerialName("seen_by") val seenBy: List<String> = emptyList(),
     @SerialName("created_at") val createdAt: String,
     @SerialName("deleted_at") val deletedAt: String? = null,
+    @SerialName("call_duration_sec") val callDurationSec: Int? = null,
+    @SerialName("call_direction") val callDirection: String? = null,
+    @SerialName("call_video") val callVideo: Boolean? = null,
+    @SerialName("call_reason") val callReason: String? = null,
     @SerialName("message_reactions")
     val reactions: List<MessageReactionDto>? = null,
     @SerialName("attachments")
@@ -25,6 +29,10 @@ data class MessageDto(
         id, conversationId, senderId, replyToId, encryptedContent,
         rawEncryptedContent = "",
         messageType, isEdited, seenBy, createdAt, deletedAt,
+        callDurationSec = callDurationSec,
+        callDirection = callDirection,
+        callVideo = callVideo,
+        callReason = callReason,
         reactions = reactions?.map { it.toDomain() } ?: emptyList(),
         attachments = attachments?.map {it.toDomain()}?:emptyList()
 

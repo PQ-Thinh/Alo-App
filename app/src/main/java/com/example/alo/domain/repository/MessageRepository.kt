@@ -6,6 +6,16 @@ import kotlinx.coroutines.flow.Flow
 interface MessageRepository {
     suspend fun getMessages(conversationId: String): List<Message>
     suspend fun sendMessage(conversationId: String,messageType: String = "TEXT", senderId: String, content: String, replyToId: String? = null):String
+    suspend fun sendCallLog(
+        conversationId: String,
+        senderId: String,
+        messageType: String,
+        content: String,
+        durationSec: Int? = null,
+        direction: String? = null,
+        reason: String? = null,
+        isVideo: Boolean = true
+    ): String
     suspend fun addReaction(messageId: String, userId: String, reactionIcon: String)
     suspend fun removeReaction(messageId: String, userId: String)
     fun subscribeToNewMessages(conversationId: String, onTyping: (String) -> Unit): Flow<Message>

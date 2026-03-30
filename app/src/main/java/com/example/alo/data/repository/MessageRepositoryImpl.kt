@@ -70,6 +70,34 @@ class MessageRepositoryImpl @Inject constructor(
         return insertedMessage.id
     }
 
+    override suspend fun sendCallLog(
+        conversationId: String,
+        senderId: String,
+        messageType: String,
+        content: String,
+        durationSec: Int?,
+        direction: String?,
+        reason: String?,
+        isVideo: Boolean
+    ): String {
+        val messageBody = mutableMapOf<String, Any?>(
+            "conversation_id" to conversationId,
+            "sender_id" to senderId,
+            "message_type" to messageType,
+            "encrypted_content" to content,
+            "call_duration_sec" to durationSec,
+            "call_direction" to direction,
+            "call_video" to isVideo,
+            "call_reason" to reason
+        )
+        val insertedMessage = supabaseClient.postgrest["messages"]
+            .insert(messageBody.filterValues { it != null }) {
+                select()
+            }
+            .decodeSingle<MessageDto>()
+        return insertedMessage.id
+    }
+
     override suspend fun addReaction(messageId: String, userId: String, reactionIcon: String) {
         try {
             val params = mapOf(
