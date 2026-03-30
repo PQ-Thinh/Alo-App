@@ -77,7 +77,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                         showIncomingCallNotification(callerName = senderName, callId = callId)
                     }
                 }
-                "CALL_CANCELLED", "MISSED_CALL" -> {
+                "CALL_CANCELLED", "MISSED_CALL", "CALL_REJECTED" -> {
                     if (callId != null) {
                         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                         notificationManager.cancel(callId.hashCode())
@@ -204,13 +204,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
 
-        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
+        val flag = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0) or PendingIntent.FLAG_UPDATE_CURRENT
 
         val fullScreenPendingIntent = PendingIntent.getActivity(this, callId.hashCode(), fullScreenIntent, flag)
+
+        val acceptIntent = Intent(this, com.example.alo.data.receiver.CallActionReceiver::class.java).apply {
+            action = com.example.alo.MainActivity.ACTION_INCOMING_CALL_ACCEPT
+            putExtra("callId", callId)
+            putExtra("callerName", callerName)
+        }
+        val acceptPendingIntent = PendingIntent.getBroadcast(this, (callId + "_accept").hashCode(), acceptIntent, flag)
+
+        val declineIntent = Intent(this, com.example.alo.data.receiver.CallActionReceiver::class.java).apply {
+            action = com.example.alo.MainActivity.ACTION_INCOMING_CALL_DECLINE
+            putExtra("callId", callId)
+            putExtra("callerName", callerName)
+        }
+        val declinePendingIntent = PendingIntent.getBroadcast(this, (callId + "_decline").hashCode(), declineIntent, flag)
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.mipmap.maloi_icon)
@@ -221,6 +231,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setOngoing(true)
             .setFullScreenIntent(fullScreenPendingIntent, true)
+            .addAction(android.R.drawable.ic_menu_call, "Nhấc máy", acceptPendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Từ chối", declinePendingIntent)
+            .setColor(0xFF4CAF50.toInt())
+            .setColorized(true)
 
         notificationManager.notify(callId.hashCode(), notificationBuilder.build())
     }

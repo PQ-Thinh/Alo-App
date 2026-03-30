@@ -66,6 +66,10 @@
             android:name="io.getstream.video.android.core.notifications.internal.service.CallService"
             android:foregroundServiceType="camera|microphone"
             android:exported="false" />
+
+        <receiver
+            android:name=".data.receiver.CallActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

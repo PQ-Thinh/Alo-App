@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.getstream.video.android.core.Call
 import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
+import io.getstream.video.android.core.socket.common.token.TokenProvider
 import io.getstream.video.android.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -17,15 +18,16 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,7 +102,17 @@ class VideoCallRepositoryImpl @Inject constructor(
                 context = context,
                 apiKey = BuildConfig.getStreamKey,
                 user = user,
-                token = token
+                token = token,
+                tokenProvider = object : TokenProvider {
+                    override suspend fun loadToken(): String {
+                        return try {
+                            getStreamUserToken(userId)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Lỗi refresh token: ${e.message}")
+                            throw e
+                        }
+                    }
+                }
             ).build()
 
             Log.d(TAG, "StreamVideo khởi tạo thành công cho user: $userId")
@@ -116,12 +128,11 @@ class VideoCallRepositoryImpl @Inject constructor(
         callId: String,
         memberIds: List<String>
     ): Call {
-        return withContext(Dispatchers.IO) {
+        return withRetry {
             if (!StreamVideo.isInstalled) {
                 throw IllegalStateException("Video Call System chưa được khởi tạo. Vui lòng đăng xuất và đăng nhập lại.")
             }
             val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
-            // Tạo call và ring members
             call.create(memberIds = memberIds, ring = true)
             call
         }
@@ -133,14 +144,16 @@ class VideoCallRepositoryImpl @Inject constructor(
     override suspend fun pushIncomingCall(
         callId: String,
         senderId: String,
-        receiverIds: List<String>
+        receiverIds: List<String>,
+        type: String
     ) {
         withContext(Dispatchers.IO) {
             try {
                 val payload = PushCallPayload(
                     callId = callId,
                     senderId = senderId,
-                    receiverIds = receiverIds
+                    receiverIds = receiverIds,
+                    type = type
                 )
                 
                 val payloadString = kotlinx.serialization.json.Json.encodeToString(PushCallPayload.serializer(), payload)
@@ -164,7 +177,7 @@ class VideoCallRepositoryImpl @Inject constructor(
      * Tham gia vào cuộc gọi đang có (khi nhận FCM incoming call và Accept).
      */
     override suspend fun joinCall(callId: String): Call {
-        return withContext(Dispatchers.IO) {
+        return withRetry {
             val call = StreamVideo.instance().call("default", callId)
 
             val result = call.join(create = false)
@@ -174,7 +187,7 @@ class VideoCallRepositoryImpl @Inject constructor(
                 Log.e("Stream_Bug", "Không thể join phòng: $errorMsg")
                 throw Exception("Lỗi Join Room: $errorMsg")
             }
-            return@withContext call
+            return@withRetry call
         }
     }
     override suspend fun rejectCall(callId: String) {
@@ -204,5 +217,28 @@ class VideoCallRepositoryImpl @Inject constructor(
 private data class PushCallPayload(
     val callId: String,
     val senderId: String,
-    val receiverIds: List<String>
+    val receiverIds: List<String>,
+    val type: String = "INCOMING_CALL"
 )
+
+private suspend fun <T> withRetry(
+    timeoutMs: Long = 20_000L,
+    retries: Int = 1,
+    delayMs: Long = 800L,
+    block: suspend () -> T
+): T {
+    var lastError: Exception? = null
+    repeat(retries + 1) { attempt ->
+        try {
+            return withTimeout(timeoutMs) { block() }
+        } catch (e: Exception) {
+            lastError = e
+            if (attempt < retries) {
+                delay(delayMs)
+            } else {
+                throw e
+            }
+        }
+    }
+    throw lastError ?: IllegalStateException("Unknown error")
+}

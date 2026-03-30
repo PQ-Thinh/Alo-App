@@ -34,7 +34,7 @@ serve(async (req) => {
     // 2. Parse Body từ client Android
     const payload = await req.json()
     console.log("[push-call] 1. Nhận Payload từ Android Client:", JSON.stringify(payload))
-    const { senderId, receiverIds, callId } = payload
+    const { senderId, receiverIds, callId, type = "INCOMING_CALL" } = payload
 
     if (!senderId || !receiverIds || !callId || receiverIds.length === 0) {
       return new Response(
@@ -80,7 +80,7 @@ serve(async (req) => {
     // 6. Gửi Firebase FCM với type = INCOMING_CALL (Khớp với MyFirebaseMessagingService bên Android)
     const message = {
       data: {
-        type: "INCOMING_CALL",
+        type,
         senderName: sender?.display_name || "Người gọi",
         senderAvatar: sender?.avatar_url || "",
         callId: callId

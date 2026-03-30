@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Videocam
@@ -343,16 +342,6 @@ fun ChatRoomScreen(
                             contentDescription = "Bật/Tắt giải mã",
                             tint = if (isShowingRawEncryption) Color(0xFFE91E63) else Color(0xFF6C63FF),
                             modifier = Modifier.size(20.dp) // Kích thước icon bên trong
-                        )
-                    }
-                    IconButton(onClick = {
-                        startCallAction()
-                    }, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = "Call",
-                            tint = Color(0xFF6C63FF),
-                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(onClick = {

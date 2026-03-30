@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
     private var pushConversationId = mutableStateOf<String?>(null)
     private var pushCallId = mutableStateOf<String?>(null)
     private var pushCallerName = mutableStateOf<String?>(null)
+    private var pushCallAction = mutableStateOf<String?>(null) // ACCEPT / DECLINE / null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent?.getStringExtra("conversationId")
         pushCallId.value = intent?.getStringExtra("callId")
         pushCallerName.value = intent?.getStringExtra("callerName")
+        pushCallAction.value = intent?.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -101,7 +103,8 @@ class MainActivity : ComponentActivity() {
                         startDestination = startDestination!!,
                         pushConversationId = conversationIdToNavigate,
                         pushCallId = callIdToNavigate,
-                        pushCallerName = callerNameToNavigate
+                        pushCallerName = callerNameToNavigate,
+                        pushCallAction = pushCallAction.value
                     )
                 }
             }
@@ -116,6 +119,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent.getStringExtra("conversationId")
         pushCallId.value = intent.getStringExtra("callId")
         pushCallerName.value = intent.getStringExtra("callerName")
+        pushCallAction.value = intent.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
     }
 
     private fun askNotificationPermission() {
@@ -130,5 +134,10 @@ class MainActivity : ComponentActivity() {
         } else {
             splashViewModel.saveFCMToken()
         }
+    }
+
+    companion object {
+        const val ACTION_INCOMING_CALL_ACCEPT = "ACTION_INCOMING_CALL_ACCEPT"
+        const val ACTION_INCOMING_CALL_DECLINE = "ACTION_INCOMING_CALL_DECLINE"
     }
 }

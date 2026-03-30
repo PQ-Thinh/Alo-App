@@ -36,7 +36,8 @@ fun AppNavigation(
     startDestination: String,
     pushConversationId: String?,
     pushCallId: String? = null,
-    pushCallerName: String? = null
+    pushCallerName: String? = null,
+    pushCallAction: String? = null
 ) {
     val navController = rememberNavController()
     val callViewModel: CallViewModel = hiltViewModel()
@@ -49,11 +50,25 @@ fun AppNavigation(
     }
 
     // Navigate to incoming call from FCM push
-    LaunchedEffect(pushCallId) {
+    LaunchedEffect(pushCallId, pushCallAction) {
         if (pushCallId != null) {
-            navController.navigate(
-                Screen.IncomingCall.createRoute(pushCallId, pushCallerName ?: "Cuộc gọi đến")
-            )
+            callViewModel.initStreamClient()
+            when (pushCallAction) {
+                com.example.alo.MainActivity.ACTION_INCOMING_CALL_ACCEPT -> {
+                    callViewModel.acceptCall(pushCallId)
+                    navController.navigate(Screen.ActiveCall.createRoute(pushCallId)) {
+                        popUpTo(0) { inclusive = false }
+                    }
+                }
+                com.example.alo.MainActivity.ACTION_INCOMING_CALL_DECLINE -> {
+                    callViewModel.rejectCall(pushCallId)
+                }
+                else -> {
+                    navController.navigate(
+                        Screen.IncomingCall.createRoute(pushCallId, pushCallerName ?: "Cuộc gọi đến")
+                    )
+                }
+            }
         }
     }
 
@@ -198,6 +213,7 @@ fun NavGraphBuilder.videoCallGraph(
         val calleeAvatar = URLDecoder.decode(backStackEntry.arguments?.getString("calleeAvatar") ?: "", "UTF-8").takeIf { it.isNotBlank() }
 
         val state = callViewModel.uiState.collectAsState().value
+        val networkStatus = callViewModel.networkStatus.collectAsState().value
 
         OutgoingCallScreen(
             uiState = state,
@@ -205,11 +221,13 @@ fun NavGraphBuilder.videoCallGraph(
                 callViewModel.endCall()
                 navController.popBackStack()
             },
-            onCallAccepted = {
+            onCallAccepted = { acceptedCall ->
+                callViewModel.onCallAccepted(acceptedCall)
                 navController.navigate(Screen.ActiveCall.createRoute(callId)) {
                     popUpTo(Screen.OutgoingCall.route) { inclusive = true }
                 }
-            }
+            },
+            networkStatus = networkStatus
         )
     }
 
@@ -248,13 +266,15 @@ fun NavGraphBuilder.videoCallGraph(
         )
     ) {
         val state = callViewModel.uiState.collectAsState().value
+        val networkStatus = callViewModel.networkStatus.collectAsState().value
         if (state is CallUiState.InCall) {
             ActiveCallScreen(
                 call = state.call,
                 onCallEnded = {
                     callViewModel.endCall()
                     navController.popBackStack()
-                }
+                },
+                networkStatus = networkStatus
             )
         } else {
             // Chống kẹt màn hình: Nếu state rớt khỏi InCall (Bị cúp máy), lập tức tắt màn hình
