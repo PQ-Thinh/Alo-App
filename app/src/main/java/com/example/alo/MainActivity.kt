@@ -106,7 +106,13 @@ class MainActivity : ComponentActivity() {
                         pushConversationId = conversationIdToNavigate,
                         pushCallId = callIdToNavigate,
                         pushCallerName = callerNameToNavigate,
-                        pushCallAction = pushCallAction.value
+                        pushCallAction = pushCallAction.value,
+                        onClearPushDetails = {
+                            pushConversationId.value = null
+                            pushCallId.value = null
+                            pushCallerName.value = null
+                            pushCallAction.value = null
+                        }
                     )
                 }
             }
@@ -139,8 +145,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val ACTION_INCOMING_CALL_ACCEPT = "ACTION_INCOMING_CALL_ACCEPT"
-        const val ACTION_INCOMING_CALL_DECLINE = "ACTION_INCOMING_CALL_DECLINE"
+        const val ACTION_INCOMING_CALL_ACCEPT = "com.example.alo.ACTION_INCOMING_CALL_ACCEPT"
+        const val ACTION_INCOMING_CALL_DECLINE = "com.example.alo.ACTION_INCOMING_CALL_DECLINE"
     }
 
     override fun onUserLeaveHint() {

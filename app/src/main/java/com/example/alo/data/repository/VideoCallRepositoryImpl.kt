@@ -12,6 +12,7 @@ import io.getstream.video.android.core.socket.common.token.TokenProvider
 import io.getstream.video.android.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
+import io.github.jan.supabase.postgrest.postgrest
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -209,6 +210,30 @@ class VideoCallRepositoryImpl @Inject constructor(
         if (StreamVideo.isInstalled) {
             StreamVideo.instance().logOut()
             Log.d(TAG, "StreamVideo logout thành công.")
+        }
+    }
+    
+    override suspend fun saveCallMetadata(
+        messageId: String,
+        durationSec: Int,
+        direction: String,
+        reason: String,
+        isVideo: Boolean
+    ) {
+        withContext(Dispatchers.IO) {
+            try {
+                val callLogBody = mapOf(
+                    "message_id" to messageId,
+                    "duration_sec" to durationSec,
+                    "direction" to direction,
+                    "is_video" to isVideo,
+                    "end_reason" to reason
+                )
+                supabaseClient.postgrest["video_calls"].insert(callLogBody)
+                Log.d(TAG, "Đã lưu metadata cuộc gọi cho message: $messageId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi khi lưu metadata cuộc gọi: ${e.message}", e)
+            }
         }
     }
 }

@@ -16,6 +16,9 @@ class CallActionReceiver : BroadcastReceiver() {
         val callerName = intent.getStringExtra("callerName")
         val action = intent.action
 
+        // Dừng chuông và Foreground service ngay lập tức
+        com.example.alo.data.service.CallForegroundService.stop(context)
+
         // Đóng notification ngay lập tức
         val nm = ContextCompat.getSystemService(context, NotificationManager::class.java)
         if (callId != null) nm?.cancel(callId.hashCode())

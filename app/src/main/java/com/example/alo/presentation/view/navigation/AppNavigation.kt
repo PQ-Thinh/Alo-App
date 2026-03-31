@@ -37,7 +37,8 @@ fun AppNavigation(
     pushConversationId: String?,
     pushCallId: String? = null,
     pushCallerName: String? = null,
-    pushCallAction: String? = null
+    pushCallAction: String? = null,
+    onClearPushDetails: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val callViewModel: CallViewModel = hiltViewModel()
@@ -69,6 +70,7 @@ fun AppNavigation(
                     )
                 }
             }
+            onClearPushDetails() // Xóa sạch dấu vết sau khi đã xử lý xong
         }
     }
 
@@ -215,6 +217,13 @@ fun NavGraphBuilder.videoCallGraph(
         val state = callViewModel.uiState.collectAsState().value
         val networkStatus = callViewModel.networkStatus.collectAsState().value
 
+        // Tự động thoát nếu đối phương hủy cuộc gọi
+        LaunchedEffect(state) {
+            if (state is CallUiState.Ended || state is CallUiState.Idle) {
+                navController.popBackStack()
+            }
+        }
+
         OutgoingCallScreen(
             uiState = state,
             onCallEnded = {
@@ -242,6 +251,15 @@ fun NavGraphBuilder.videoCallGraph(
         val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
         val callerName = URLDecoder.decode(backStackEntry.arguments?.getString("callerName") ?: "Không rõ", "UTF-8")
 
+        val state = callViewModel.uiState.collectAsState().value
+
+        // Tự động thoát nếu người gọi hủy cuộc gọi trước khi mình bắt máy
+        LaunchedEffect(state) {
+            if (state is CallUiState.Ended || state is CallUiState.Idle) {
+                navController.popBackStack()
+            }
+        }
+
         IncomingCallScreen(
             callerName = callerName,
             callerAvatar = null,
@@ -267,6 +285,14 @@ fun NavGraphBuilder.videoCallGraph(
     ) {
         val state = callViewModel.uiState.collectAsState().value
         val networkStatus = callViewModel.networkStatus.collectAsState().value
+
+        // Chống kẹt màn hình: Nếu state rớt khỏi InCall (Bị cúp máy), lập tức tắt màn hình
+        LaunchedEffect(state) {
+            if (state is CallUiState.Ended || state is CallUiState.Idle || state is CallUiState.Error) {
+                navController.popBackStack()
+            }
+        }
+
         if (state is CallUiState.InCall) {
             ActiveCallScreen(
                 call = state.call,
@@ -276,11 +302,6 @@ fun NavGraphBuilder.videoCallGraph(
                 },
                 networkStatus = networkStatus
             )
-        } else {
-            // Chống kẹt màn hình: Nếu state rớt khỏi InCall (Bị cúp máy), lập tức tắt màn hình
-            LaunchedEffect(Unit) {
-                navController.popBackStack()
-            }
         }
     }
 }

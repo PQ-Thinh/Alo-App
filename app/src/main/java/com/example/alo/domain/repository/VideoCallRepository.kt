@@ -10,4 +10,13 @@ interface VideoCallRepository {
     suspend fun joinCall(callId: String): Call
     suspend fun rejectCall(callId: String)
     fun logoutStreamClient()
+    
+    // Lưu Metadata chuyên sâu vào bảng video_calls
+    suspend fun saveCallMetadata(
+        messageId: String,
+        durationSec: Int,
+        direction: String,
+        reason: String,
+        isVideo: Boolean
+    )
 }
