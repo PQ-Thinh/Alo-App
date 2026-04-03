@@ -26,6 +26,7 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
 import com.example.alo.presentation.view.navigation.AppNavigation
+import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -33,6 +34,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
+    private val callViewModel: CallViewModel by viewModels()
 
     @Inject
     lateinit var userRepository: UserRepository
@@ -50,6 +52,7 @@ class MainActivity : ComponentActivity() {
     private var pushConversationId = mutableStateOf<String?>(null)
     private var pushCallId = mutableStateOf<String?>(null)
     private var pushCallerName = mutableStateOf<String?>(null)
+    private var pushCallAction = mutableStateOf<String?>(null) // ACCEPT / DECLINE / null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -58,6 +61,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent?.getStringExtra("conversationId")
         pushCallId.value = intent?.getStringExtra("callId")
         pushCallerName.value = intent?.getStringExtra("callerName")
+        pushCallAction.value = intent?.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -101,7 +105,14 @@ class MainActivity : ComponentActivity() {
                         startDestination = startDestination!!,
                         pushConversationId = conversationIdToNavigate,
                         pushCallId = callIdToNavigate,
-                        pushCallerName = callerNameToNavigate
+                        pushCallerName = callerNameToNavigate,
+                        pushCallAction = pushCallAction.value,
+                        onClearPushDetails = {
+                            pushConversationId.value = null
+                            pushCallId.value = null
+                            pushCallerName.value = null
+                            pushCallAction.value = null
+                        }
                     )
                 }
             }
@@ -116,6 +127,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent.getStringExtra("conversationId")
         pushCallId.value = intent.getStringExtra("callId")
         pushCallerName.value = intent.getStringExtra("callerName")
+        pushCallAction.value = intent.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
     }
 
     private fun askNotificationPermission() {
@@ -129,6 +141,28 @@ class MainActivity : ComponentActivity() {
             }
         } else {
             splashViewModel.saveFCMToken()
+        }
+    }
+
+    companion object {
+        const val ACTION_INCOMING_CALL_ACCEPT = "com.example.alo.ACTION_INCOMING_CALL_ACCEPT"
+        const val ACTION_INCOMING_CALL_DECLINE = "com.example.alo.ACTION_INCOMING_CALL_DECLINE"
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val state = callViewModel.uiState.value
+            if (state is com.example.alo.presentation.helper.CallUiState.InCall) {
+                try {
+                    enterPictureInPictureMode(
+                        android.app.PictureInPictureParams.Builder()
+                            .setAspectRatio(android.util.Rational(9, 16))
+                            .build()
+                    )
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 }

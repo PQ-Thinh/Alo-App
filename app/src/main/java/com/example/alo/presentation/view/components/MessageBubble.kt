@@ -35,6 +35,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowCircleDown
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.CallMade
+import androidx.compose.material.icons.filled.CallReceived
+import androidx.compose.material.icons.filled.CallMissed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -322,6 +327,74 @@ fun MessageBubble(
                                             tint = if (isMine) Color.White else TextSecondaryColor
                                         )
                                     }
+                                }
+                            }
+                        } else if (!showRawEncryption && message.messageType.startsWith("CALL_")) {
+                            // --- HIỂN THỊ TRẠNG THÁI CUỘC GỌI TỪ BẢNG VIDEO_CALLS ---
+                            val isMissedOrCancelled = message.messageType in listOf("CALL_MISSED", "CALL_CANCELLED", "CALL_REJECTED")
+                            val direction = message.callDirection ?: "outgoing"
+                            val isIncoming = direction == "incoming"
+
+                            val callIcon = when (message.messageType) {
+                                "CALL_MISSED" -> Icons.Default.CallMissed
+                                "CALL_REJECTED" -> Icons.Default.CallEnd
+                                "CALL_CANCELLED" -> Icons.Default.CallEnd
+                                else -> if (isIncoming) Icons.Default.CallReceived else Icons.Default.CallMade
+                            }
+
+                            val iconTint = when {
+                                isMissedOrCancelled -> Color(0xFFE53935)
+                                isIncoming -> if (isMine) Color.White else Color(0xFF43A047)
+                                else -> if (isMine) Color.White else primaryColor
+                            }
+
+                            val formattedDuration = message.callDurationSec?.let { totalSec ->
+                                String.format("%d:%02d", totalSec / 60, totalSec % 60)
+                            }
+
+                            val callText = when (message.messageType) {
+                                "CALL_MISSED" -> if (isMine) "Cuộc gọi không trả lời" else "Cuộc gọi nhỡ"
+                                "CALL_CANCELLED" -> if (isMine) "Đã hủy cuộc gọi" else "Đối phương đã hủy"
+                                "CALL_REJECTED" -> if (isMine) "Bạn đã từ chối" else "Cuộc gọi bị từ chối"
+                                "CALL_ENDED" -> {
+                                    val prefix = if (isIncoming) "Cuộc gọi đến" else "Cuộc gọi đi"
+                                    "$prefix\n⏱ ${formattedDuration ?: "--:--"}"
+                                }
+                                else -> message.encryptedContent
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .widthIn(max = 240.dp)
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isMine) Color.White.copy(alpha = 0.2f) else iconTint.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = callIcon,
+                                        contentDescription = "Call Status",
+                                        tint = iconTint,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = callText,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        lineHeight = 18.sp,
+                                        color = if (isMine) Color.White else TextPrimaryColor,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         } else {

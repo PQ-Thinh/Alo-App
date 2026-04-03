@@ -10,3 +10,8 @@ sealed class CallUiState {
     object Ended : CallUiState()
     data class Error(val message: String) : CallUiState()
 }
+
+enum class NetworkStatus {
+    Connected,
+    Reconnecting
+}

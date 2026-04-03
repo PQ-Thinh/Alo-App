@@ -12,6 +12,10 @@ data class Message(
     val seenBy: List<String>,
     val createdAt: String,
     val deletedAt: String?,
+    val callDurationSec: Int? = null,
+    val callDirection: String? = null,
+    val callVideo: Boolean? = null,
+    val callReason: String? = null,
     val reactions: List<MessageReaction> = emptyList(),
     val attachments: List<Attachment> = emptyList(),
 )

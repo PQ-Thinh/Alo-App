@@ -14,12 +14,14 @@ import androidx.compose.ui.unit.sp
 import io.getstream.video.android.compose.theme.VideoTheme
 import io.getstream.video.android.compose.ui.components.call.ringing.RingingCallContent
 import com.example.alo.presentation.helper.CallUiState
+import com.example.alo.presentation.helper.NetworkStatus
 
 @Composable
 fun OutgoingCallScreen(
     uiState: CallUiState,
     onCallEnded: () -> Unit,
-    onCallAccepted: () -> Unit
+    onCallAccepted: (io.getstream.video.android.core.Call) -> Unit,
+    networkStatus: NetworkStatus = NetworkStatus.Connected
 ) {
     VideoTheme {
         when (uiState) {
@@ -62,7 +64,7 @@ fun OutgoingCallScreen(
 
                         // Bắn sự kiện ra ngoài ngay lập tức
                         LaunchedEffect(Unit) {
-                            onCallAccepted()
+                            onCallAccepted(call)
                         }
                     },
                     onRejectedContent = {
@@ -112,6 +114,26 @@ fun OutgoingCallScreen(
                         }
                     }
                 )
+                if (networkStatus == NetworkStatus.Reconnecting) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .background(Color(0xFFB71C1C)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Đang khôi phục kết nối...", color = Color.White)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .background(Color(0xFF263238)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Đang đổ chuông / chờ người nhận nhấc máy...", color = Color.White, fontSize = 14.sp)
+                }
             }
             is CallUiState.Error -> {
                 // Báo lỗi nếu không tạo được cuộc gọi

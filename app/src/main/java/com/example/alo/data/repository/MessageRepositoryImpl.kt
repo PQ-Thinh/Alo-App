@@ -37,13 +37,14 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun getMessages(conversationId: String): List<Message> {
         return try {
             val dtos = supabaseClient.postgrest["messages"]
-                .select(columns = Columns.raw("*, message_reactions(*), attachments(*)")) {
+                .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                     filter { eq("conversation_id", conversationId) }
                     order("created_at", order = Order.DESCENDING)
                 }
                 .decodeList<MessageDto>()
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
+            Log.e("MsgRepo", "Error getting messages: ${e.message}")
             emptyList()
         }
     }
@@ -67,6 +68,40 @@ class MessageRepositoryImpl @Inject constructor(
                 select()
             }
             .decodeSingle<MessageDto>()
+        return insertedMessage.id
+    }
+
+    override suspend fun sendCallLog(
+        conversationId: String,
+        senderId: String,
+        messageType: String,
+        content: String,
+        durationSec: Int?,
+        direction: String?,
+        reason: String?,
+        isVideo: Boolean
+    ): String {
+        // 1. Tạo Message trước
+        val messageBody = mapOf(
+            "conversation_id" to conversationId,
+            "sender_id" to senderId,
+            "message_type" to messageType,
+            "encrypted_content" to content
+        )
+        val insertedMessage = supabaseClient.postgrest["messages"]
+            .insert(messageBody) { select() }
+            .decodeSingle<MessageDto>()
+
+        // 2. Tạo Video Call Log liên kết với message vừa tạo
+        val callLogBody = mapOf(
+            "message_id" to insertedMessage.id,
+            "duration_sec" to (durationSec ?: 0),
+            "direction" to (direction ?: "outgoing"),
+            "is_video" to isVideo,
+            "end_reason" to (reason ?: "ended")
+        )
+        supabaseClient.postgrest["video_calls"].insert(callLogBody)
+
         return insertedMessage.id
     }
 
@@ -124,12 +159,12 @@ class MessageRepositoryImpl @Inject constructor(
             insertFlow.collect { action ->
                 val newMessageDto = action.decodeRecord<MessageDto>()
 
-                // NẾU LÀ TIN NHẮN ẢNH -> LẤY FULL DỮ LIỆU KÈM ATTACHMENT
-                if (newMessageDto.messageType == "IMAGE") {
+                // NẾU LÀ TIN NHẮN ẢNH HOẶC CUỘC GỌI -> Lấy full dữ liệu cùng các bảng quan hệ
+                if (newMessageDto.messageType == "IMAGE" || newMessageDto.messageType.startsWith("CALL_")) {
                     delay(800)
                     try {
                         val dtos = supabaseClient.postgrest["messages"]
-                            .select(columns = Columns.raw("*, message_reactions(*), attachments(*)")) {
+                            .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                                 filter { eq("id", newMessageDto.id) }
                             }.decodeList<MessageDto>()
 
@@ -139,7 +174,7 @@ class MessageRepositoryImpl @Inject constructor(
                             return@collect
                         }
                     } catch (e: Exception) {
-                        throw e
+                        Log.e("MsgRepo", "Error fetching full message: ${e.message}")
                     }
                 }
 
@@ -152,7 +187,7 @@ class MessageRepositoryImpl @Inject constructor(
                 try {
                     val rawMsg = action.decodeRecord<MessageDto>()
                     val dtos = supabaseClient.postgrest["messages"]
-                        .select(columns = Columns.raw("*, message_reactions(*),attachments(*)")) {
+                        .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                             filter { eq("id", rawMsg.id) }
                         }
                         .decodeList<MessageDto>()
@@ -163,7 +198,7 @@ class MessageRepositoryImpl @Inject constructor(
                         send(fullUpdatedMsg)
                     }
                 } catch (e: Exception) {
-                    throw e
+                    Log.e("MsgRepo", "Error processing update: ${e.message}")
                 }
             }
         }
@@ -183,7 +218,7 @@ class MessageRepositoryImpl @Inject constructor(
                 try {
                     supabaseClient.realtime.removeChannel(channel)
                 } catch (e: Exception) {
-                    throw e
+                    Log.e("MsgRepo", "Error unsubscribing: ${e.message}")
                 }
             }
         }
