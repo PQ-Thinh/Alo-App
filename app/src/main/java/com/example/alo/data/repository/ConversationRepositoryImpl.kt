@@ -1,5 +1,6 @@
 package com.example.alo.data.repository
 
+import android.util.Log
 import com.example.alo.data.remote.dto.ChatListDto
 import com.example.alo.data.remote.dto.ConversationDto
 import com.example.alo.domain.model.ChatList
@@ -20,6 +21,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.*
 import javax.inject.Inject
 
 class ConversationRepositoryImpl @Inject constructor(
@@ -60,6 +62,34 @@ class ConversationRepositoryImpl @Inject constructor(
 
             conversationId
         } catch (e: Exception) {
+            null
+        }
+    }
+
+    override suspend fun createGroupConversation(
+        name: String,
+        avatarUrl: String?,
+        userIds: List<String>,
+        encryptedKeys: Map<String, String>
+    ): ChatList? {
+        return try {
+            val params = buildJsonObject {
+                put("p_name", name)
+                put("p_avatar_url", avatarUrl)
+                putJsonArray("p_user_ids") {
+                    userIds.forEach { add(it) }
+                }
+                putJsonObject("p_encrypted_keys") {
+                    encryptedKeys.forEach { (key, value) ->
+                        put(key, value)
+                    }
+                }
+            }
+            val response = supabaseClient.postgrest.rpc("create_group_conversation", params)
+            val dto = response.decodeSingle<ChatListDto>()
+            dto.toDomain()
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi createGroupConversation: ${e.message}", e)
             null
         }
     }

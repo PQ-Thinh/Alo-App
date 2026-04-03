@@ -40,6 +40,8 @@ sealed class Screen(val route: String) {
     object ActiveCall : Screen("active_call/{callId}") {
         fun createRoute(callId: String) = "active_call/$callId"
     }
+
+    object CreateGroup : Screen("create_group")
 }
 
 private fun String.encodeUrl(): String =

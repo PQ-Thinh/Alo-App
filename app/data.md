@@ -428,6 +428,51 @@ AND message_type IN ('CALL_MISSED','CALL_ENDED','CALL_CANCELLED','CALL_STARTED')
 );
 END IF;
 END$$;
+--3.13. Create Group
+CREATE OR REPLACE FUNCTION create_group_conversation(
+    p_name TEXT, 
+    p_avatar_url TEXT, 
+    p_user_ids JSONB, 
+    p_encrypted_keys JSONB
+)
+RETURNS SETOF public.chat_list_view
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_conversation_id UUID;
+    v_user_id TEXT;
+    v_creator_id UUID := auth.uid();
+BEGIN
+    IF v_creator_id IS NULL THEN
+        RAISE EXCEPTION 'Chưa đăng nhập';
+    END IF;
+
+    -- 1. Tạo bản ghi cuộc hội thoại
+    INSERT INTO public.conversations (is_group, name, avatar_url)
+    VALUES (true, p_name, p_avatar_url)
+    RETURNING id INTO v_conversation_id;
+
+    -- 2. Thêm người tạo với vai trò 'admin'
+    INSERT INTO public.participants (conversation_id, user_id, role, encrypted_group_key)
+    VALUES (v_conversation_id, v_creator_id, 'admin', (p_encrypted_keys->>v_creator_id::TEXT));
+
+    -- 3. Thêm các người tham gia khác (tránh trường hợp người tạo bị lặp lại trong danh sách)
+    FOR v_user_id IN SELECT jsonb_array_elements_text(p_user_ids)
+    LOOP
+        IF v_user_id::UUID != v_creator_id THEN
+            INSERT INTO public.participants (conversation_id, user_id, role, encrypted_group_key)
+            VALUES (v_conversation_id, v_user_id::UUID, 'member', (p_encrypted_keys->>v_user_id));
+        END IF;
+    END LOOP;
+
+    -- 4. Trả về kết quả
+    RETURN QUERY
+    SELECT * FROM public.chat_list_view
+    WHERE conversation_id = v_conversation_id AND current_user_id = v_creator_id;
+END;
+$$;
+
 -- ==========================================
 -- PHẦN 4: THIẾT LẬP BẢO MẬT RLS (ROW LEVEL SECURITY)
 -- ==========================================

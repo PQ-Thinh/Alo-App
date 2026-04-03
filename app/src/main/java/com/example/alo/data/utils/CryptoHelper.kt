@@ -184,7 +184,7 @@ object CryptoHelper {
     }
 
     /**
-     * HÀM GIẢI MÃ TIN NHẮN (DECRYPT)
+     * HÀM GIẢM MÃ TIN NHẮN (DECRYPT)
      * Cần gọi hàm này cho mỗi tin nhắn tải về từ Supabase.
      */
     fun decryptMessage(
@@ -245,4 +245,99 @@ object CryptoHelper {
             return "🔒 Nội dung không thể giải mã"
         }
     }
-}
+
+    // ==========================================
+    // PHẦN MỚI: HỖ TRỢ TIN NHẮN NHÓM (GROUP CHAT E2EE)
+    // ==========================================
+
+    /**
+     * Tạo một "Khóa nhóm" ngẫu nhiên (AES-256 GCM)
+     */
+    fun generateGroupKeysetHandle(): KeysetHandle {
+        return KeysetHandle.generateNew(com.google.crypto.tink.aead.AeadKeyTemplates.AES256_GCM)
+    }
+
+    /**
+     * Chuyển KeysetHandle thành chuỗi Base64 (Cleartext - Cần được mã hóa trước khi gửi lên server!)
+     */
+    fun exportKeysetToBase64(keysetHandle: KeysetHandle): String {
+        val outputStream = ByteArrayOutputStream()
+        CleartextKeysetHandle.write(keysetHandle, JsonKeysetWriter.withOutputStream(outputStream))
+        return Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+    }
+
+    /**
+     * Nhập KeysetHandle từ chuỗi Base64
+     */
+    fun importKeysetFromBase64(base64: String): KeysetHandle {
+        val bytes = Base64.decode(base64, Base64.DEFAULT)
+        return CleartextKeysetHandle.read(com.google.crypto.tink.JsonKeysetReader.withBytes(bytes))
+    }
+
+    /**
+     * Mã hóa tin nhắn cho nhóm dùng khóa AES đã có sẵn
+     */
+    fun encryptGroupMessage(plaintext: String, groupKeysetHandle: KeysetHandle): String {
+        try {
+            val aead = groupKeysetHandle.getPrimitive(com.google.crypto.tink.Aead::class.java)
+            val ciphertext = aead.encrypt(plaintext.toByteArray(Charsets.UTF_8), null)
+            val ciphertextBase64 = Base64.encodeToString(ciphertext, Base64.NO_WRAP)
+
+            val payload = org.json.JSONObject()
+            payload.put("group_ciphertext", ciphertextBase64)
+            return payload.toString()
+        } catch (e: Exception) {
+            return ""
+        }
+    }
+
+    /**
+     * Giải mã tin nhắn nhóm
+     */
+    fun decryptGroupMessage(encryptedJson: String, groupKeysetHandle: KeysetHandle): String {
+        try {
+            val jsonObject = org.json.JSONObject(encryptedJson)
+            val ciphertextBase64 = jsonObject.getString("group_ciphertext")
+            val ciphertext = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
+            
+            val aead = groupKeysetHandle.getPrimitive(com.google.crypto.tink.Aead::class.java)
+            val plaintext = aead.decrypt(ciphertext, null)
+            return String(plaintext, Charsets.UTF_8)
+        } catch (e: Exception) {
+            return "🔒 Lỗi giải mã nhóm"
+        }
+    }
+
+    /**
+     * Mã hóa "Khóa nhóm" cho một thành viên cụ thể (Dùng Hybrid Encryption 1-1 cũ)
+     */
+    fun wrapGroupKey(groupKeysetBase64: String, memberPublicEncryptKeyBase64: String): String {
+        // Chúng ta tận dụng hàm encryptMessage có sẵn, nhưng field content chính là GroupKeyBase64
+        // Tuy nhiên hàm encryptMessage trả về JSON phức tạp (for_receiver, for_sender, signature).
+        // Ta cần một phiên bản tối giản hơn chỉ cho người nhận.
+        
+        try {
+            val plaintextBytes = groupKeysetBase64.toByteArray(Charsets.UTF_8)
+            val keyHandle = getPublicKeyHandleFromBase64(memberPublicEncryptKeyBase64)
+            val hybridEncrypt = keyHandle.getPrimitive(HybridEncrypt::class.java)
+            val ciphertext = hybridEncrypt.encrypt(plaintextBytes, ByteArray(0))
+            return Base64.encodeToString(ciphertext, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            return ""
+        }
+    }
+
+    /**
+     * Giải mã "Khóa nhóm" mà mình nhận được (Dùng Private Key của mình)
+     */
+    fun unwrapGroupKey(context: Context, wrappedKeyBase64: String): String {
+        try {
+            val ciphertext = Base64.decode(wrappedKeyBase64, Base64.NO_WRAP)
+            val hybridDecrypt = getDecryptHandle(context).getPrimitive(HybridDecrypt::class.java)
+            val plaintext = hybridDecrypt.decrypt(ciphertext, ByteArray(0))
+            return String(plaintext, Charsets.UTF_8)
+        } catch (e: Exception) {
+            return ""
+        }
+    }
+}

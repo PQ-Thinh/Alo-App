@@ -12,7 +12,9 @@ import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.domain.repository.MessageRepository
+import com.example.alo.domain.repository.ParticipantRepository
 import com.example.alo.domain.repository.UserRepository
+import com.google.crypto.tink.KeysetHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -34,7 +36,8 @@ class ChatRoomViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val userRepository: UserRepository,
     private val attachmentRepository: AttachmentRepository,
-    private val friendRepository: FriendRepository
+    private val friendRepository: FriendRepository,
+    private val participantRepository: ParticipantRepository
 ) : ViewModel() {
 
     val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
@@ -71,12 +74,19 @@ class ChatRoomViewModel @Inject constructor(
     private val _isFriend = MutableStateFlow(true)
     val isFriend: StateFlow<Boolean> = _isFriend.asStateFlow()
 
+    private val _isGroup = MutableStateFlow(false)
+    val isGroup: StateFlow<Boolean> = _isGroup.asStateFlow()
+
+    private val _memberNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val memberNames: StateFlow<Map<String, String>> = _memberNames.asStateFlow()
 
 
     // cache save publicEncryptKey
     private var myPublicEncryptKey: String = ""
     private var partnerPublicEncryptKey: String = ""
     private var partnerPublicSignKey: String? = null
+    
+    private var groupKeysetHandle: KeysetHandle? = null
 
     private var typingJob: Job? = null
     private var lastTypingTime = 0L
@@ -101,24 +111,52 @@ class ChatRoomViewModel @Inject constructor(
                     val currentChatInfo = chatList.find { it.conversationId == conversationId }
 
                     if (currentChatInfo != null) {
-                        _partnerName.value = currentChatInfo.chatName ?: "Người dùng ẩn danh"
+                        _isGroup.value = currentChatInfo.isGroup
+                        _partnerName.value = currentChatInfo.chatName ?: "Hội thoại"
                         _partnerAvatar.value = currentChatInfo.chatAvatar ?: ""
 
-                        val pId = currentChatInfo.targetUserId ?: ""
-                        _partnerId.value = pId
-                        _partnerLastSeen.value = currentChatInfo.targetLastSeen ?: ""
+                        if (currentChatInfo.isGroup) {
+                            // Logic Group: Lấy Group Key và danh sách thành viên
+                            val myParticipant = participantRepository.getParticipant(conversationId, user.id)
+                            myParticipant?.encryptedGroupKey?.let { wrappedKey ->
+                                Log.d("ChatRoomVM", "Đang giải mã Group Key cho conversation: $conversationId")
+                                val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, wrappedKey)
+                                if (groupKeysetBase64.isNotEmpty()) {
+                                    Log.d("ChatRoomVM", "Giải mã Group Key THÀNH CÔNG")
+                                    groupKeysetHandle = CryptoHelper.importKeysetFromBase64(groupKeysetBase64)
+                                } else {
+                                    Log.e("ChatRoomVM", "Giải mã Group Key THẤT BẠI (chuỗi rỗng)")
+                                }
+                            }
+                            
+                            val participants = participantRepository.getParticipants(conversationId)
+                            val nameMap = mutableMapOf<String, String>()
+                            participants.forEach { p ->
+                                val profile = userRepository.getCurrentUser(p.userId)
+                                nameMap[p.userId] = profile?.displayName ?: "Thành viên"
+                            }
+                            _memberNames.value = nameMap
+                            
+                        } else {
+                            // Logic 1-1
+                            val pId = currentChatInfo.targetUserId ?: ""
+                            _partnerId.value = pId
+                            _partnerLastSeen.value = currentChatInfo.targetLastSeen ?: ""
 
-                        if (pId.isNotEmpty()) {
-                            val partnerProfile = userRepository.getCurrentUser(pId)
-                            partnerPublicEncryptKey = partnerProfile?.publicEncryptKey ?: ""
+                            if (pId.isNotEmpty()) {
+                                val partnerProfile = userRepository.getCurrentUser(pId)
+                                partnerPublicEncryptKey = partnerProfile?.publicEncryptKey ?: ""
 
-                            val status = friendRepository.checkFriendStatus(user.id, pId)
-                            _isFriend.value = (status == "friends")
-                            partnerPublicSignKey = partnerProfile?.publicSignKey
-                            observePartnerStatus(pId)
+                                val status = friendRepository.checkFriendStatus(user.id, pId)
+                                _isFriend.value = (status == "friends")
+                                partnerPublicSignKey = partnerProfile?.publicSignKey
+                                observePartnerStatus(pId)
+                            }
                         }
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    Log.e("ChatRoomVM", "Error init: ${e.message}")
+                }
             }
 
             val historyMessages = messageRepository.getMessages(conversationId)
@@ -130,16 +168,16 @@ class ChatRoomViewModel @Inject constructor(
             historyMessages.forEach { msg ->
                 if (msg.senderId != user?.id && !msg.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
-                        user?.id?.let { uid -> messageRepository.markMessageAsSeen(msg.id, uid) }                    }
+                        user?.id?.let { uid -> messageRepository.markMessageAsSeen(msg.id, uid) }
+                    }
                 }
             }
-            messageRepository.subscribeToNewMessages(conversationId
-            , onTyping = { typingUserId ->
+            messageRepository.subscribeToNewMessages(conversationId, onTyping = { typingUserId ->
                     if (typingUserId != _currentUserId.value) {
                         typingJob?.cancel()
                         typingJob = viewModelScope.launch {
                             _isPartnerTyping.value = true
-                            delay(3000) //
+                            delay(3000) 
                             _isPartnerTyping.value = false
                         }
                     }
@@ -150,7 +188,6 @@ class ChatRoomViewModel @Inject constructor(
                 if (decryptedNewMsg.senderId != user?.id && !decryptedNewMsg.seenBy.contains(user?.id)) {
                     viewModelScope.launch {
                         messageRepository.markMessageAsSeen(decryptedNewMsg.id, user!!.id)
-
                         conversationRepository.resetUnreadCount(conversationId, user.id)
                     }
                 }
@@ -177,9 +214,17 @@ class ChatRoomViewModel @Inject constructor(
     }
 
     private fun decryptMessageObj(msg: Message): Message {
-        val isMine = (msg.senderId == _currentUserId.value)
+        if (_isGroup.value) {
+            val handle = groupKeysetHandle
+            return if (handle != null) {
+                val clearText = CryptoHelper.decryptGroupMessage(msg.encryptedContent, handle)
+                msg.copy(encryptedContent = clearText, rawEncryptedContent = msg.encryptedContent)
+            } else {
+                msg.copy(encryptedContent = "🔒 Lỗi giải mã nhóm")
+            }
+        }
 
-        // Nếu không phải tin mình gửi, lấy Sign Key của đối phương để dò mộc
+        val isMine = (msg.senderId == _currentUserId.value)
         val senderSignKey = if (!isMine) partnerPublicSignKey else null
 
         val clearText = CryptoHelper.decryptMessage(
@@ -195,29 +240,35 @@ class ChatRoomViewModel @Inject constructor(
         )
     }
 
-
-
     fun sendMessage(replyToId: String? = null) {
         val content = _messageText.value.trim()
         val senderId = _currentUserId.value
 
         if (content.isEmpty() || senderId.isEmpty()) return
 
-        if (myPublicEncryptKey.isEmpty() || partnerPublicEncryptKey.isEmpty()) {
-            Log.e("CRYPTO_ERROR", "Chưa tải được Public Key, không thể mã hóa tin nhắn!")
-            return
-        }
-
         _messageText.value = ""
 
         viewModelScope.launch {
-
-            val encryptedJsonPayload = CryptoHelper.encryptMessage(
-                context = context,
-                plaintext = content,
-                receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
-                myPublicEncryptKeyBase64 = myPublicEncryptKey
-            )
+            val encryptedJsonPayload = if (_isGroup.value) {
+                val handle = groupKeysetHandle
+                if (handle != null) {
+                    CryptoHelper.encryptGroupMessage(content, handle)
+                } else {
+                    Log.e("CRYPTO_ERROR", "Chưa tải được Group Key!")
+                    return@launch
+                }
+            } else {
+                if (myPublicEncryptKey.isEmpty() || partnerPublicEncryptKey.isEmpty()) {
+                    Log.e("CRYPTO_ERROR", "Chưa tải được Public Key!")
+                    return@launch
+                }
+                CryptoHelper.encryptMessage(
+                    context = context,
+                    plaintext = content,
+                    receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
+                    myPublicEncryptKeyBase64 = myPublicEncryptKey
+                )
+            }
 
             if (encryptedJsonPayload.isNotEmpty()) {
                 messageRepository.sendMessage(
@@ -226,9 +277,8 @@ class ChatRoomViewModel @Inject constructor(
                     content = encryptedJsonPayload,
                     replyToId = replyToId
                 )
-                Log.d("CRYPTO_SUCCESS", "Đã gửi gói tin mã hóa: $encryptedJsonPayload")
             } else {
-                Log.e("CRYPTO_ERROR", "Lỗi trong quá trình mã hóa. Tin nhắn bị hủy.")
+                Log.e("CRYPTO_ERROR", "Lỗi mã hóa tin nhắn.")
             }
         }
     }
@@ -265,20 +315,25 @@ class ChatRoomViewModel @Inject constructor(
                     attachmentRepository.uploadDocument(byteArray, fileName)
                 }
 
-                // 2. Định nghĩa Type và mã hóa nội dung
                 val messageType = if (isImage) "IMAGE" else "FILE"
                 val fallbackText = if (isImage) "[Hình ảnh]" else "[Tệp đính kèm] $fileName"
 
-                val encryptedJsonPayload = CryptoHelper.encryptMessage(
-                    context = context,
-                    plaintext = fallbackText,
-                    receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
-                    myPublicEncryptKeyBase64 = myPublicEncryptKey
-                )
+                val encryptedJsonPayload = if (_isGroup.value) {
+                    val handle = groupKeysetHandle
+                    if (handle != null) {
+                        CryptoHelper.encryptGroupMessage(fallbackText, handle)
+                    } else ""
+                } else {
+                    CryptoHelper.encryptMessage(
+                        context = context,
+                        plaintext = fallbackText,
+                        receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
+                        myPublicEncryptKeyBase64 = myPublicEncryptKey
+                    )
+                }
 
                 if (encryptedJsonPayload.isEmpty()) return@launch
 
-                // 3. Đẩy lên bảng Messages
                 val generatedMessageId = messageRepository.sendMessage(
                     conversationId = conversationId,
                     senderId = _currentUserId.value,
@@ -287,7 +342,6 @@ class ChatRoomViewModel @Inject constructor(
                     replyToId = null
                 )
 
-                // 4. Đẩy lên bảng Attachments
                 attachmentRepository.sendAttachment(
                     messageId = generatedMessageId,
                     fileUrl = fileUrl,
@@ -295,7 +349,6 @@ class ChatRoomViewModel @Inject constructor(
                     fileName = fileName,
                     fileSize = fileSize
                 )
-
 
                 Log.d("UPLOAD_SUCCESS", "Đã gửi $messageType thành công!")
 

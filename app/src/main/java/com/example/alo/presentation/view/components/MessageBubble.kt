@@ -73,6 +73,8 @@ fun MessageBubble(
     showTime: Boolean,
     showDetails: Boolean,
     showRawEncryption: Boolean = false,
+    isGroup: Boolean = false,
+    senderName: String? = null,
     onMessageClick: () -> Unit,
     onMessageLongClick: () -> Unit
 ) {
@@ -153,6 +155,16 @@ fun MessageBubble(
                         .widthIn(max = 240.dp)
                 ) {
                     Column {
+                        // 0. HIỂN THỊ TÊN NGƯỜI GỬI (NẾU LÀ NHÓM VÀ KHÔNG PHẢI MÌNH)
+                        if (isGroup && !isMine && senderName != null) {
+                            Text(
+                                text = senderName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = TextSecondaryColor,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
                         // 1. NẾU CÓ TRÍCH DẪN -> HIỂN THỊ KHỐI QUOTE
                         if (repliedMessage != null) {
                             val isRepliedMine = repliedMessage.senderId == message.senderId

@@ -8,6 +8,12 @@ interface ConversationRepository {
     suspend fun getChatList(currentUserId: String): List<ChatList>
     suspend fun getConversations(userId: String): List<Conversation>
     suspend fun getOrCreateDirectConversation(currentUserId: String, targetUserId: String): String?
+    suspend fun createGroupConversation(
+        name: String,
+        avatarUrl: String?,
+        userIds: List<String>,
+        encryptedKeys: Map<String, String>
+    ): ChatList?
     suspend fun resetUnreadCount(conversationId: String, userId: String)
     fun subscribeToChatListUpdates(currentUserId: String): Flow<Unit>
 }

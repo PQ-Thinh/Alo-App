@@ -14,13 +14,7 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +56,14 @@ fun Message(
     val state by viewModel.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    var selectedFilter by remember { mutableStateOf("Tất cả") }
+    val filteredList = remember(state.chatList, selectedFilter) {
+        if (selectedFilter == "Nhóm") {
+            state.chatList.filter { it.isGroup }
+        } else {
+            state.chatList
+        }
+    }
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -211,20 +213,48 @@ fun Message(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    Text(
-                        text = "Tin nhắn",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimaryColor,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Tin nhắn",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimaryColor
+                        )
+                        
+                        // Filter Chips
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Tất cả", "Nhóm").forEach { filter ->
+                                val isSelected = selectedFilter == filter
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isSelected) Color(0xFF6C63FF) else Color(0xFFE8EAF6))
+                                        .clickable { selectedFilter = filter }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = filter,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color.White else TextSecondaryColor
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // Danh sách Chat chính
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 16.dp)
+                        contentPadding = PaddingValues(bottom = 16.dp) 
                     ) {
-                        items(state.chatList, key = { it.conversationId }) { chat ->
+                        items(filteredList, key = { it.conversationId }) { chat ->
                             val userStatus = getUserStatus(chat.targetLastSeen)
                             ChatItem(
                                 chat = chat,
@@ -253,16 +283,11 @@ fun ChatItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(16.dp),
-                clip = false
-            )
-            .clip(RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(60.dp)) {

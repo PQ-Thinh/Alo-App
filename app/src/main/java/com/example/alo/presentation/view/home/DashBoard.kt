@@ -8,16 +8,22 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
@@ -29,6 +35,7 @@ import com.example.alo.presentation.view.chat.Contact
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.profile.ProfileScreen
 import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -97,7 +104,7 @@ fun DashboardScreen(
                                 text = { Text("Tạo nhóm", color=TextPrimaryColor) },
                                 onClick = {
                                     expandedMenu = false
-                                    // TODO: Mở popup hoặc chuyển màn hình Tạo nhóm
+                                    navController.navigate(Screen.CreateGroup.route)
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.GroupAdd, contentDescription = null, tint = primaryColor)
@@ -109,53 +116,47 @@ fun DashboardScreen(
             }
         },
         bottomBar = {
-            // Hiệu ứng "Đảo nổi" (Floating Bottom Bar)
-            Box(
+            NavigationBar(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp) // Cách hai bên và lề dưới
-                    .shadow(
-                        elevation = 16.dp, // Đổ bóng tạo cảm giác lơ lửng
-                        shape = RoundedCornerShape(24.dp), // Bo tròn 4 góc
-                        spotColor = Color.Black.copy(alpha = 0.1f) // Làm mềm màu bóng
-                    )
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CardBackgroundColor) // Màu trắng
+                    .height(80.dp)
+                    .shadow(elevation = 8.dp, spotColor = Color.Black.copy(alpha = 0.1f)),
+                containerColor = CardBackgroundColor,
+                tonalElevation = 0.dp
             ) {
-                NavigationBar(
-                    modifier = Modifier.height(72.dp),
-                    containerColor = Color.Transparent, // Để trong suốt để ăn theo màu Box
-                    tonalElevation = 0.dp,
-                    windowInsets = WindowInsets(0, 0, 0, 0) // Loại bỏ vùng đệm mặc định của hệ thống
-                ) {
-                    val items = listOf(
-                        Triple("Tin nhắn", Icons.Default.Email, 0),
-                        Triple("Danh bạ", Icons.Default.AccountBox, 1),
-                        Triple("Cá nhân", Icons.Default.Person, 2)
-                    )
+                val items = listOf(
+                    NavItem("Tin nhắn", Icons.Outlined.Email, Icons.Default.Email, 0),
+                    NavItem("Danh bạ", Icons.Outlined.AccountBox, Icons.Default.AccountBox, 1),
+                    NavItem("Cá nhân", Icons.Outlined.Person, Icons.Default.Person, 2)
+                )
 
-                    items.forEach { (title, icon, index) ->
-                        val isSelected = pagerState.currentPage == index
+                items.forEach { item ->
+                    val isSelected = pagerState.currentPage == item.index
 
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            icon = { Icon(icon, contentDescription = title) },
-                            label = { Text(title, fontWeight = FontWeight.SemiBold) },
-                            alwaysShowLabel = false,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = primaryColor,
-                                selectedTextColor = primaryColor,
-                                unselectedIconColor = TextSecondaryColor,
-                                unselectedTextColor = TextSecondaryColor,
-                                indicatorColor = primaryColor.copy(alpha = 0.1f) // Khối highlight nhạt phía sau icon
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(item.index)
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                if (isSelected) item.filled else item.outlined,
+                                contentDescription = item.title,
+                                modifier = Modifier.size(22.dp)
                             )
+                        },
+                        label = { Text(item.title, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        alwaysShowLabel = false,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = primaryColor,
+                            selectedTextColor = primaryColor,
+                            unselectedIconColor = TextSecondaryColor,
+                            unselectedTextColor = TextSecondaryColor,
+                            indicatorColor = primaryColor.copy(alpha = 0.1f)
                         )
-                    }
+                    )
                 }
             }
         }
@@ -192,3 +193,9 @@ fun DashboardScreen(
         }
     }
 }
+private data class NavItem(
+    val title: String,
+    val outlined: androidx.compose.ui.graphics.vector.ImageVector,
+    val filled: androidx.compose.ui.graphics.vector.ImageVector,
+    val index: Int
+)

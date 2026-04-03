@@ -38,10 +38,10 @@ val SurfaceDark = Color(0xFF1A1C1E)
 val OnBackgroundDark = Color(0xFFE2E2E6)
 
 // Định nghĩa một số màu sắc tĩnh dùng chung để đồng nhất Light/Dark Mode
-val AppBackgroundColor = Color(0xFFF5F6FA) // Nền tổng thể xám siêu nhạt giúp "đảo nổi" đẹp hơn
-val TextPrimaryColor = Color(0xFF1D1D1D) // Đen tuyền cho chữ chính
-val TextSecondaryColor = Color(0xFF757575) // Xám cho chữ phụ
-val CardBackgroundColor = Color(0xFFFFFFFF) // Màu trắng cho đảo nổi
-val ErrorColor = Color(0xFFD32F2F) // Đỏ cho lỗi
+val AppBackgroundColor = Color(0xFFF1F5F9) // Slate-50: Xám nhạt hiện đại
+val TextPrimaryColor = Color(0xFF0F172A) // Slate-900: Xanh than đậm
+val TextSecondaryColor = Color(0xFF64748B) // Slate-500: Xám trung tính
+val CardBackgroundColor = Color(0xFFFFFFFF) // Trắng thuần
+val ErrorColor = Color(0xFFEF4444) // Đỏ san hô
 
 val primaryColor = Color(0xFF6C63FF)

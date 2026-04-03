@@ -170,6 +170,10 @@ fun AppNavigation(
             )
         }
 
+        composable(route = Screen.CreateGroup.route) {
+            com.example.alo.presentation.view.home.CreateGroupScreen(navController = navController)
+        }
+
         // ──────────────────────────────────────────
         // Gọi Graph riêng biệt của Video Call
         // ──────────────────────────────────────────

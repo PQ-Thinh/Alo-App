@@ -24,6 +24,24 @@ class ParticipantRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getParticipant(conversationId: String, userId: String): Participant? {
+        return try {
+            val dto = supabaseClient.postgrest["participants"]
+                .select { 
+                    filter { 
+                        and {
+                            eq("conversation_id", conversationId)
+                            eq("user_id", userId)
+                        }
+                    }
+                }
+                .decodeSingle<ParticipantDto>()
+            dto.toDomain()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override suspend fun addParticipant(conversationId: String, userId: String, role: String) {
         try {
             val participantBody = mapOf(

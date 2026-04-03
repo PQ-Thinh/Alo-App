@@ -94,6 +94,8 @@ fun ChatRoomScreen(
     val isShowingRawEncryption by viewModel.isShowingRawEncryption.collectAsState()
 
     val isFriend by viewModel.isFriend.collectAsState()
+    val isGroup by viewModel.isGroup.collectAsState()
+    val memberNames by viewModel.memberNames.collectAsState()
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -293,7 +295,7 @@ fun ChatRoomScreen(
                             }
                         }
 
-                        if (userStatus.isOnline) {
+                        if (userStatus.isOnline && !isGroup) {
                             Box(
                                 modifier = Modifier
                                     .size(12.dp)
@@ -317,9 +319,9 @@ fun ChatRoomScreen(
                             maxLines = 1
                         )
                         Text(
-                            text = userStatus.statusText,
+                            text = if (isGroup) "Nhóm" else userStatus.statusText,
                             fontSize = 12.sp,
-                            color = if (userStatus.isOnline) Color(0xFF4CAF50) else TextSecondaryColor,
+                            color = if (userStatus.isOnline && !isGroup) Color(0xFF4CAF50) else TextSecondaryColor,
                             maxLines = 1
                         )
                     }
@@ -345,23 +347,31 @@ fun ChatRoomScreen(
                             modifier = Modifier.size(20.dp) // Kích thước icon bên trong
                         )
                     }
-                    IconButton(onClick = {
-                        startCallAction()
-                    }, modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = {
+                            if (!isGroup) startCallAction() else Toast.makeText(context, "Tính năng gọi nhóm đang phát triển", Toast.LENGTH_SHORT).show()
+                        }, 
+                        modifier = Modifier.size(36.dp),
+                        enabled = !isGroup
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Call,
                             contentDescription = "Call",
-                            tint = Color(0xFF6C63FF),
+                            tint = if (isGroup) Color.Gray else Color(0xFF6C63FF),
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = {
-                        startCallAction()
-                    }, modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = {
+                            if (!isGroup) startCallAction() else Toast.makeText(context, "Tính năng gọi nhóm đang phát triển", Toast.LENGTH_SHORT).show()
+                        }, 
+                        modifier = Modifier.size(36.dp),
+                        enabled = !isGroup
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Videocam,
                             contentDescription = "Video Call",
-                            tint = Color(0xFF6C63FF),
+                            tint = if (isGroup) Color.Gray else Color(0xFF6C63FF),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -498,6 +508,8 @@ fun ChatRoomScreen(
                                 showAvatar = isLastInGroup,
                                 showTime = showSmallTime,
                                 showDetails = activeDetailsMessageId == message.id,
+                                isGroup = isGroup,
+                                senderName = memberNames[message.senderId],
 
                                 onMessageClick = {
                                     activeDetailsMessageId =
