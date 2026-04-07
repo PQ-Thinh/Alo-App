@@ -44,6 +44,7 @@ import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.ErrorColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
+import com.example.alo.presentation.theme.primaryColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -331,14 +332,60 @@ fun ChatItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = chat.chatName ?: "Người dùng ẩn danh",
-                fontWeight = if (hasUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
-                fontSize = 17.sp,
-                color = TextPrimaryColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = chat.chatName ?: "Người dùng ẩn danh",
+                    fontWeight = if (hasUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    fontSize = 17.sp,
+                    color = TextPrimaryColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                
+                if (!chat.isGroup) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    if (userStatus.isOnline) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(Color(0xFF4CAF50), CircleShape)
+                        )
+                    } else {
+                        val shortTime = userStatus.statusText
+                            .replace("Hoạt động ", "")
+                            .replace(" phút trước", "p")
+                            .replace(" giờ trước", "h")
+                            .replace(" ngày trước", "d")
+                            .replace("Vừa mới truy cập", "1p")
+                            
+                        Text(
+                            text = shortTime,
+                            fontSize = 11.sp,
+                            color = TextSecondaryColor.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else if (!chat.status.isNullOrEmpty()) {
+                    // HIỂN THỊ STATUS NHÓM Ở NGOÀI DANH SÁCH
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        color = primaryColor.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = chat.status,
+                            fontSize = 10.sp,
+                            color = primaryColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 

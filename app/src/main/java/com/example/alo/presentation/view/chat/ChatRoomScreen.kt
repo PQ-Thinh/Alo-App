@@ -9,8 +9,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
+import androidx.core.content.ContextCompat
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Videocam
@@ -325,17 +331,67 @@ fun ChatRoomScreen(
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
+                        
+                        // Enhanced Status Display
                         val groupStatus by viewModel.groupStatus.collectAsState()
-                        Text(
-                            text = if (isGroup) {
-                                groupStatus ?: "Nhóm • Nhấn để xem thành viên"
-                            } else userStatus.statusText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (userStatus.isOnline && !isGroup) Color(0xFF4CAF50) else TextSecondaryColor,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        val isOnline = userStatus.isOnline && !isGroup
+                        
+                        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                        val pulseScale by infiniteTransition.animateFloat(
+                            initialValue = 0.6f,
+                            targetValue = 1.0f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1200),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "scale"
                         )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .then(
+                                    if (isOnline || isGroup) {
+                                        Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isOnline) Color(0xFF4CAF50).copy(alpha = 0.1f)
+                                                else primaryColor.copy(alpha = 0.1f)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    } else Modifier
+                                )
+                        ) {
+                            if (isOnline) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0xFF4CAF50).copy(alpha = pulseScale))
+                                        .background(Color(0xFF4CAF50), CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            } else if (isGroup) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            
+                            Text(
+                                text = if (isGroup) {
+                                    groupStatus ?: "Nhóm • Nhấn để xem thành viên"
+                                } else userStatus.statusText,
+                                fontSize = 11.sp,
+                                fontWeight = if (isOnline || isGroup) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isOnline) Color(0xFF2E7D32) else if (isGroup) primaryColor else TextSecondaryColor,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 

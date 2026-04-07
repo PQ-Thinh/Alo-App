@@ -1,5 +1,6 @@
 package com.example.alo.presentation.view.chat
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,11 +20,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +37,7 @@ import coil3.compose.AsyncImage
 import com.example.alo.presentation.theme.*
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.viewmodel.GroupDetailViewModel
+import com.example.alo.presentation.viewmodel.UserWithRole
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,7 +155,7 @@ fun GroupDetailScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .background(
-                                                brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                                brush = Brush.linearGradient(
                                                     colors = listOf(primaryColor, primaryColor.copy(alpha = 0.7f))
                                                 )
                                             ),
@@ -220,11 +226,14 @@ fun GroupDetailScreen(
                     if (!state.groupStatus.isNullOrEmpty()) {
                         Surface(
                             modifier = Modifier
-                                .padding(top = 10.dp, horizontal = 40.dp)
+                                .padding(
+                                top = 10.dp)
+                                .padding(horizontal = 40.dp)
                                 .clickable { 
                                     newGroupStatus = state.groupStatus ?: ""
                                     showEditStatusDialog = true 
-                                },
+                                }
+                               ,
                             shape = RoundedCornerShape(12.dp),
                             color = primaryColor.copy(alpha = 0.05f)
                         ) {
@@ -233,7 +242,7 @@ fun GroupDetailScreen(
                                 fontSize = 14.sp,
                                 color = TextPrimaryColor.copy(alpha = 0.7f),
                                 fontWeight = FontWeight.Normal,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                fontStyle = FontStyle.Italic,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 textAlign = TextAlign.Center
                             )
@@ -263,7 +272,7 @@ fun GroupDetailScreen(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.People,
+                                imageVector = Icons.Default.People,
                                 contentDescription = null,
                                 tint = primaryColor,
                                 modifier = Modifier.size(14.dp)
@@ -297,7 +306,7 @@ fun GroupDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     QuickActionItem(Icons.Default.PersonAdd, "Thêm tv") { 
-                        android.util.Log.d("UI_CLICK", "User click vào nút Thêm TV - ID: ${state.conversationId}")
+                        Log.d("UI_CLICK", "User click vào nút Thêm TV - ID: ${state.conversationId}")
                         navController.navigate(Screen.AddMember.createRoute(state.conversationId))
                     }
                     QuickActionItem(Icons.Default.Search, "Tìm kiếm") { /* TODO */ }
@@ -377,7 +386,7 @@ fun GroupDetailScreen(
                                         text = task.title,
                                         fontSize = 14.sp,
                                         color = if (task.isCompleted) TextSecondaryColor else TextPrimaryColor,
-                                        textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
                                         modifier = Modifier.weight(1f),
                                         fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.Medium
                                     )
@@ -405,7 +414,7 @@ fun GroupDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { 
-                                android.util.Log.d("UI_CLICK", "Navigating to Group Members list - ID: ${state.conversationId}")
+                                Log.d("UI_CLICK", "Navigating to Group Members list - ID: ${state.conversationId}")
                                 navController.navigate(Screen.GroupMembers.createRoute(state.conversationId)) 
                             }
                             .padding(16.dp),
@@ -423,7 +432,7 @@ fun GroupDetailScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Thành viên nhóm", fontWeight = FontWeight.Bold, color = TextPrimaryColor)
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("${state.members.size} người", fontSize = 12.sp, color = TextSecondaryColor)
                                 if (state.isLoading) {
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -501,7 +510,7 @@ fun GroupDetailScreen(
 }
 
 @Composable
-fun MediaRowItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, count: String, onClick: () -> Unit) {
+fun MediaRowItem(icon: ImageVector, title: String, count: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -522,7 +531,7 @@ fun MediaRowItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: S
 }
 
 @Composable
-fun QuickActionItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+fun QuickActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(onClick = onClick).padding(8.dp)
@@ -597,7 +606,7 @@ fun SectionHeader(title: String) {
 
 @Composable
 fun MemberItem(
-    member: com.example.alo.presentation.viewmodel.UserWithRole,
+    member: UserWithRole,
     isAdmin: Boolean,
     isMe: Boolean,
     onRemove: () -> Unit
@@ -620,7 +629,7 @@ fun MemberItem(
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize().clip(CircleShape).background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        brush = Brush.linearGradient(
                             colors = listOf(primaryColor.copy(alpha = 0.2f), primaryColor.copy(alpha = 0.1f))
                         )
                     ),
