@@ -11,6 +11,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +49,7 @@ import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
-import com.example.alo.presentation.view.call.ActiveCallScreen
+import com.example.alo.presentation.theme.primaryColor
 import com.example.alo.presentation.view.components.ChatBottomBar
 import com.example.alo.presentation.view.components.EmptyChatGreeting
 import com.example.alo.presentation.view.components.MessageActionOverlay
@@ -95,7 +96,7 @@ fun ChatRoomScreen(
 
     val isFriend by viewModel.isFriend.collectAsState()
     val isGroup by viewModel.isGroup.collectAsState()
-    val memberNames by viewModel.memberNames.collectAsState()
+    val memberProfiles by viewModel.memberProfiles.collectAsState()
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -245,7 +246,7 @@ fun ChatRoomScreen(
                     .fillMaxWidth()
                     .background(AppBackgroundColor)
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -253,29 +254,34 @@ fun ChatRoomScreen(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 12.dp)
-                        .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(CardBackgroundColor) // Đảo Trắng
-                        .clickable { /* TODO: Chuyển đến xem Profile */ }
+                        .padding(end = 8.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(28.dp), spotColor = primaryColor.copy(alpha = 0.2f))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White)
+                        .clickable(enabled = if (isGroup) conversationId.isNotEmpty() else partnerId.isNotEmpty()) { 
+                            if (isGroup) {
+                                navController.navigate(Screen.GroupDetail.createRoute(conversationId))
+                            } else {
+                                navController.navigate(Screen.Profile.createRoute(partnerId))
+                            }
+                        }
                         .padding(start = 4.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = TextPrimaryColor)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = TextPrimaryColor, modifier = Modifier.size(22.dp))
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Avatar
-                    Box(modifier = Modifier.size(38.dp)) {
+                    
+                    // Avatar with Online Status
+                    Box(modifier = Modifier.size(42.dp)) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape)
-                                .background(Color(0xFFE8EAF6)),
+                                .background(primaryColor.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             if (partnerAvatar.isNotEmpty()) {
@@ -288,41 +294,47 @@ fun ChatRoomScreen(
                             } else {
                                 Text(
                                     text = partnerName.firstOrNull()?.uppercase() ?: "?",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF6C63FF),
-                                    fontSize = 16.sp
+                                    fontWeight = FontWeight.Black,
+                                    color = primaryColor,
+                                    fontSize = 18.sp
                                 )
                             }
                         }
 
                         if (userStatus.isOnline && !isGroup) {
-                            Box(
+                            Surface(
                                 modifier = Modifier
-                                    .size(12.dp)
-                                    .align(Alignment.BottomEnd)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF4CAF50))
-                                    .border(2.dp, CardBackgroundColor, CircleShape) // Cắt viền với đảo trắng
-                            )
+                                    .size(13.dp)
+                                    .align(Alignment.BottomEnd),
+                                shape = CircleShape,
+                                color = Color(0xFF4CAF50),
+                                border = BorderStroke(2.dp, Color.White)
+                            ) {}
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Name & Status
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(
                             text = partnerName,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
                             color = TextPrimaryColor,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
+                        val groupStatus by viewModel.groupStatus.collectAsState()
                         Text(
-                            text = if (isGroup) "Nhóm" else userStatus.statusText,
-                            fontSize = 12.sp,
+                            text = if (isGroup) {
+                                groupStatus ?: "Nhóm • Nhấn để xem thành viên"
+                            } else userStatus.statusText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
                             color = if (userStatus.isOnline && !isGroup) Color(0xFF4CAF50) else TextSecondaryColor,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -330,66 +342,60 @@ fun ChatRoomScreen(
                 // --- ĐẢO PHẢI: Các nút Hành động ---
                 Row(
                     modifier = Modifier
-                        .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(CardBackgroundColor) // Đảo Trắng
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(28.dp), spotColor = primaryColor.copy(alpha = 0.2f))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = { viewModel.toggleEncryptionView() },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(42.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isShowingRawEncryption) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = "Bật/Tắt giải mã",
-                            tint = if (isShowingRawEncryption) Color(0xFFE91E63) else Color(0xFF6C63FF),
-                            modifier = Modifier.size(20.dp) // Kích thước icon bên trong
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isShowingRawEncryption) Color(0xFFFFE1E1) else primaryColor.copy(alpha = 0.05f),
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (isShowingRawEncryption) Icons.Default.Lock else Icons.Default.LockOpen,
+                                    contentDescription = "Bật/Tắt giải mã",
+                                    tint = if (isShowingRawEncryption) Color(0xFFE91E63) else primaryColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
+                    
                     IconButton(
                         onClick = {
                             if (!isGroup) startCallAction() else Toast.makeText(context, "Tính năng gọi nhóm đang phát triển", Toast.LENGTH_SHORT).show()
                         }, 
-                        modifier = Modifier.size(36.dp),
-                        enabled = !isGroup
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = "Call",
-                            tint = if (isGroup) Color.Gray else Color(0xFF6C63FF),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            if (!isGroup) startCallAction() else Toast.makeText(context, "Tính năng gọi nhóm đang phát triển", Toast.LENGTH_SHORT).show()
-                        }, 
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(42.dp),
                         enabled = !isGroup
                     ) {
                         Icon(
                             imageVector = Icons.Default.Videocam,
                             contentDescription = "Video Call",
-                            tint = if (isGroup) Color.Gray else Color(0xFF6C63FF),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (isGroup) Color.LightGray else primaryColor,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
             }
                 AnimatedVisibility(visible = !isFriend) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFFFF3E0))
-                            .padding(vertical = 8.dp, horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFFFFF8E1)
                     ) {
                         Text(
-                            text = "Người này chưa có trong danh sách bạn bè. Hãy cẩn thận khi chia sẻ thông tin cá nhân.",
-                            fontSize = 12.sp,
-                            color = Color(0xFFE65100),
-                            textAlign = TextAlign.Center
+                            text = "Người này chưa có trong danh sách bạn bè. Hãy cẩn thận!",
+                            fontSize = 11.sp,
+                            color = Color(0xFFFF8F00),
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 6.dp)
                         )
                     }
                 }
@@ -509,7 +515,8 @@ fun ChatRoomScreen(
                                 showTime = showSmallTime,
                                 showDetails = activeDetailsMessageId == message.id,
                                 isGroup = isGroup,
-                                senderName = memberNames[message.senderId],
+                                senderName = memberProfiles[message.senderId]?.displayName,
+                                memberAvatar = memberProfiles[message.senderId]?.avatarUrl,
 
                                 onMessageClick = {
                                     activeDetailsMessageId =
@@ -518,6 +525,9 @@ fun ChatRoomScreen(
                                 onMessageLongClick = {
                                     activeDetailsMessageId = null
                                     selectedMessageForOverlay = message
+                                },
+                                onAvatarClick = { userId ->
+                                    navController.navigate(Screen.Profile.createRoute(userId))
                                 },
                                 showRawEncryption = isShowingRawEncryption
                             )

@@ -74,6 +74,7 @@ user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
 role VARCHAR(20) DEFAULT 'member',
 unread_count INT DEFAULT 0,
 encrypted_group_key TEXT,
+status TEXT,
 joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
 PRIMARY KEY (conversation_id, user_id)
 );
@@ -105,6 +106,19 @@ direction VARCHAR(20), -- 'incoming' hoặc 'outgoing'
 is_video BOOLEAN DEFAULT TRUE,
 end_reason VARCHAR(50), -- 'ended', 'missed', 'rejected', 'cancelled'
 created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+CREATE TABLE public.shared_tasks (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+creator_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+assignee_id UUID REFERENCES public.users(id) ON DELETE SET NULL, -- Thành viên được giao nhiệm vụ
+title TEXT NOT NULL,
+description TEXT,
+due_date TIMESTAMP WITH TIME ZONE,
+is_completed BOOLEAN DEFAULT FALSE,
+created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
 CREATE INDEX idx_videocall_message_id ON public.video_calls(message_id);
@@ -430,23 +444,23 @@ END IF;
 END$$;
 --3.13. Create Group
 CREATE OR REPLACE FUNCTION create_group_conversation(
-    p_name TEXT, 
-    p_avatar_url TEXT, 
-    p_user_ids JSONB, 
-    p_encrypted_keys JSONB
+p_name TEXT,
+p_avatar_url TEXT,
+p_user_ids JSONB,
+p_encrypted_keys JSONB
 )
 RETURNS SETOF public.chat_list_view
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_conversation_id UUID;
-    v_user_id TEXT;
-    v_creator_id UUID := auth.uid();
+v_conversation_id UUID;
+v_user_id TEXT;
+v_creator_id UUID := auth.uid();
 BEGIN
-    IF v_creator_id IS NULL THEN
-        RAISE EXCEPTION 'Chưa đăng nhập';
-    END IF;
+IF v_creator_id IS NULL THEN
+RAISE EXCEPTION 'Chưa đăng nhập';
+END IF;
 
     -- 1. Tạo bản ghi cuộc hội thoại
     INSERT INTO public.conversations (is_group, name, avatar_url)
@@ -472,7 +486,6 @@ BEGIN
     WHERE conversation_id = v_conversation_id AND current_user_id = v_creator_id;
 END;
 $$;
-
 -- ==========================================
 -- PHẦN 4: THIẾT LẬP BẢO MẬT RLS (ROW LEVEL SECURITY)
 -- ==========================================
@@ -486,6 +499,8 @@ ALTER TABLE public.message_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shared_tasks ENABLE ROW LEVEL SECURITY;
+
 
 ALTER TABLE public.user_devices ADD CONSTRAINT unique_user_device UNIQUE (user_id, device_name);
 
@@ -511,10 +526,27 @@ TO authenticated
 WITH CHECK (true);
 
 -- --- POLICY CHO BẢNG PARTICIPANTS ---
-CREATE POLICY "Users can view their participant records"
+-- 2. Tạo một hàm kiểm tra quyền thành viên (SECURITY DEFINER giúp bỏ qua RLS của bảng đó khi kiểm tra)
+CREATE OR REPLACE FUNCTION public.is_member_of(p_conversation_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+SELECT EXISTS (
+SELECT 1 FROM public.participants
+WHERE conversation_id = p_conversation_id
+AND user_id = auth.uid()
+);
+$$;
+-- 3. Tạo lại policy mới sử dụng hàm trung gian
+CREATE POLICY "Users can view participants in shared conversations"
 ON public.participants FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());
+USING (
+is_member_of(conversation_id)
+);
 
 CREATE POLICY "Users can add participants"
 ON public.participants FOR INSERT
@@ -559,6 +591,16 @@ CREATE POLICY "Auth Insert"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK ( bucket_id = 'avatars' );
+
+-- Chính sách: Chỉ thành viên trong phòng mới được xem và quản lý task của phòng đó
+CREATE POLICY "Users can view and manage tasks in their conversations"
+ON public.shared_tasks FOR ALL
+TO authenticated
+USING (
+conversation_id IN (
+SELECT conversation_id FROM public.participants WHERE user_id = auth.uid()
+)
+);
 
 
 CREATE POLICY "Allow reading all reactions"

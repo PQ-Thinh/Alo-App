@@ -9,5 +9,6 @@ data class Conversation(
     val lastMessagePreview: String?,
     val lastMessageTime: String?,
     val hiddenPinHash: String?,
-    val createdAt: String
+    val createdAt: String,
+    val status: String? = null
 )

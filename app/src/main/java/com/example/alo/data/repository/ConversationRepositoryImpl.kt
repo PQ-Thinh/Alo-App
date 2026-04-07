@@ -132,4 +132,32 @@ class ConversationRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun updateGroupMetadata(conversationId: String, name: String?, avatarUrl: String?, status: String?) {
+        try {
+            supabaseClient.postgrest["conversations"]
+                .update({
+                    if (name != null) set("name", name)
+                    if (avatarUrl != null) set("avatar_url", avatarUrl)
+                    if (status != null) set("status", status)
+                }) {
+                    filter { eq("id", conversationId) }
+                }
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi updateGroupMetadata: ${e.message}", e)
+            throw e
+        }
+    }
+
+    override suspend fun deleteConversation(conversationId: String) {
+        try {
+            supabaseClient.postgrest["conversations"]
+                .delete {
+                    filter { eq("id", conversationId) }
+                }
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi deleteConversation: ${e.message}", e)
+            throw e
+        }
+    }
 }

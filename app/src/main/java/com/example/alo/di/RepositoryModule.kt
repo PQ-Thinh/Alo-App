@@ -7,6 +7,7 @@ import com.example.alo.data.repository.FriendRepositoryImpl
 import com.example.alo.data.repository.MessageRepositoryImpl
 import com.example.alo.data.repository.ParticipantRepositoryImpl
 import com.example.alo.data.repository.PushNotiRepositoryImpl
+import com.example.alo.data.repository.SharedTaskRepositoryImpl
 import com.example.alo.data.repository.UserDeviceRepositoryImpl
 import com.example.alo.data.repository.UserRepositoryImpl
 import com.example.alo.data.repository.VideoCallRepositoryImpl
@@ -17,6 +18,7 @@ import com.example.alo.domain.repository.FriendRepository
 import com.example.alo.domain.repository.MessageRepository
 import com.example.alo.domain.repository.ParticipantRepository
 import com.example.alo.domain.repository.PushNotiRepository
+import com.example.alo.domain.repository.SharedTaskRepository
 import com.example.alo.domain.repository.UserDeviceRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.domain.repository.VideoCallRepository
@@ -89,5 +91,11 @@ abstract class RepositoryModule {
     abstract fun bindVideoCallRepository(
         videoCallRepositoryImpl: VideoCallRepositoryImpl
     ): VideoCallRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSharedTaskRepository(
+        sharedTaskRepositoryImpl: SharedTaskRepositoryImpl
+    ): SharedTaskRepository
 
 }

@@ -12,6 +12,7 @@ interface UserRepository {
     suspend fun updateLastSeen()
     fun startHeartbeat()
     fun stopHeartbeat()
+    suspend fun getUsersByIds(userIds: List<String>): List<User>
     fun observeUserStatus(targetUserId: String): Flow<String?>
     fun observeListUsersStatus(userIds: List<String>): Flow<Pair<String, String?>>
 

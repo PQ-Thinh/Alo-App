@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.alo.MainActivity.Companion.ACTION_INCOMING_CALL_ACCEPT
+import com.example.alo.MainActivity.Companion.ACTION_INCOMING_CALL_DECLINE
 import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.view.auth.CreateNewPasswordScreen
 import com.example.alo.presentation.view.auth.ForgotPasswordScreen
@@ -22,11 +24,18 @@ import com.example.alo.presentation.view.call.ActiveCallScreen
 import com.example.alo.presentation.view.call.IncomingCallScreen
 import com.example.alo.presentation.view.call.OutgoingCallScreen
 import com.example.alo.presentation.view.chat.ChatRoomScreen
+import com.example.alo.presentation.view.chat.GroupDetailScreen
+import com.example.alo.presentation.view.chat.GroupMembersScreen
+import com.example.alo.presentation.view.chat.AddMemberScreen
+import com.example.alo.presentation.view.chat.CreateTaskScreen
 import com.example.alo.presentation.view.home.AnimatedSplashScreen
+import com.example.alo.presentation.view.home.CreateGroupScreen
 import com.example.alo.presentation.view.home.DashboardScreen
 import com.example.alo.presentation.view.home.IntroScreen
 import com.example.alo.presentation.view.profile.EditProfileScreen
+import com.example.alo.presentation.view.profile.ProfileScreen
 import com.example.alo.presentation.view.profile.ProfileSetupScreen
+import com.example.alo.presentation.viewmodel.AuthViewModel
 import com.example.alo.presentation.viewmodel.CallViewModel
 import com.example.alo.presentation.viewmodel.UserViewModel
 import java.net.URLDecoder
@@ -46,7 +55,7 @@ fun AppNavigation(
     // Navigate to chat room from push notification
     LaunchedEffect(pushConversationId) {
         if (pushConversationId != null) {
-            navController.navigate("chat_room_screen/$pushConversationId")
+            navController.navigate(Screen.ChatRoom.createRoute(pushConversationId))
         }
     }
 
@@ -55,13 +64,13 @@ fun AppNavigation(
         if (pushCallId != null) {
             callViewModel.initStreamClient()
             when (pushCallAction) {
-                com.example.alo.MainActivity.ACTION_INCOMING_CALL_ACCEPT -> {
+               ACTION_INCOMING_CALL_ACCEPT -> {
                     callViewModel.acceptCall(pushCallId)
                     navController.navigate(Screen.ActiveCall.createRoute(pushCallId)) {
                         popUpTo(0) { inclusive = false }
                     }
                 }
-                com.example.alo.MainActivity.ACTION_INCOMING_CALL_DECLINE -> {
+               ACTION_INCOMING_CALL_DECLINE -> {
                     callViewModel.rejectCall(pushCallId)
                 }
                 else -> {
@@ -148,6 +157,28 @@ fun AppNavigation(
         }
 
         composable(
+            route = Screen.Profile.route,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val authViewModel: AuthViewModel = hiltViewModel()
+
+            ProfileScreen(
+                userId = userId,
+                authViewModel = authViewModel,
+                onNavigateToEditProfile = { id ->
+                    navController.navigate(Screen.EditProfile.createRoute(id))
+                },
+                onLogoutSuccess = {
+                    navController.navigate(Screen.Intro.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
             route = Screen.EditProfile.route,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -187,8 +218,40 @@ fun AppNavigation(
             )
         }
 
+        composable(
+            route = Screen.GroupDetail.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType }
+            )
+        ) {
+            GroupDetailScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.GroupMembers.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType }
+            )
+        ) {
+            GroupMembersScreen(navController = navController)
+        }
+
         composable(route = Screen.CreateGroup.route) {
-            com.example.alo.presentation.view.home.CreateGroupScreen(navController = navController)
+           CreateGroupScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.AddMember.route,
+            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+        ) {
+            AddMemberScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.CreateTask.route,
+            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+        ) {
+            CreateTaskScreen(navController = navController)
         }
 
         // ──────────────────────────────────────────

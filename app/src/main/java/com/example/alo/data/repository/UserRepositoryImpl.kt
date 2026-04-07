@@ -137,6 +137,25 @@ class UserRepositoryImpl @Inject constructor(
         heartbeatJob = null
     }
 
+    override suspend fun getUsersByIds(userIds: List<String>): List<User> {
+        if (userIds.isEmpty()) return emptyList()
+        return try {
+            val idsString = userIds.joinToString(",")
+            val dtos = supabaseClient.postgrest["users"]
+                .select {
+                    filter {
+                        // Trả lại dấu ngoặc đơn vì nó cần thiết cho cú pháp in.() của Postgrest
+                        filter("id", FilterOperator.IN, "($idsString)")
+                    }
+                }
+                .decodeList<UserDto>()
+            dtos.map { it.toDomain() }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Lỗi lấy danh sách User theo IDs: ${e.message}")
+            emptyList()
+        }
+    }
+
     override fun observeUserStatus(targetUserId: String): Flow<String?> {
         val statusChannel = supabaseClient.realtime.channel("user_status_$targetUserId")
 

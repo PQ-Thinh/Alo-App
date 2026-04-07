@@ -77,8 +77,11 @@ class ChatRoomViewModel @Inject constructor(
     private val _isGroup = MutableStateFlow(false)
     val isGroup: StateFlow<Boolean> = _isGroup.asStateFlow()
 
-    private val _memberNames = MutableStateFlow<Map<String, String>>(emptyMap())
-    val memberNames: StateFlow<Map<String, String>> = _memberNames.asStateFlow()
+    private val _memberProfiles = MutableStateFlow<Map<String, com.example.alo.domain.model.User>>(emptyMap())
+    val memberProfiles: StateFlow<Map<String, com.example.alo.domain.model.User>> = _memberProfiles.asStateFlow()
+
+    private val _groupStatus = MutableStateFlow<String?>(null)
+    val groupStatus: StateFlow<String?> = _groupStatus.asStateFlow()
 
 
     // cache save publicEncryptKey
@@ -102,8 +105,6 @@ class ChatRoomViewModel @Inject constructor(
             if (user != null) {
                 _currentUserId.value = user.id
                 try {
-                    conversationRepository.resetUnreadCount(conversationId, user.id)
-
                     val myProfile = userRepository.getCurrentUser(user.id)
                     myPublicEncryptKey = myProfile?.publicEncryptKey ?: ""
 
@@ -114,8 +115,10 @@ class ChatRoomViewModel @Inject constructor(
                         _isGroup.value = currentChatInfo.isGroup
                         _partnerName.value = currentChatInfo.chatName ?: "Hội thoại"
                         _partnerAvatar.value = currentChatInfo.chatAvatar ?: ""
+                        _groupStatus.value = currentChatInfo.status
 
                         if (currentChatInfo.isGroup) {
+                            Log.d("ChatRoomVM", "Initializing GROUP chat: $conversationId")
                             // Logic Group: Lấy Group Key và danh sách thành viên
                             val myParticipant = participantRepository.getParticipant(conversationId, user.id)
                             myParticipant?.encryptedGroupKey?.let { wrappedKey ->
@@ -130,17 +133,23 @@ class ChatRoomViewModel @Inject constructor(
                             }
                             
                             val participants = participantRepository.getParticipants(conversationId)
-                            val nameMap = mutableMapOf<String, String>()
-                            participants.forEach { p ->
-                                val profile = userRepository.getCurrentUser(p.userId)
-                                nameMap[p.userId] = profile?.displayName ?: "Thành viên"
+                            Log.d("ChatRoomVM", "Fetched ${participants.size} participants for group $conversationId")
+                            
+                            val userIds = participants.map { it.userId }
+                            val userProfiles = userRepository.getUsersByIds(userIds)
+                            
+                            val profileMap = mutableMapOf<String, com.example.alo.domain.model.User>()
+                            userProfiles.forEach { profile ->
+                                profileMap[profile.id] = profile
                             }
-                            _memberNames.value = nameMap
+                            _memberProfiles.value = profileMap
+                            Log.d("ChatRoomVM", "Member profiles updated in state")
                             
                         } else {
                             // Logic 1-1
                             val pId = currentChatInfo.targetUserId ?: ""
                             _partnerId.value = pId
+                            Log.d("ChatRoomVM", "Initializing 1-1 chat with partner: $pId")
                             _partnerLastSeen.value = currentChatInfo.targetLastSeen ?: ""
 
                             if (pId.isNotEmpty()) {
@@ -151,11 +160,23 @@ class ChatRoomViewModel @Inject constructor(
                                 _isFriend.value = (status == "friends")
                                 partnerPublicSignKey = partnerProfile?.publicSignKey
                                 observePartnerStatus(pId)
+                            } else {
+                                Log.e("ChatRoomVM", "Partner ID is empty for 1-1 chat!")
                             }
                         }
+                    } else {
+                        Log.e("ChatRoomVM", "Chat info not found for conversation: $conversationId")
                     }
+                    
+                    // Reset unread count - wrapped in separate try-catch to avoid blocking
+                    try {
+                        conversationRepository.resetUnreadCount(conversationId, user.id)
+                    } catch (e: Exception) {
+                        Log.e("ChatRoomVM", "Error resetUnreadCount: ${e.message}")
+                    }
+
                 } catch (e: Exception) {
-                    Log.e("ChatRoomVM", "Error init: ${e.message}")
+                    Log.e("ChatRoomVM", "Error basic data load: ${e.message}")
                 }
             }
 

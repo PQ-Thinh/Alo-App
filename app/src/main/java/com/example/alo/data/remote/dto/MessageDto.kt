@@ -13,7 +13,7 @@ data class MessageDto(
     @SerialName("encrypted_content") val encryptedContent: String,
     @SerialName("message_type") val messageType: String = "text",
     @SerialName("is_edited") val isEdited: Boolean = false,
-    @SerialName("seen_by") val seenBy: List<String> = emptyList(),
+    @SerialName("seen_by") val seenBy: List<String>? = emptyList(),
     @SerialName("created_at") val createdAt: String,
     @SerialName("deleted_at") val deletedAt: String? = null,
     
@@ -43,7 +43,7 @@ data class MessageDto(
             rawEncryptedContent = "",
             messageType = messageType,
             isEdited = isEdited,
-            seenBy = seenBy,
+            seenBy = seenBy ?: emptyList(),
             createdAt = createdAt,
             deletedAt = deletedAt,
             // Ưu tiên lấy từ bảng video_calls, nếu không có thì lấy từ bảng message (backward compatibility)

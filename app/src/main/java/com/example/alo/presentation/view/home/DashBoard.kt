@@ -21,9 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.presentation.theme.AppBackgroundColor
 import com.example.alo.presentation.theme.CardBackgroundColor
@@ -34,6 +36,7 @@ import com.example.alo.presentation.view.components.SearchTopBar
 import com.example.alo.presentation.view.chat.Contact
 import com.example.alo.presentation.view.navigation.Screen
 import com.example.alo.presentation.view.profile.ProfileScreen
+import com.example.alo.presentation.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 
 
@@ -42,13 +45,14 @@ import kotlinx.coroutines.launch
 fun DashboardScreen(
     navController: NavController,
     onNavigateToChatRoom: (String) -> Unit,
-    onNavigateToProfile: (String) -> Unit
+    onNavigateToProfile: (String) -> Unit,
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
+    val currentUserId by userViewModel.currentUserId.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
 
     var expandedMenu by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     val primaryColor = Color(0xFF6C63FF)
 
@@ -179,23 +183,32 @@ fun DashboardScreen(
                         onNavigateToChatRoom(conversationId)
                     }
                 )
-                2 -> ProfileScreen(
-                    onNavigateToProfile = { userId ->
-                        navController.navigate(Screen.EditProfile.createRoute(userId))
-                    },
-                    onLogoutSuccess = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
+                2 -> {
+                    if (currentUserId != null) {
+                        ProfileScreen(
+                            userId = currentUserId!!,
+                            onNavigateToEditProfile = { userId ->
+                                navController.navigate(Screen.EditProfile.createRoute(userId))
+                            },
+                            onLogoutSuccess = {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = primaryColor)
                         }
                     }
-                )
+                }
             }
         }
     }
 }
 private data class NavItem(
     val title: String,
-    val outlined: androidx.compose.ui.graphics.vector.ImageVector,
-    val filled: androidx.compose.ui.graphics.vector.ImageVector,
+    val outlined: ImageVector,
+    val filled: ImageVector,
     val index: Int
 )

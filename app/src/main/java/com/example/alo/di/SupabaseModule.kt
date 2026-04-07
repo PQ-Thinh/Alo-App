@@ -12,7 +12,9 @@ import io.github.jan.supabase.postgrest.Postgrest
 import javax.inject.Singleton
 import com.example.alo.BuildConfig
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.github.jan.supabase.storage.Storage
+import kotlinx.serialization.json.Json
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -26,7 +28,14 @@ object SupabaseModule {
             supabaseKey = BuildConfig.supabaseKey
         ) {
             install(Auth)
-            install(Postgrest)
+            install(Postgrest) {
+                serializer = KotlinXSerializer(
+                    Json {
+                        ignoreUnknownKeys = true
+                        coerceInputValues = true
+                    }
+                )
+            }
             install(Storage)
             install(Realtime)
             install(Functions)

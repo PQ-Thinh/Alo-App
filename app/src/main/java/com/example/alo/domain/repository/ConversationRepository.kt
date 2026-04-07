@@ -16,4 +16,6 @@ interface ConversationRepository {
     ): ChatList?
     suspend fun resetUnreadCount(conversationId: String, userId: String)
     fun subscribeToChatListUpdates(currentUserId: String): Flow<Unit>
+    suspend fun updateGroupMetadata(conversationId: String, name: String?, avatarUrl: String?, status: String?)
+    suspend fun deleteConversation(conversationId: String)
 }

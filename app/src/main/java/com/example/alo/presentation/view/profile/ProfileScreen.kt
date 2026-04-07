@@ -42,33 +42,43 @@ import com.example.alo.presentation.viewmodel.UserViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    userId: String,
     viewModel: UserViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    onNavigateToProfile: (String) -> Unit,
-    onLogoutSuccess: () -> Unit
+    onNavigateToEditProfile: (String) -> Unit,
+    onLogoutSuccess: () -> Unit,
+    onNavigateBack: () -> Unit = {}
 ) {
     val profileState by viewModel.profileState.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
     val primaryColor = Color(0xFF6C63FF)
     var selectedBackground by remember { mutableStateOf("bg_1") }
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchCurrentUserProfile()
+    LaunchedEffect(userId) {
+        viewModel.fetchUserProfile(userId)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hồ sơ của tôi", fontWeight = FontWeight.Bold, color = TextPrimaryColor) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Quay lại")
+                    }
+                },
+                title = { Text(if (userId == currentUserId) "Hồ sơ của tôi" else "Thông tin cá nhân", fontWeight = FontWeight.Bold, color = TextPrimaryColor) },
                 actions = {
-                    IconButton(onClick = {
-                        authViewModel.logout()
-                        onLogoutSuccess()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Đăng xuất",
-                            tint = ErrorColor // Dùng màu lỗi tĩnh thay vì theo Theme
-                        )
+                    if (userId == currentUserId) {
+                        IconButton(onClick = {
+                            authViewModel.logout()
+                            onLogoutSuccess()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ExitToApp,
+                                contentDescription = "Đăng xuất",
+                                tint = ErrorColor
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -168,16 +178,30 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Nút Edit Profile Full-width ở giữa
-                        Button(
-                            onClick = { onNavigateToProfile(user.id) },
-                            modifier = Modifier.fillMaxWidth(0.7f),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Chỉnh sửa hồ sơ", fontWeight = FontWeight.SemiBold, color = Color.White)
+                        if (userId == currentUserId) {
+                            Button(
+                                onClick = { onNavigateToEditProfile(user.id) },
+                                modifier = Modifier.fillMaxWidth(0.7f),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Chỉnh sửa hồ sơ", fontWeight = FontWeight.SemiBold, color = Color.White)
+                            }
+                        } else {
+                            Button(
+                                onClick = { /* logic nhắn tin hoặc gọi */ },
+                                modifier = Modifier.fillMaxWidth(0.7f),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(Icons.Rounded.Chat, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Nhắn tin", fontWeight = FontWeight.SemiBold, color = Color.White)
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))

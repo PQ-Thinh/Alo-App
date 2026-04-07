@@ -40,6 +40,15 @@ class UserViewModel @Inject constructor(
     private val _profileState = MutableStateFlow<UserProfileState>(UserProfileState.Idle)
     val profileState: StateFlow<UserProfileState> = _profileState.asStateFlow()
 
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _currentUserId.value = authRepository.getCurrentAuthUser()?.id
+        }
+    }
+
     fun onEvent(event: ProfileSetupEvent) {
         when (event) {
             is ProfileSetupEvent.EnteredUsername -> _state.update { it.copy(username = event.value) }
@@ -121,6 +130,22 @@ class UserViewModel @Inject constructor(
             }
         }
     }
+    fun fetchUserProfile(userId: String) {
+        viewModelScope.launch {
+            _profileState.value = UserProfileState.Loading
+            try {
+                val user = userRepository.getCurrentUser(userId)
+                if (user != null) {
+                    _profileState.value = UserProfileState.Success(user)
+                } else {
+                    _profileState.value = UserProfileState.Error("Không tìm thấy người dùng")
+                }
+            } catch (e: Exception) {
+                _profileState.value = UserProfileState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
+
     fun fetchCurrentUserProfile() {
         viewModelScope.launch {
             _profileState.value = UserProfileState.Loading

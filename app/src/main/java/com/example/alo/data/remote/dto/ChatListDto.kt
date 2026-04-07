@@ -12,13 +12,15 @@ data class ChatListDto(
     @SerialName("last_message_preview") val lastMessagePreview: String?,
     @SerialName("last_message_time") val lastMessageTime: String?,
     @SerialName("last_message_sender_id") val lastMessageSenderId: String? = null,
-    @SerialName("unread_count") val unreadCount: Int,
+    @SerialName("unread_count") val unreadCount: Long,
     @SerialName("chat_name") val chatName: String?,
     @SerialName("chat_avatar") val chatAvatar: String?,
     @SerialName("target_user_id")
     val targetUserId: String? = null,
     @SerialName("target_last_seen")
-    val targetLastSeen: String? = null
+    val targetLastSeen: String? = null,
+    @SerialName("status")
+    val status: String? = null
 ) {
     fun toDomain(): ChatList {
         return ChatList(
@@ -27,12 +29,13 @@ data class ChatListDto(
             isGroup = isGroup,
             lastMessagePreview = lastMessagePreview,
             lastMessageTime = lastMessageTime,
-            unreadCount = unreadCount,
+            unreadCount = unreadCount.toInt(),
             chatName = chatName,
             chatAvatar = chatAvatar,
             lastMessageSenderId = lastMessageSenderId,
             targetUserId = targetUserId,
-            targetLastSeen = targetLastSeen
+            targetLastSeen = targetLastSeen,
+            status = status
         )
     }
 }

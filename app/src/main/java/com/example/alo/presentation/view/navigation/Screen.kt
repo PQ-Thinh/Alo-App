@@ -5,7 +5,7 @@ sealed class Screen(val route: String) {
     object Intro : Screen("intro_screen")
     object SignUp : Screen("signup_screen")
     object Dashboard : Screen("dashboard")
-    object Profile : Screen("profile"){
+    object Profile : Screen("profile/{userId}"){
         fun createRoute(userId: String) = "profile/$userId"
     }
 
@@ -42,6 +42,21 @@ sealed class Screen(val route: String) {
     }
 
     object CreateGroup : Screen("create_group")
+    object GroupDetail : Screen("group_detail/{conversationId}") {
+        fun createRoute(conversationId: String) = "group_detail/$conversationId"
+    }
+
+    object GroupMembers : Screen("group_members/{conversationId}") {
+        fun createRoute(conversationId: String) = "group_members/$conversationId"
+    }
+
+    object AddMember : Screen("add_member/{conversationId}") {
+        fun createRoute(conversationId: String) = "add_member/$conversationId"
+    }
+
+    object CreateTask : Screen("create_task/{conversationId}") {
+        fun createRoute(conversationId: String) = "create_task/$conversationId"
+    }
 }
 
 private fun String.encodeUrl(): String =

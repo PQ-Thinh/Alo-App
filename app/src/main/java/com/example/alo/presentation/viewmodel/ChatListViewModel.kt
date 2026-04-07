@@ -98,15 +98,19 @@ class ChatListViewModel @Inject constructor(
                             }
                         }
 
-                        // Gọi cỗ máy Tink giải mã
-                        val clearText = CryptoHelper.decryptMessage(
-                            context = context,
-                            encryptedJson = previewJson,
-                            senderPublicSignKeyBase64 = senderSignKey,
-                            isMyMessage = isMine
-                        )
-
-                        chat.copy(lastMessagePreview = clearText)
+                        try {
+                            // Gọi cỗ máy Tink giải mã
+                            val clearText = CryptoHelper.decryptMessage(
+                                context = context,
+                                encryptedJson = previewJson,
+                                senderPublicSignKeyBase64 = senderSignKey,
+                                isMyMessage = isMine
+                            )
+                            chat.copy(lastMessagePreview = clearText)
+                        } catch (e: Exception) {
+                            android.util.Log.e("ChatListViewModel", "Lỗi giải mã preview cho conversation ${chat.conversationId}: ${e.message}")
+                            chat // Trả về chat gốc nếu lỗi giải mã để không treo cả list
+                        }
                     }
                 }.awaitAll()
 
