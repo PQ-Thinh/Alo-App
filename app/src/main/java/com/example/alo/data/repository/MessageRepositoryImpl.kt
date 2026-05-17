@@ -2,7 +2,7 @@ package com.example.alo.data.repository
 
 import android.util.Log
 import com.example.alo.data.remote.dto.MessageDto
-import com.example.alo.data.utils.TypingPayload
+import com.example.alo.core.utils.TypingPayload
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.MessageRepository
 import io.github.jan.supabase.SupabaseClient
@@ -36,7 +36,7 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun getMessages(conversationId: String): List<Message> {
         return try {
-            val dtos = supabaseClient.postgrest["messages"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
                 .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                     filter { eq("conversation_id", conversationId) }
                     order("created_at", order = Order.DESCENDING)
@@ -63,7 +63,7 @@ class MessageRepositoryImpl @Inject constructor(
             "encrypted_content" to content,
             "reply_to_id" to replyToId
         )
-        val insertedMessage = supabaseClient.postgrest["messages"]
+        val insertedMessage = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
             .insert(messageBody) {
                 select()
             }
@@ -88,7 +88,7 @@ class MessageRepositoryImpl @Inject constructor(
             "message_type" to messageType,
             "encrypted_content" to content
         )
-        val insertedMessage = supabaseClient.postgrest["messages"]
+        val insertedMessage = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
             .insert(messageBody) { select() }
             .decodeSingle<MessageDto>()
 
@@ -100,7 +100,7 @@ class MessageRepositoryImpl @Inject constructor(
             "is_video" to isVideo,
             "end_reason" to (reason ?: "ended")
         )
-        supabaseClient.postgrest["video_calls"].insert(callLogBody)
+        supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_VIDEO_CALLS].insert(callLogBody)
 
         return insertedMessage.id
     }
@@ -120,7 +120,7 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun removeReaction(messageId: String, userId: String) {
         try {
-            supabaseClient.postgrest["message_reactions"].delete {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGE_REACTIONS].delete {
                 filter {
                     eq("message_id", messageId)
                     eq("user_id", userId)
@@ -163,7 +163,7 @@ class MessageRepositoryImpl @Inject constructor(
                 if (newMessageDto.messageType == "IMAGE" || newMessageDto.messageType.startsWith("CALL_")) {
                     delay(800)
                     try {
-                        val dtos = supabaseClient.postgrest["messages"]
+                        val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
                             .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                                 filter { eq("id", newMessageDto.id) }
                             }.decodeList<MessageDto>()
@@ -186,7 +186,7 @@ class MessageRepositoryImpl @Inject constructor(
             updateFlow.collect { action ->
                 try {
                     val rawMsg = action.decodeRecord<MessageDto>()
-                    val dtos = supabaseClient.postgrest["messages"]
+                    val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
                         .select(columns = Columns.raw("*, message_reactions(*), attachments(*), video_calls(*)")) {
                             filter { eq("id", rawMsg.id) }
                         }

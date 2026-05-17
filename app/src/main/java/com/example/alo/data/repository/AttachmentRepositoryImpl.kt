@@ -1,7 +1,7 @@
 package com.example.alo.data.repository
 
 import com.example.alo.data.remote.dto.AttachmentDto
-import com.example.alo.data.utils.AttachmentInsertDto
+import com.example.alo.core.utils.AttachmentInsertDto
 import com.example.alo.domain.model.Attachment
 import com.example.alo.domain.repository.AttachmentRepository
 import io.github.jan.supabase.SupabaseClient
@@ -35,7 +35,7 @@ class AttachmentRepositoryImpl @Inject constructor(
                 fileName = fileName,
                 fileSize = fileSize
             )
-            supabaseClient.postgrest["attachments"].insert(attachmentBody)
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_ATTACHMENTS].insert(attachmentBody)
         } catch (e: Exception) {
             throw e
         }
@@ -43,7 +43,7 @@ class AttachmentRepositoryImpl @Inject constructor(
 
     override suspend fun getAttachments(messageId: String): List<Attachment> {
         return try {
-            val dtos = supabaseClient.postgrest["attachments"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_ATTACHMENTS]
                 .select { filter { eq("message_id", messageId) } }
                 .decodeList<AttachmentDto>()
             dtos.map { it.toDomain() }

@@ -29,7 +29,7 @@ class ConversationRepositoryImpl @Inject constructor(
 ) : ConversationRepository {
 
     override suspend fun getChatList(currentUserId: String): List<ChatList> {
-        return supabaseClient.postgrest["chat_list_view"]
+        return supabaseClient.postgrest[com.example.alo.core.utils.Constant.VIEW_CHAT_LIST]
             .select {
                 filter { eq("current_user_id", currentUserId) }
                 order("last_message_time", Order.DESCENDING)
@@ -40,7 +40,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun getConversations(userId: String): List<Conversation> {
         return try {
-            val dtos = supabaseClient.postgrest["conversations"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_CONVERSATIONS]
                 .select(columns = Columns.raw("*, participants!inner(user_id)")) {
                     filter { eq("participants.user_id", userId) }
                 }
@@ -135,7 +135,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun updateGroupMetadata(conversationId: String, name: String?, avatarUrl: String?, status: String?) {
         try {
-            supabaseClient.postgrest["conversations"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_CONVERSATIONS]
                 .update({
                     if (name != null) set("name", name)
                     if (avatarUrl != null) set("avatar_url", avatarUrl)
@@ -151,7 +151,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun deleteConversation(conversationId: String) {
         try {
-            supabaseClient.postgrest["conversations"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_CONVERSATIONS]
                 .delete {
                     filter { eq("id", conversationId) }
                 }

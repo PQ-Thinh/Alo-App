@@ -39,7 +39,7 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUser(userId: String): User? {
         return try {
-            val userDto = supabaseClient.postgrest["users"]
+            val userDto = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS]
                 .select {
                     filter {
                         eq("id", userId)
@@ -61,7 +61,7 @@ class UserRepositoryImpl @Inject constructor(
 
             Log.d("UserRepository", "Đang gửi dữ liệu: $userDto")
 
-            supabaseClient.postgrest["users"].upsert(userDto)
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS].upsert(userDto)
             true
         } catch (e: Exception) {
             Log.e("UserRepository", "Lỗi Supabase chi tiết: ${e.message}")
@@ -72,7 +72,7 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun uploadAvatar(imageBytes: ByteArray, extension: String): String {
         return withContext(Dispatchers.IO) {
             val fileName = "${UUID.randomUUID()}.$extension"
-            val bucket = supabaseClient.storage.from("avatars")
+            val bucket = supabaseClient.storage.from(com.example.alo.core.utils.Constant.STORAGE_AVATARS)
 
             bucket.upload(fileName, imageBytes)
 
@@ -87,7 +87,7 @@ class UserRepositoryImpl @Inject constructor(
                 .split("\\s+".toRegex())
                 .joinToString(" & ") { "$it:*" }
 
-            val dtos = supabaseClient.postgrest["users"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS]
                 .select {
                     filter {
                         textSearch("fts_search", formattedQuery, TextSearchType.NONE)
@@ -105,7 +105,7 @@ class UserRepositoryImpl @Inject constructor(
         updateData: Map<String, String>
     ): Boolean {
         return try {
-            supabaseClient.postgrest["users"].update(updateData) {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS].update(updateData) {
                 filter { eq("id", userId) }
             }
             true
@@ -141,7 +141,7 @@ class UserRepositoryImpl @Inject constructor(
         if (userIds.isEmpty()) return emptyList()
         return try {
             val idsString = userIds.joinToString(",")
-            val dtos = supabaseClient.postgrest["users"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS]
                 .select {
                     filter {
                         // Trả lại dấu ngoặc đơn vì nó cần thiết cho cú pháp in.() của Postgrest

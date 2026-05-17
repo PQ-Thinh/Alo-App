@@ -14,7 +14,7 @@ class ParticipantRepositoryImpl @Inject constructor(
 
     override suspend fun getParticipants(conversationId: String): List<Participant> {
         return try {
-            val dtos = supabaseClient.postgrest["participants"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS]
                 .select { filter { eq("conversation_id", conversationId) } }
                 .decodeList<ParticipantDto>()
             dtos.map { it.toDomain() }
@@ -26,7 +26,7 @@ class ParticipantRepositoryImpl @Inject constructor(
 
     override suspend fun getParticipant(conversationId: String, userId: String): Participant? {
         return try {
-            val dto = supabaseClient.postgrest["participants"]
+            val dto = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS]
                 .select { 
                     filter { 
                         and {
@@ -52,7 +52,7 @@ class ParticipantRepositoryImpl @Inject constructor(
             if (encryptedGroupKey != null) {
                 participantBody["encrypted_group_key"] = encryptedGroupKey
             }
-            supabaseClient.postgrest["participants"].insert(participantBody)
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS].insert(participantBody)
         } catch (e: Exception) {
             Log.e("ParticipantRepo", "Lỗi thêm thành viên: ${e.message}")
             throw e
@@ -61,7 +61,7 @@ class ParticipantRepositoryImpl @Inject constructor(
 
     override suspend fun removeParticipant(conversationId: String, userId: String) {
         try {
-            supabaseClient.postgrest["participants"].delete {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS].delete {
                 filter {
                     and {
                         eq("conversation_id", conversationId)
@@ -77,7 +77,7 @@ class ParticipantRepositoryImpl @Inject constructor(
 
     override suspend fun updateParticipantRole(conversationId: String, userId: String, role: String) {
         try {
-            supabaseClient.postgrest["participants"].update({
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS].update({
                 set("role", role)
             }) {
                 filter {

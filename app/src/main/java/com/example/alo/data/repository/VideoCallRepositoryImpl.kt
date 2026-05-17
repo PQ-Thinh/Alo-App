@@ -229,7 +229,7 @@ class VideoCallRepositoryImpl @Inject constructor(
                     "is_video" to isVideo,
                     "end_reason" to reason
                 )
-                supabaseClient.postgrest["video_calls"].insert(callLogBody)
+                supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_VIDEO_CALLS].insert(callLogBody)
                 Log.d(TAG, "Đã lưu metadata cuộc gọi cho message: $messageId")
             } catch (e: Exception) {
                 Log.e(TAG, "Lỗi khi lưu metadata cuộc gọi: ${e.message}", e)

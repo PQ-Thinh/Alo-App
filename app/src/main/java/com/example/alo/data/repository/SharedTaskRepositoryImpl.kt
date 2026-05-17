@@ -23,7 +23,7 @@ class SharedTaskRepositoryImpl @Inject constructor(
 
     override suspend fun getTasks(conversationId: String): List<SharedTask> {
         return try {
-            supabaseClient.postgrest["shared_tasks"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
                 .select { filter { eq("conversation_id", conversationId) } }
                 .decodeList<SharedTask>()
         } catch (e: Exception) {
@@ -34,7 +34,7 @@ class SharedTaskRepositoryImpl @Inject constructor(
 
     override suspend fun createTask(task: SharedTask): SharedTask? {
         return try {
-            supabaseClient.postgrest["shared_tasks"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
                 .insert(task)
                 .decodeSingle<SharedTask>()
         } catch (e: Exception) {
@@ -45,7 +45,7 @@ class SharedTaskRepositoryImpl @Inject constructor(
 
     override suspend fun updateTask(task: SharedTask): SharedTask? {
         return try {
-            supabaseClient.postgrest["shared_tasks"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
                 .update(task) { filter { eq("id", task.id) } }
                 .decodeSingle<SharedTask>()
         } catch (e: Exception) {
@@ -56,7 +56,7 @@ class SharedTaskRepositoryImpl @Inject constructor(
 
     override suspend fun deleteTask(taskId: String) {
         try {
-            supabaseClient.postgrest["shared_tasks"]
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
                 .delete { filter { eq("id", taskId) } }
         } catch (e: Exception) {
             Log.e("SharedTaskRepo", "Lỗi xóa task: ${e.message}")

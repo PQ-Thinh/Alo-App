@@ -1,6 +1,6 @@
 package com.example.alo.data.remote.dto
 
-import com.example.alo.domain.helperEnum.FriendRequestStatus
+import com.example.alo.domain.enums.FriendRequestStatus
 import com.example.alo.domain.model.FriendRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

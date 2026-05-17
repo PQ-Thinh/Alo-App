@@ -1,6 +1,6 @@
 package com.example.alo.data.repository
 
-import com.example.alo.data.utils.DataStoreHelper
+import com.example.alo.core.utils.DataStoreHelper
 import com.example.alo.domain.model.AuthUser
 import com.example.alo.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient

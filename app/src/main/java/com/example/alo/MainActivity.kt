@@ -25,9 +25,10 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.presentation.theme.AloTheme
-import com.example.alo.presentation.view.navigation.AppNavigation
-import com.example.alo.presentation.viewmodel.CallViewModel
-import com.example.alo.presentation.viewmodel.SplashViewModel
+import com.example.alo.presentation.navigation.AppNavigation
+import com.example.alo.presentation.call.CallViewModel
+import com.example.alo.presentation.home.SplashViewModel
+import com.example.alo.core.utils.Constant
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -61,7 +62,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent?.getStringExtra("conversationId")
         pushCallId.value = intent?.getStringExtra("callId")
         pushCallerName.value = intent?.getStringExtra("callerName")
-        pushCallAction.value = intent?.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
+        pushCallAction.value = intent?.action?.takeIf { it == Constant.ACTION_INCOMING_CALL_ACCEPT || it == Constant.ACTION_INCOMING_CALL_DECLINE }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -127,7 +128,7 @@ class MainActivity : ComponentActivity() {
         pushConversationId.value = intent.getStringExtra("conversationId")
         pushCallId.value = intent.getStringExtra("callId")
         pushCallerName.value = intent.getStringExtra("callerName")
-        pushCallAction.value = intent.action?.takeIf { it == ACTION_INCOMING_CALL_ACCEPT || it == ACTION_INCOMING_CALL_DECLINE }
+        pushCallAction.value = intent.action?.takeIf { it == Constant.ACTION_INCOMING_CALL_ACCEPT || it == Constant.ACTION_INCOMING_CALL_DECLINE }
     }
 
     private fun askNotificationPermission() {
@@ -144,10 +145,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    companion object {
-        const val ACTION_INCOMING_CALL_ACCEPT = "com.example.alo.ACTION_INCOMING_CALL_ACCEPT"
-        const val ACTION_INCOMING_CALL_DECLINE = "com.example.alo.ACTION_INCOMING_CALL_DECLINE"
-    }
+
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()

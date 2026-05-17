@@ -28,7 +28,7 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun getFriendRequests(userId: String): List<FriendRequest> {
         return try {
-            val dtos = supabaseClient.postgrest["friend_requests"]
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIEND_REQUESTS]
                 .select { filter { eq("receiver_id", userId) } }
                 .decodeList<FriendRequestDto>()
             dtos.map { it.toDomain() }
@@ -55,7 +55,7 @@ class FriendRepositoryImpl @Inject constructor(
         targetUserId: String
     ): String {
         return try {
-            val friendsData = supabaseClient.postgrest["friends"]
+            val friendsData = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIENDS]
                 .select {
                     filter {
                         or {
@@ -67,7 +67,7 @@ class FriendRepositoryImpl @Inject constructor(
 
             if (friendsData != "[]") return "friends"
 
-            val requestData = supabaseClient.postgrest["friend_requests"]
+            val requestData = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIEND_REQUESTS]
                 .select {
                     filter {
                         eq("status", "pending")
@@ -94,7 +94,7 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun getPendingFriendRequests(currentUserId: String): List<User> {
         return try {
-            val requests = supabaseClient.postgrest["friend_requests"]
+            val requests = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIEND_REQUESTS]
                 .select {
                     filter {
                         eq("receiver_id", currentUserId)
@@ -105,7 +105,7 @@ class FriendRepositoryImpl @Inject constructor(
             if (requests.isEmpty()) return emptyList()
 
             val senderIds = requests.map { it.senderId }
-            val senders = supabaseClient.postgrest["users"]
+            val senders = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS]
                 .select {
                     filter {
                         isIn("id", senderIds)
@@ -135,7 +135,7 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun declineFriendRequest(senderId: String, receiverId: String): Boolean {
         return try {
-            supabaseClient.postgrest["friend_requests"].update(
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIEND_REQUESTS].update(
                 { set("status", "declined") }
             ) {
                 filter {
@@ -151,7 +151,7 @@ class FriendRepositoryImpl @Inject constructor(
 
     override suspend fun getFriendsList(currentUserId: String): List<User> {
         return try {
-            val friendsData = supabaseClient.postgrest["friends"]
+            val friendsData = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_FRIENDS]
                 .select {
                     filter {
                         or {
@@ -167,7 +167,7 @@ class FriendRepositoryImpl @Inject constructor(
                 if (it.userId1 == currentUserId) it.userId2 else it.userId1
             }
 
-            val friendsProfiles = supabaseClient.postgrest["users"]
+            val friendsProfiles = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USERS]
                 .select {
                     filter {
                         isIn("id", friendIds)

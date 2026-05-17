@@ -27,7 +27,7 @@ class UserDeviceRepositoryImpl @Inject constructor(
 
     override suspend fun deleteFcmToken(token: String): Boolean {
         return try {
-            supabaseClient.postgrest["user_devices"].delete {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_USER_DEVICES].delete {
                 filter {
                     eq("fcm_token", token)
                 }
