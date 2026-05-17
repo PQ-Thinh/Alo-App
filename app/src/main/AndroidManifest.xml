@@ -47,6 +47,9 @@
             android:exported="true"
             android:allowEmbedded="true"
             android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:documentLaunchMode="always"
             android:windowSoftInputMode="adjustResize" android:label="@string/app_name"
             android:theme="@style/Theme.Alo">
             <intent-filter>
@@ -56,7 +59,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".data.service.MyFirebaseMessagingService"
+            android:name=".core.service.MyFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -70,12 +73,12 @@
             android:exported="false" />
 
         <service
-            android:name=".data.service.CallForegroundService"
+            android:name=".core.service.CallForegroundService"
             android:exported="false"
             android:foregroundServiceType="camera|microphone" />
 
         <receiver
-            android:name=".data.receiver.CallActionReceiver"
+            android:name=".core.receiver.CallActionReceiver"
             android:exported="false" />
     </application>
 

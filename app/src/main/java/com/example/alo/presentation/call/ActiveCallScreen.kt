@@ -82,6 +82,18 @@ fun ActiveCallScreen(
     val participants by call.state.participants.collectAsState()
     val showWaitingMessage = participants.size <= 1
 
+    var isInPipMode by remember { mutableStateOf(false) }
+    DisposableEffect(context) {
+        val activity = context as? ComponentActivity
+        val listener = androidx.core.util.Consumer<androidx.core.app.PictureInPictureModeChangedInfo> { info ->
+            isInPipMode = info.isInPictureInPictureMode
+        }
+        activity?.addOnPictureInPictureModeChangedListener(listener)
+        onDispose {
+            activity?.removeOnPictureInPictureModeChangedListener(listener)
+        }
+    }
+
     VideoTheme(colors = customColors) {
         Box(modifier = Modifier.fillMaxSize()) {
             CallContent(
@@ -89,76 +101,78 @@ fun ActiveCallScreen(
                 modifier = Modifier.fillMaxSize(),
                 onBackPressed = onCallEnded,
                 controlsContent = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            color = Color.Black.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(32.dp),
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                    if (!isInPipMode) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 32.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            ControlActions(
-                                call = call,
-                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
-                                actions = listOf(
-                                    {
-                                        ToggleCameraAction(
-                                            modifier = Modifier.size(52.dp),
-                                            isCameraEnabled = isCamEnabled,
-                                            onCallAction = {
-                                                if (camBusy) return@ToggleCameraAction
-                                                camBusy = true
-                                                scope.launch {
-                                                    try {
-                                                        call.camera.setEnabled(it.isEnabled)
-                                                    } catch (_: Exception) {
-                                                    } finally {
-                                                        delay(350)
-                                                        camBusy = false
+                            Surface(
+                                color = Color.Black.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(32.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            ) {
+                                ControlActions(
+                                    call = call,
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
+                                    actions = listOf(
+                                        {
+                                            ToggleCameraAction(
+                                                modifier = Modifier.size(52.dp),
+                                                isCameraEnabled = isCamEnabled,
+                                                onCallAction = {
+                                                    if (camBusy) return@ToggleCameraAction
+                                                    camBusy = true
+                                                    scope.launch {
+                                                        try {
+                                                            call.camera.setEnabled(it.isEnabled)
+                                                        } catch (_: Exception) {
+                                                        } finally {
+                                                            delay(350)
+                                                            camBusy = false
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        )
-                                    },
-                                    {
-                                        ToggleMicrophoneAction(
-                                            modifier = Modifier.size(52.dp),
-                                            isMicrophoneEnabled = isMicEnabled,
-                                            onCallAction = {
-                                                if (micBusy) return@ToggleMicrophoneAction
-                                                micBusy = true
-                                                scope.launch {
-                                                    try {
-                                                        call.microphone.setEnabled(it.isEnabled)
-                                                    } catch (_: Exception) {
-                                                    } finally {
-                                                        delay(350)
-                                                        micBusy = false
+                                            )
+                                        },
+                                        {
+                                            ToggleMicrophoneAction(
+                                                modifier = Modifier.size(52.dp),
+                                                isMicrophoneEnabled = isMicEnabled,
+                                                onCallAction = {
+                                                    if (micBusy) return@ToggleMicrophoneAction
+                                                    micBusy = true
+                                                    scope.launch {
+                                                        try {
+                                                            call.microphone.setEnabled(it.isEnabled)
+                                                        } catch (_: Exception) {
+                                                        } finally {
+                                                            delay(350)
+                                                            micBusy = false
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        )
-                                    },
-                                    {
-                                        FlipCameraAction(
-                                            modifier = Modifier.size(52.dp),
-                                            onCallAction = { call.camera.flip() }
-                                        )
-                                    },
-                                    {
-                                        LeaveCallAction(
-                                            modifier = Modifier.size(52.dp),
-                                            onCallAction = {
-                                                call.leave()
-                                                onCallEnded()
-                                            }
-                                        )
-                                    }
+                                            )
+                                        },
+                                        {
+                                            FlipCameraAction(
+                                                modifier = Modifier.size(52.dp),
+                                                onCallAction = { call.camera.flip() }
+                                            )
+                                        },
+                                        {
+                                            LeaveCallAction(
+                                                modifier = Modifier.size(52.dp),
+                                                onCallAction = {
+                                                    call.leave()
+                                                    onCallEnded()
+                                                }
+                                            )
+                                        }
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }

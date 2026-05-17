@@ -6,6 +6,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -92,7 +93,7 @@ class CallAudioManager @Inject constructor(
     }
 
     private fun vibrate() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >=Build.VERSION_CODES.O) {
             vibrator?.vibrate(
                 VibrationEffect.createWaveform(longArrayOf(0, 600, 400), 1)
             )

@@ -133,6 +133,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val senderPerson = Person.Builder()
             .setName(title)
+            .setIcon(iconCompat)
             .build()
 
         val messagingStyle = NotificationCompat.MessagingStyle(Person.Builder().setName("Tôi").build())
@@ -149,7 +150,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         ShortcutManagerCompat.pushDynamicShortcut(this, shortcut)
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(iconCompat)
+            .setSmallIcon(R.mipmap.maloi_icon)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)
@@ -158,6 +159,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setStyle(messagingStyle)
             .setShortcutId(shortcutId)
             .setContentIntent(pendingIntent)
+
+        // Nếu app không ở Foreground -> tạo Bong Bóng Chat
+        if (!com.example.alo.AloApplication.isAppInForeground) {
+            val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(pendingIntent, iconCompat)
+                .setDesiredHeight(600)
+                .setAutoExpandBubble(true)
+                .setSuppressNotification(false)
+                .build()
+            notificationBuilder.setBubbleMetadata(bubbleMetadata)
+        }
 
         notificationManager.notify(conversationId?.hashCode() ?: Random.nextInt(), notificationBuilder.build())
     }
