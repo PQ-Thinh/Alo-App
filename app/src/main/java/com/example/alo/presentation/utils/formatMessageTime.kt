@@ -40,6 +40,19 @@ fun formatTimeHeader(utcTimeString: String?): String {
                 val formatter = DateTimeFormatter.ofPattern("HH:mm")
                 "Hôm qua ${localTime.format(formatter)}"
             }
+            daysDiff < 7L -> {
+                val dayOfWeek = when (localTime.dayOfWeek) {
+                    java.time.DayOfWeek.MONDAY -> "Thứ 2"
+                    java.time.DayOfWeek.TUESDAY -> "Thứ 3"
+                    java.time.DayOfWeek.WEDNESDAY -> "Thứ 4"
+                    java.time.DayOfWeek.THURSDAY -> "Thứ 5"
+                    java.time.DayOfWeek.FRIDAY -> "Thứ 6"
+                    java.time.DayOfWeek.SATURDAY -> "Thứ 7"
+                    java.time.DayOfWeek.SUNDAY -> "Chủ nhật"
+                }
+                val formatter = DateTimeFormatter.ofPattern("HH:mm")
+                "$dayOfWeek ${localTime.format(formatter)}"
+            }
             localTime.year == now.year -> {
                 val formatter = DateTimeFormatter.ofPattern("dd/MM HH:mm")
                 localTime.format(formatter)

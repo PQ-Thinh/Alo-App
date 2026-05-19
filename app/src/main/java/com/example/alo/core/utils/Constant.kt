@@ -16,6 +16,13 @@ object Constant {
     const val CALL_TIMEOUT_MS = 45_000L
     const val CALL_TYPE_DEFAULT = "default"
 
+    // Call Event Types
+    const val EVENT_INCOMING_CALL = "INCOMING_CALL"
+    const val EVENT_CALL_REJECTED = "CALL_REJECTED"
+    const val EVENT_CALL_ENDED = "CALL_ENDED"
+    const val EVENT_CALL_MISSED = "MISSED_CALL"
+    const val EVENT_CALL_CANCELLED = "CALL_CANCELLED"
+
     // Crypto
     const val MASTER_KEY_URI = "android-keystore://alo_app_master_key"
     const val PREF_FILE_NAME = "alo_app_crypto_keys"

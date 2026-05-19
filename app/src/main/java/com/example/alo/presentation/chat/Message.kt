@@ -12,6 +12,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -279,7 +285,22 @@ fun ChatItem(
     currentTimeTrigger: Long
 ) {
     val hasUnread = chat.unreadCount > 0
-    val backgroundColor = if (hasUnread) Color(0xFFF4F3FF) else CardBackgroundColor
+    val unreadHighlightColor = Color(0xFF00B0FF) // Xanh dương rực rỡ, độc lập với theme
+    
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_unread")
+    val borderAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "border_alpha"
+    )
+
+    val backgroundColor = if (hasUnread) unreadHighlightColor.copy(alpha = 0.12f) else CardBackgroundColor
+    val borderColor = if (hasUnread) unreadHighlightColor.copy(alpha = borderAlpha) else Color.Transparent
+    val borderWidth = if (hasUnread) 1.5.dp else 0.dp
 
     Row(
         modifier = Modifier
@@ -287,6 +308,7 @@ fun ChatItem(
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor)
+            .border(borderWidth, borderColor, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

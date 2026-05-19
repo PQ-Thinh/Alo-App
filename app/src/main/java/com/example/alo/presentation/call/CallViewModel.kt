@@ -13,6 +13,7 @@ import com.example.alo.domain.repository.MessageRepository
 import com.example.alo.domain.repository.UserRepository
 import com.example.alo.domain.repository.VideoCallRepository
 import com.example.alo.core.service.CallForegroundService
+import com.example.alo.core.utils.Constant
 import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.helper.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -113,8 +115,13 @@ class CallViewModel @Inject constructor(
             callStartTimestamp = null
             isCallLogged = false
             try {
-                ensureStreamInitialized()
                 _uiState.value = CallUiState.Initializing
+                ensureStreamInitialized() // Phải đợi khởi tạo xong
+                
+                if (!StreamVideo.isInstalled) {
+                    throw Exception("Không thể khởi tạo StreamVideo. Vui lòng kiểm tra lại cấu hình API Key hoặc mạng.")
+                }
+
                 CallForegroundService.startOutgoing(appContext, callId, null)
                 val call = videoCallRepository.createAndJoinCall(callId, memberIds)
                 activeCall = call
@@ -125,7 +132,12 @@ class CallViewModel @Inject constructor(
                 if (authUser != null) {
                     val receiverIds = memberIds.filter { it != authUser.id }
                     if (receiverIds.isNotEmpty()) {
-                        videoCallRepository.pushIncomingCall(callId, authUser.id, receiverIds, "INCOMING_CALL")
+                        try {
+                            videoCallRepository.pushIncomingCall(callId, authUser.id, receiverIds, Constant.EVENT_INCOMING_CALL)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Lỗi khi gửi Push Notification (FCM): ${e.message}")
+                            _uiState.value = CallUiState.Error("Không thể đổ chuông máy đối phương (Lỗi Firebase)")
+                        }
                     }
                 }
 
@@ -135,7 +147,7 @@ class CallViewModel @Inject constructor(
                         when (event) {
                             is CallRejectedEvent, is CallEndedEvent -> {
                                 if (isCallLogged) return@subscribe
-                                val reason = if (event is CallRejectedEvent) "CALL_REJECTED" else "CALL_ENDED"
+                                val reason = if (event is CallRejectedEvent) Constant.EVENT_CALL_REJECTED else Constant.EVENT_CALL_ENDED
                                 logCallMessage(reason)
                                 _uiState.value = CallUiState.Ended
                                 stopNetworkMonitor()
@@ -150,8 +162,8 @@ class CallViewModel @Inject constructor(
 
                 _uiState.value = CallUiState.Calling(call)
             } catch (e: Exception) {
-                Log.e(TAG, "Lỗi tạo cuộc gọi: ${e.message}")
-                _uiState.value = CallUiState.Error("Không thể bắt đầu cuộc gọi.")
+                Log.e(TAG, "Lỗi tạo cuộc gọi nghiêm trọng: ${e.message}", e)
+                _uiState.value = CallUiState.Error("Lỗi hệ thống: ${e.message}")
             }
         }
     }
@@ -200,9 +212,15 @@ class CallViewModel @Inject constructor(
     fun rejectCall(callId: String) {
         viewModelScope.launch {
             try {
-                ensureStreamInitialized()
-                videoCallRepository.rejectCall(callId)
-                logCallMessage("CALL_REJECTED")
+                // Chỉ cố gắng khởi tạo nếu chưa có, không block quá lâu khi reject
+                if (!StreamVideo.isInstalled) {
+                    initStreamClient()
+                    delay(1000)
+                }
+                if (StreamVideo.isInstalled) {
+                    videoCallRepository.rejectCall(callId)
+                }
+                logCallMessage(Constant.EVENT_CALL_REJECTED)
             } catch (_: Exception) {
             } finally {
                 _uiState.value = CallUiState.Ended
@@ -224,13 +242,17 @@ class CallViewModel @Inject constructor(
             try {
                 when (current) {
                     is CallUiState.Calling -> {
+                        if (isCaller) {
+                            val reason = if (!cancelPushSent) Constant.EVENT_CALL_CANCELLED else Constant.EVENT_CALL_ENDED
+                            logCallMessage(reason)
+                        } else {
+                            logCallMessage(Constant.EVENT_CALL_ENDED)
+                        }
                         current.call.leave()
-                        if (isCaller && !cancelPushSent) sendCancelPush()
-                        logCallMessage("CALL_CANCELLED")
                     }
                     is CallUiState.InCall -> {
                         current.call.leave()
-                        logCallMessage("CALL_ENDED")
+                        logCallMessage(Constant.EVENT_CALL_ENDED)
                     }
                     else -> Unit
                 }
@@ -306,23 +328,25 @@ class CallViewModel @Inject constructor(
         callTimeoutJob = viewModelScope.launch {
             delay(CALL_TIMEOUT_MS)
             if (_uiState.value is CallUiState.Calling) {
-                sendCancelPush("MISSED_CALL")
-                logCallMessage("CALL_MISSED")
+                sendCancelPush(Constant.EVENT_CALL_MISSED)
+                logCallMessage(Constant.EVENT_CALL_MISSED)
                 endCall()
             }
         }
     }
 
-    private suspend fun sendCancelPush(type: String = "CALL_CANCELLED") {
+    private suspend fun sendCancelPush(type: String = Constant.EVENT_CALL_CANCELLED) {
         try {
             val authUser = authRepository.getCurrentAuthUser() ?: return
             if (currentMemberIds.isNotEmpty() && currentCallId != null) {
-                videoCallRepository.pushIncomingCall(
-                    currentCallId!!,
-                    authUser.id,
-                    currentMemberIds.filter { it != authUser.id },
-                    type
-                )
+                if (isCaller) {
+                    videoCallRepository.pushIncomingCall(
+                        callId = currentCallId!!,
+                        senderId = authUser.id,
+                        receiverIds = currentMemberIds.filter { it != authUser.id },
+                        type = type
+                    )
+                }
                 cancelPushSent = true
             }
         } catch (_: Exception) {}

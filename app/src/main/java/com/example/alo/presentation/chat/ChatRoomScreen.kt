@@ -69,6 +69,7 @@ import com.example.alo.presentation.call.CallViewModel
 import com.example.alo.presentation.chat.ChatRoomViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +90,7 @@ fun ChatRoomScreen(
 
     val listState = rememberLazyListState()
     var activeDetailsMessageId by remember { mutableStateOf<String?>(null) }
+    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
 
     var selectedMessageForOverlay by remember { mutableStateOf<Message?>(null) }
@@ -96,6 +98,7 @@ fun ChatRoomScreen(
     var replyingToMessage by remember { mutableStateOf<Message?>(null) }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val conversationId = viewModel.conversationId
 
     val isShowingRawEncryption by viewModel.isShowingRawEncryption.collectAsState()
@@ -525,6 +528,16 @@ fun ChatRoomScreen(
                         val repliedMessage = message.replyToId?.let { id ->
                             messages.find { it.id == id }
                         }
+                        
+                        val computedRepliedSenderName = repliedMessage?.let { replMsg ->
+                            if (replMsg.senderId == currentUserId) {
+                                "Bạn"
+                            } else if (isGroup) {
+                                memberProfiles[replMsg.senderId]?.displayName ?: "Thành viên"
+                            } else {
+                                partnerName
+                            }
+                        }
 
                         val previousMessage =
                             if (index < messages.size - 1) messages[index + 1] else null
@@ -537,6 +550,8 @@ fun ChatRoomScreen(
 
                         val isLastInGroup = nextMessage?.senderId != message.senderId
                         val showSmallTime = nextMessage?.senderId != message.senderId
+                        val isFirstInGroup = previousMessage?.senderId != message.senderId || showTimeHeader
+
 
                         Column {
                             if (showTimeHeader) {
@@ -572,7 +587,11 @@ fun ChatRoomScreen(
                                 showDetails = activeDetailsMessageId == message.id,
                                 isGroup = isGroup,
                                 senderName = memberProfiles[message.senderId]?.displayName,
+                                showSenderName = isFirstInGroup,
+                                isHighlighted = highlightedMessageId == message.id,
                                 memberAvatar = memberProfiles[message.senderId]?.avatarUrl,
+                                repliedSenderName = computedRepliedSenderName,
+
 
                                 onMessageClick = {
                                     activeDetailsMessageId =
@@ -585,7 +604,23 @@ fun ChatRoomScreen(
                                 onAvatarClick = { userId ->
                                     navController.navigate(Screen.Profile.createRoute(userId))
                                 },
-                                showRawEncryption = isShowingRawEncryption
+                                showRawEncryption = isShowingRawEncryption,
+                                onSwipeToReply = {
+                                    replyingToMessage = message
+                                },
+                                onReplyClick = { repliedMessageId ->
+                                    val idx = messages.indexOfFirst { it.id == repliedMessageId }
+                                    if (idx != -1) {
+                                        coroutineScope.launch {
+                                            highlightedMessageId = repliedMessageId
+                                            listState.animateScrollToItem(idx)
+                                            delay(1500L)
+                                            if (highlightedMessageId == repliedMessageId) {
+                                                highlightedMessageId = null
+                                            }
+                                        }
+                                    }
+                                }
                             )
                             Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
                         }

@@ -11,7 +11,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,14 +45,20 @@ import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.CallMissed
+import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -56,8 +68,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import coil3.compose.AsyncImage
 import com.example.alo.domain.model.Message
 import com.example.alo.presentation.helper.MessageUiModel
@@ -81,27 +95,90 @@ fun MessageBubble(
     showRawEncryption: Boolean = false,
     isGroup: Boolean = false,
     senderName: String? = null,
+    showSenderName: Boolean = true,
     memberAvatar: String? = null,
+    isHighlighted: Boolean = false,
+    repliedSenderName: String? = null,
     onMessageClick: () -> Unit,
     onMessageLongClick: () -> Unit,
+    onSwipeToReply: () -> Unit = {},
+    onReplyClick: (String) -> Unit = {},
     onAvatarClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
 
-    // Modern rounded corners
+    // Modern rounded corners for grouping
     val bubbleShape = RoundedCornerShape(
-        topStart = 20.dp,
-        topEnd = 20.dp,
-        bottomStart = if (isMine || !showAvatar) 20.dp else 4.dp,
-        bottomEnd = if (!isMine || !showAvatar) 20.dp else 4.dp
+        topStart = if (!isMine && !showSenderName) 4.dp else 20.dp,
+        topEnd = if (isMine && !showSenderName) 4.dp else 20.dp,
+        bottomStart = if (!isMine && !showAvatar) 4.dp else if (!isMine) 4.dp else 20.dp,
+        bottomEnd = if (isMine && !showAvatar) 4.dp else if (isMine) 4.dp else 20.dp
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (offsetX > 150f || offsetX < -150f) {
+                            onSwipeToReply()
+                        }
+                        offsetX = 0f
+                    },
+                    onDragCancel = {
+                        offsetX = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        // Only allow left drag for my messages, right drag for others
+                        val isDragValid = if (isMine) dragAmount < 0 else dragAmount > 0
+                        if (isDragValid || offsetX != 0f) {
+                            val newOffset = offsetX + dragAmount
+                            offsetX = if (isMine) newOffset.coerceIn(-200f, 0f) else newOffset.coerceIn(0f, 200f)
+                        }
+                    }
+                )
+            },
+        contentAlignment = if (isMine) Alignment.CenterEnd else Alignment.CenterStart
     ) {
+        // Reply Icon Background
+        if (animatedOffsetX > 50f && !isMine) {
+            Icon(
+                Icons.Default.Reply,
+                contentDescription = "Reply",
+                tint = primaryColor,
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .size(24.dp)
+                    .alpha((animatedOffsetX / 150f).coerceIn(0f, 1f))
+            )
+        } else if (animatedOffsetX < -50f && isMine) {
+            Icon(
+                Icons.Default.Reply,
+                contentDescription = "Reply",
+                tint = primaryColor,
+                modifier = Modifier
+                    .padding(end = 16.dp)
+                    .size(24.dp)
+                    .alpha((-animatedOffsetX / 150f).coerceIn(0f, 1f))
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp)
+                .offset { IntOffset(animatedOffsetX.roundToInt(), 0) },
+            horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Bottom
+        ) {
         if (!isMine) {
             Box(
                 modifier = Modifier
@@ -146,6 +223,11 @@ fun MessageBubble(
             val hasReactions = message.reactions.isNotEmpty()
             val isImageMessage = !showRawEncryption && message.messageType == "IMAGE" && message.attachments.isNotEmpty()
 
+            val animatedBorderColor by animateColorAsState(
+                targetValue = if (isHighlighted) primaryColor else Color.Transparent,
+                animationSpec = tween(durationMillis = 600)
+            )
+
             Box(
                 modifier = Modifier.padding(bottom = if (hasReactions) 16.dp else 0.dp)
             ) {
@@ -158,6 +240,7 @@ fun MessageBubble(
                             spotColor = if (isMine) primaryColor.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.1f)
                         )
                         .clip(bubbleShape)
+                        .border(2.dp, animatedBorderColor, bubbleShape)
                         .background(
                             if (isImageMessage) Color.Transparent 
                             else if (isMine) primaryColor 
@@ -180,7 +263,7 @@ fun MessageBubble(
                 ) {
                     Column {
                         // 0. HIỂN THỊ TÊN NGƯỜI GỬI (NẾU LÀ NHÓM VÀ KHÔNG PHẢI MÌNH)
-                        if (isGroup && !isMine && senderName != null) {
+                        if (isGroup && !isMine && senderName != null && showSenderName) {
                             Text(
                                 text = senderName,
                                 fontWeight = FontWeight.Black,
@@ -193,8 +276,7 @@ fun MessageBubble(
                         }
                         // 1. NẾU CÓ TRÍCH DẪN -> HIỂN THỊ KHỐI QUOTE
                         if (repliedMessage != null) {
-                            val isRepliedMine = repliedMessage.senderId == message.senderId
-                            val repliedSenderName = if (isRepliedMine) "Bạn" else partnerName
+                            val finalRepliedSenderName = repliedSenderName ?: if (repliedMessage.senderId == message.senderId) "Bạn" else partnerName
 
                             Row(
                                 modifier = Modifier
@@ -204,22 +286,23 @@ fun MessageBubble(
                                         top = if (isImageMessage) 6.dp else 0.dp,
                                         bottom = 10.dp
                                     )
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isMine) Color.Black.copy(alpha = 0.12f) else AppBackgroundColor.copy(alpha = 0.5f))
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isMine) Color.White.copy(alpha = 0.2f) else primaryColor.copy(alpha = 0.08f))
+                                    .clickable { onReplyClick(repliedMessage.id) }
                                     .height(IntrinsicSize.Min)
                                     .wrapContentWidth()
                                     .padding(end = 12.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .width(4.dp)
+                                        .width(3.dp)
                                         .fillMaxHeight()
-                                        .background(if (isMine) Color.White.copy(alpha = 0.6f) else primaryColor)
+                                        .background(if (isMine) Color.White else primaryColor)
                                 )
 
-                                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                                     Text(
-                                        text = repliedSenderName,
+                                        text = finalRepliedSenderName,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 12.sp,
                                         color = if (isMine) Color.White else primaryColor
@@ -234,7 +317,7 @@ fun MessageBubble(
                                     Text(
                                         text = previewText,
                                         fontSize = 12.sp,
-                                        color = if (isMine) Color.White.copy(alpha = 0.8f) else TextSecondaryColor,
+                                        color = if (isMine) Color.White.copy(alpha = 0.9f) else TextSecondaryColor,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -529,6 +612,7 @@ fun MessageBubble(
                     modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
                 )
             }
+        }
         }
     }
 }
