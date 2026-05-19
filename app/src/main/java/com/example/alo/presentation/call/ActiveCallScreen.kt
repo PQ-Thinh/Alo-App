@@ -74,8 +74,9 @@ fun ActiveCallScreen(
     val isCamEnabled by call.camera.isEnabled.collectAsState(initial = call.camera.isEnabled.value)
     val isMicEnabled by call.microphone.isEnabled.collectAsState(initial = call.microphone.isEnabled.value)
 
-    val customColors = StreamColors.defaultDarkColors().copy(
-        appBackground = Color(0xFF1C1C1E)
+    val customColors = StreamColors.defaultColors().copy(
+        basePrimary = Color(0xFF1C1C1E),
+        baseSecondary = Color(0xFF2C2C2E).copy(alpha = 0.8f)
     )
 
     val participants by call.state.participants.collectAsState()
@@ -93,10 +94,7 @@ fun ActiveCallScreen(
         }
     }
 
-    VideoTheme(
-        isDarkTheme = true,
-        colors = customColors
-    ) {
+    VideoTheme(colors = customColors) {
         Box(modifier = Modifier.fillMaxSize()) {
             CallContent(
                 call = call,
