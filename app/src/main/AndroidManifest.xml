@@ -45,16 +45,15 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:allowEmbedded="true"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
-            android:documentLaunchMode="always"
             android:windowSoftInputMode="adjustResize" android:label="@string/app_name"
             android:theme="@style/Theme.Alo">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -65,12 +64,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <!-- Stream Video SDK: xử lý cuộc gọi khi app ở background -->
-        <service
-            android:name="io.getstream.video.android.core.notifications.internal.service.CallService"
-            android:foregroundServiceType="camera|microphone"
-            android:exported="false" />
 
         <service
             android:name=".core.service.CallForegroundService"

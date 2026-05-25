@@ -47,25 +47,8 @@ fun ActiveCallScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(call) {
-        val observer = object : DefaultLifecycleObserver {
-            override fun onStop(owner: LifecycleOwner) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val activity = context as? ComponentActivity ?: return
-                    if (!activity.isInPictureInPictureMode) {
-                        try {
-                            val params = PictureInPictureParams.Builder()
-                                .setAspectRatio(Rational(9, 16))
-                                .build()
-                            activity.enterPictureInPictureMode(params)
-                        } catch (_: Exception) {}
-                    }
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    // PIP mode được xử lý bởi MainActivity.onUserLeaveHint() khi user nhấn Home
+    // KHÔNG tự kích hoạt PIP ở đây vì sẽ conflict khi kết thúc cuộc gọi
 
     val scope = rememberCoroutineScope()
     var camBusy by remember { mutableStateOf(false) }
@@ -165,7 +148,6 @@ fun ActiveCallScreen(
                                             LeaveCallAction(
                                                 modifier = Modifier.size(52.dp),
                                                 onCallAction = {
-                                                    call.leave()
                                                     onCallEnded()
                                                 }
                                             )

@@ -5,19 +5,19 @@ import android.util.Log
 import com.example.alo.BuildConfig
 import com.example.alo.domain.repository.VideoCallRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
 import io.getstream.video.android.core.Call
 import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
+import io.getstream.video.android.core.notifications.NotificationConfig
 import io.getstream.video.android.core.socket.common.token.TokenProvider
+import com.example.alo.core.service.SilentNotificationHandler
 import io.getstream.video.android.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.content.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -99,6 +99,16 @@ class VideoCallRepositoryImpl @Inject constructor(
                 image = avatarUrl ?: ""
             )
 
+            // Cấu hình Push Notification:
+            // - FirebasePushDeviceGenerator: đăng ký FCM token lên Stream server để nhận push
+            // - Custom NotificationHandler: TẮT default UI của SDK (ta dùng custom UI)
+            val notificationConfig = NotificationConfig(
+                pushDeviceGenerators = listOf(
+                    FirebasePushDeviceGenerator(context = context, providerName = "firebase")
+                ),
+                notificationHandler = SilentNotificationHandler(context.applicationContext as android.app.Application)
+            )
+
             StreamVideoBuilder(
                 context = context,
                 apiKey = BuildConfig.getStreamKey,
@@ -113,10 +123,11 @@ class VideoCallRepositoryImpl @Inject constructor(
                             throw e
                         }
                     }
-                }
+                },
+                notificationConfig = notificationConfig
             ).build()
 
-            Log.d(TAG, "StreamVideo khởi tạo thành công cho user: $userId")
+            Log.d(TAG, "StreamVideo khởi tạo thành công cho user: $userId (Push bật, Default UI tắt)")
         }
     }
 
@@ -140,42 +151,7 @@ class VideoCallRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Bắn API gọi Push Notification "INCOMING_CALL" tới máy B.
-     */
-    override suspend fun pushIncomingCall(
-        callId: String,
-        senderId: String,
-        receiverIds: List<String>,
-        type: String
-    ) {
-        withContext(Dispatchers.IO) {
-            try {
-                val payload = PushCallPayload(
-                    callId = callId,
-                    senderId = senderId,
-                    receiverIds = receiverIds,
-                    type = type
-                )
-                
-                val payloadString = kotlinx.serialization.json.Json.encodeToString(PushCallPayload.serializer(), payload)
-                
-                val response: HttpResponse = supabaseClient.functions.invoke("push_call") {
-                    setBody(
-                        TextContent(
-                            text = payloadString,
-                            contentType = ContentType.Application.Json
-                        )
-                    )
-                }
-                Log.d(TAG, "Push call response: ${response.bodyAsText()}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Gửi push call thất bại", e)
-            }
-        }
-    }
-
-    /**
-     * Tham gia vào cuộc gọi đang có (khi nhận FCM incoming call và Accept).
+     * Tham gia vào cuộc gọi đang có (khi nhận incoming call và Accept).
      */
     override suspend fun joinCall(callId: String): Call {
         return withRetry {
@@ -238,13 +214,6 @@ class VideoCallRepositoryImpl @Inject constructor(
     }
 }
 
-@Serializable
-private data class PushCallPayload(
-    val callId: String,
-    val senderId: String,
-    val receiverIds: List<String>,
-    val type: String = "INCOMING_CALL"
-)
 
 private suspend fun <T> withRetry(
     timeoutMs: Long = 20_000L,

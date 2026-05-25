@@ -53,6 +53,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        // ═══ GetStream SDK Push: Nếu message đến từ GetStream, delegate cho SDK xử lý ═══
+        // GetStream messages chứa key "sender" = "stream.video" hoặc data chứa "call_cid"
+        val isStreamMessage = remoteMessage.data.containsKey("call_cid") ||
+                remoteMessage.data["sender"] == "stream.video" ||
+                remoteMessage.data.containsKey("type") && remoteMessage.data["type"]?.startsWith("call.") == true
+
+        if (isStreamMessage) {
+            Log.d("FCM_DEBUG", "Nhận push từ GetStream SDK, forwarding cho SDK xử lý. Keys: ${remoteMessage.data.keys}")
+            try {
+                // Forward đến Stream SDK để nó xử lý (wake up WebSocket, set ringingCall state)
+                io.getstream.android.push.firebase.FirebaseMessagingDelegate.handleRemoteMessage(remoteMessage)
+            } catch (e: Exception) {
+                Log.e("FCM_DEBUG", "Lỗi khi delegate push cho Stream SDK: ${e.message}", e)
+            }
+            return
+        }
+
         if (remoteMessage.data.isNotEmpty()) {
             val type = remoteMessage.data["type"]
             val senderName = remoteMessage.data["senderName"] ?: "Người dùng"
@@ -77,16 +94,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                         }
                     }
                 }
-                "INCOMING_CALL" -> {
-                    if (callId != null) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val authUser = authRepository.getCurrentAuthUser()
-                            if (authUser?.id != senderId) {
-                                showIncomingCallNotification(callerName = senderName, callId = callId)
-                            }
-                        }
-                    }
-                }
+                // Dọn dẹp notification khi cuộc gọi bị hủy/nhỡ (từ hệ thống custom push cũ)
                 "CALL_CANCELLED", "MISSED_CALL", "CALL_REJECTED", "CALL_STARTED" -> {
                     if (callId != null) {
                         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager

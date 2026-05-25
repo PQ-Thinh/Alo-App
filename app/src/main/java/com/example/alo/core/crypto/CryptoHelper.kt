@@ -178,7 +178,7 @@ object CryptoHelper {
     }
 
     /**
-     * HÀM GIẢM MÃ TIN NHẮN (DECRYPT)
+     * HÀM GIẢI MÃ TIN NHẮN (DECRYPT)
      * Cần gọi hàm này cho mỗi tin nhắn tải về từ Supabase.
      */
     fun decryptMessage(

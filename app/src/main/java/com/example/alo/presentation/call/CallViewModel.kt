@@ -67,6 +67,8 @@ class CallViewModel @Inject constructor(
     private var callStartTimestamp: Long? = null
     private var isCallLogged: Boolean = false
     private var initJob: Job? = null
+    private var _isEndingCall: Boolean = false
+    val isEndingCall: Boolean get() = _isEndingCall
 
     fun initStreamClient() {
         if (initJob?.isActive == true) return
@@ -127,19 +129,8 @@ class CallViewModel @Inject constructor(
                 activeCall = call
                 startNetworkMonitor()
                 startCallTimeoutWatcher()
-
-                val authUser = authRepository.getCurrentAuthUser()
-                if (authUser != null) {
-                    val receiverIds = memberIds.filter { it != authUser.id }
-                    if (receiverIds.isNotEmpty()) {
-                        try {
-                            videoCallRepository.pushIncomingCall(callId, authUser.id, receiverIds, Constant.EVENT_INCOMING_CALL)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Lỗi khi gửi Push Notification (FCM): ${e.message}")
-                            _uiState.value = CallUiState.Error("Không thể đổ chuông máy đối phương (Lỗi Firebase)")
-                        }
-                    }
-                }
+                // GetStream SDK tự gửi Push Notification cho người nhận
+                // KHÔNG cần gọi pushIncomingCall() nữa
 
                 // Lắng nghe sự kiện kết thúc
                 call.subscribe { event ->
@@ -237,6 +228,7 @@ class CallViewModel @Inject constructor(
     }
 
     fun endCall() {
+        _isEndingCall = true
         viewModelScope.launch {
             val current = _uiState.value
             try {
@@ -248,10 +240,21 @@ class CallViewModel @Inject constructor(
                         } else {
                             logCallMessage(Constant.EVENT_CALL_ENDED)
                         }
-                        current.call.leave()
+                        // end() thay vì leave() để đối phương cũng nhận được CallEndedEvent
+                        try {
+                            current.call.end()
+                        } catch (_: Exception) {
+                            // Fallback nếu end() thất bại (vd: không phải creator)
+                            current.call.leave()
+                        }
                     }
                     is CallUiState.InCall -> {
-                        current.call.leave()
+                        // end() kết thúc cho CẢ HAI phía
+                        try {
+                            current.call.end()
+                        } catch (_: Exception) {
+                            current.call.leave()
+                        }
                         logCallMessage(Constant.EVENT_CALL_ENDED)
                     }
                     else -> Unit
@@ -275,6 +278,7 @@ class CallViewModel @Inject constructor(
         isCaller = false
         callStartTimestamp = null
         isCallLogged = false
+        _isEndingCall = false
     }
 
     override fun onCleared() {
@@ -328,29 +332,12 @@ class CallViewModel @Inject constructor(
         callTimeoutJob = viewModelScope.launch {
             delay(CALL_TIMEOUT_MS)
             if (_uiState.value is CallUiState.Calling) {
-                sendCancelPush(Constant.EVENT_CALL_MISSED)
                 logCallMessage(Constant.EVENT_CALL_MISSED)
                 endCall()
             }
         }
     }
 
-    private suspend fun sendCancelPush(type: String = Constant.EVENT_CALL_CANCELLED) {
-        try {
-            val authUser = authRepository.getCurrentAuthUser() ?: return
-            if (currentMemberIds.isNotEmpty() && currentCallId != null) {
-                if (isCaller) {
-                    videoCallRepository.pushIncomingCall(
-                        callId = currentCallId!!,
-                        senderId = authUser.id,
-                        receiverIds = currentMemberIds.filter { it != authUser.id },
-                        type = type
-                    )
-                }
-                cancelPushSent = true
-            }
-        } catch (_: Exception) {}
-    }
 
     private fun logCallMessage(reason: String, durationMs: Long? = null) {
         if (isCallLogged) return

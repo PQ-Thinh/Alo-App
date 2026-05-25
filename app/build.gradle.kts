@@ -121,6 +121,7 @@ dependencies {
 
     implementation("com.google.crypto.tink:tink-android:1.8.0")
     implementation("io.getstream:stream-video-android-ui-compose:1.20.1")
+    implementation("io.getstream:stream-android-push-firebase:1.3.4")
 
     implementation("androidx.lifecycle:lifecycle-service:2.8.6")
 

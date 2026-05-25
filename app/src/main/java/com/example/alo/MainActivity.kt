@@ -151,7 +151,8 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val state = callViewModel.uiState.value
-            if (state is com.example.alo.presentation.helper.CallUiState.InCall) {
+            // KHÔNG vào PIP nếu đang kết thúc cuộc gọi (user nhấn nút hủy)
+            if (state is com.example.alo.presentation.helper.CallUiState.InCall && !callViewModel.isEndingCall) {
                 try {
                     enterPictureInPictureMode(
                         android.app.PictureInPictureParams.Builder()

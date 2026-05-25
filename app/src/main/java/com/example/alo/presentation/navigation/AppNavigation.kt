@@ -1,8 +1,10 @@
 package com.example.alo.presentation.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -37,6 +39,7 @@ import com.example.alo.presentation.profile.ProfileSetupScreen
 import com.example.alo.presentation.auth.AuthViewModel
 import com.example.alo.presentation.call.CallViewModel
 import com.example.alo.presentation.profile.UserViewModel
+import io.getstream.video.android.core.StreamVideo
 import java.net.URLDecoder
 
 @Composable
@@ -58,27 +61,63 @@ fun AppNavigation(
         }
     }
 
-    // Navigate to incoming call from FCM push
+    // Navigate to incoming call from FCM push (legacy - giữ lại cho backward compatibility)
     LaunchedEffect(pushCallId, pushCallAction) {
         if (pushCallId != null) {
-            callViewModel.initStreamClient()
-            when (pushCallAction) {
-               Constant.ACTION_INCOMING_CALL_ACCEPT -> {
-                    callViewModel.acceptCall(pushCallId)
-                    navController.navigate(Screen.ActiveCall.createRoute(pushCallId)) {
-                        popUpTo(0) { inclusive = false }
+            try {
+                callViewModel.initStreamClient()
+                when (pushCallAction) {
+                    Constant.ACTION_INCOMING_CALL_ACCEPT -> {
+                        callViewModel.acceptCall(pushCallId)
+                        navController.navigate(Screen.ActiveCall.createRoute(pushCallId)) {
+                            popUpTo(0) { inclusive = false }
+                        }
+                    }
+                    Constant.ACTION_INCOMING_CALL_DECLINE -> {
+                        callViewModel.rejectCall(pushCallId)
+                    }
+                    else -> {
+                        navController.navigate(
+                            Screen.IncomingCall.createRoute(pushCallId, pushCallerName ?: "Cuộc gọi đến")
+                        )
                     }
                 }
-               Constant.ACTION_INCOMING_CALL_DECLINE -> {
-                    callViewModel.rejectCall(pushCallId)
-                }
-                else -> {
-                    navController.navigate(
-                        Screen.IncomingCall.createRoute(pushCallId, pushCallerName ?: "Cuộc gọi đến")
-                    )
+            } catch (e: Exception) {
+                Log.e("NAV_DEBUG", "Lỗi xử lý push call: ${e.message}")
+            } finally {
+                onClearPushDetails()
+            }
+        }
+    }
+
+    // ĐÂY LÀ PHẦN CHÍNH: Lắng nghe ringingCall từ GetStream SDK
+    // Khi SDK nhận cuộc gọi đến (qua WebSocket hoặc Push), nó cập nhật state này
+    LaunchedEffect(Unit) {
+        if (StreamVideo.isInstalled) {
+            val currentUserId = StreamVideo.instance().user.id
+            StreamVideo.instance().state.ringingCall.collect { ringingCall ->
+                if (ringingCall != null) {
+                    val callId = ringingCall.id
+                    // QUAN TRỌNG: Kiểm tra xem mình có phải người tạo cuộc gọi không
+                    // Nếu mình là CALLER → KHÔNG hiện IncomingCall (vì đã ở OutgoingCall rồi)
+                    val createdById = ringingCall.state.createdBy.value?.id
+                    Log.d("NAV_DEBUG", "ringingCall detected: $callId, createdBy=$createdById, me=$currentUserId")
+
+                    if (createdById != null && createdById == currentUserId) {
+                        Log.d("NAV_DEBUG", "Bỏ qua — mình là người gọi, không hiện IncomingCall")
+                        return@collect
+                    }
+
+                    val currentState = callViewModel.uiState.value
+                    if (currentState !is CallUiState.InCall && currentState !is CallUiState.Calling) {
+                        val callerName = ringingCall.state.createdBy.value?.name ?: "Cuộc gọi đến"
+                        Log.d("NAV_DEBUG", "Navigating to IncomingCall: $callId from $callerName")
+                        navController.navigate(
+                            Screen.IncomingCall.createRoute(callId, callerName)
+                        )
+                    }
                 }
             }
-            onClearPushDetails() // Xóa sạch dấu vết sau khi đã xử lý xong
         }
     }
 
