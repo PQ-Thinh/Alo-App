@@ -77,7 +77,7 @@ CREATE TABLE public.participants (
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     PRIMARY KEY (conversation_id, user_id)
 );
-ALTER TABLE public.participants ADD COLUMN IF EXISTS hidden_pin_hash TEXT;
+ALTER TABLE public.participants ADD COLUMN IF NOT EXISTS hidden_pin_hash TEXT;
 
 
 
@@ -119,7 +119,6 @@ CREATE TABLE public.shared_tasks (
     description TEXT,
     due_date TIMESTAMP WITH TIME ZONE,
     is_completed BOOLEAN DEFAULT FALSE,
-    hidden_pin_hash TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
