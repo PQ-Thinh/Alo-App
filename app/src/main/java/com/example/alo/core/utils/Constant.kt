@@ -25,9 +25,16 @@ object Constant {
 
     // Crypto
     const val MASTER_KEY_URI = "android-keystore://alo_app_master_key"
+
+    // Legacy constants (giữ lại để dọn dẹp key cũ khi migrate)
     const val PREF_FILE_NAME = "alo_app_crypto_keys"
     const val ENCRYPT_KEYSET_NAME = "encrypt_keyset"
     const val SIGN_KEYSET_NAME = "sign_keyset"
+
+    // Per-user key isolation: mỗi userId có SharedPref + keyset riêng
+    fun prefFileName(userId: String) = "alo_crypto_keys_$userId"
+    fun encryptKeysetName(userId: String) = "encrypt_keyset_$userId"
+    fun signKeysetName(userId: String) = "sign_keyset_$userId"
 
     // Supabase Tables & Storage
     const val TABLE_USERS = "users"

@@ -35,7 +35,7 @@ import com.example.alo.R
 import com.example.alo.presentation.helper.GoogleAuthUiClient
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.navigation.Screen
-import com.example.alo.presentation.auth.AuthViewModel
+import com.example.alo.presentation.components.GlobalLoadingOverlay
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -166,11 +166,7 @@ fun LoginScreen(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
             enabled = userState !is UserState.Loading
         ) {
-            if (userState is UserState.Loading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Đăng Nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
+            Text("Đăng Nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -215,4 +211,9 @@ fun LoginScreen(
             }
         }
     }
+
+    GlobalLoadingOverlay(
+        isLoading = userState is UserState.Loading,
+        message = "Đang đăng nhập..."
+    )
 }

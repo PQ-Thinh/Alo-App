@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.core.crypto.CryptoHelper
+import com.example.alo.core.crypto.KeySyncHelper
 import com.example.alo.domain.model.User
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.domain.repository.AuthRepository
@@ -63,6 +64,13 @@ class AuthViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 authRepository.login(userEmail, userPassword)
+
+                // Đồng bộ crypto keys ngay sau đăng nhập
+                val authUser = authRepository.getCurrentAuthUser()
+                if (authUser != null) {
+                    KeySyncHelper.ensureKeysReady(context, authUser.id, userRepository)
+                }
+
                 val token = pushNotiRepository.getDeviceToken()
                 if (token != null) {
                     val deviceName = Build.MODEL
@@ -83,11 +91,12 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.loginWithGoogle(credential as String)
                 val authUser = authRepository.getCurrentAuthUser()
-                val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context)
                 if (authUser != null) {
                     val existingProfile = userRepository.getCurrentUser(authUser.id)
 
                     if (existingProfile == null) {
+                        // Tạo profile mới: generate key per-user
+                        val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context, authUser.id)
                         val defaultUsername = authUser.email.substringBefore("@")
                         val displayName = authUser.fullName ?: defaultUsername
 
@@ -113,6 +122,9 @@ class AuthViewModel @Inject constructor(
                             _userState.value = UserState.Error("Lỗi: Không thể khởi tạo hồ sơ người dùng.")
                             return@launch
                         }
+                    } else {
+                        // Profile đã tồn tại: đồng bộ key (phòng trường hợp xóa app / đổi thiết bị)
+                        KeySyncHelper.ensureKeysReady(context, authUser.id, userRepository)
                     }
 
                     try {
@@ -200,6 +212,9 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             _userState.value = UserState.Loading
+
+            // Clear crypto cache TRƯỚC KHI đăng xuất (key vẫn còn trên disk cho lần login sau)
+            CryptoHelper.clearCachedKeys()
 
             withContext(NonCancellable) {
                 try {

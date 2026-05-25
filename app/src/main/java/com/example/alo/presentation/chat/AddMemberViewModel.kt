@@ -64,7 +64,7 @@ class AddMemberViewModel @Inject constructor(
                 
                 var keysetBase64: String? = null
                 myParticipant?.encryptedGroupKey?.let { wrappedKey ->
-                     keysetBase64 = CryptoHelper.unwrapGroupKey(context, wrappedKey)
+                     keysetBase64 = CryptoHelper.unwrapGroupKey(context, currentUser.id, wrappedKey)
                 }
 
                 _state.update { it.copy(

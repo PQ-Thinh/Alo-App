@@ -80,36 +80,58 @@ class ChatListViewModel @Inject constructor(
                     async {
                         val previewJson = chat.lastMessagePreview
 
-                        if (previewJson.isNullOrBlank() || !previewJson.contains("for_sender")) {
+                        if (previewJson.isNullOrBlank()) {
                             return@async chat
                         }
 
-                        // Kiểm tra xem ai là người gửi tin nhắn cuối cùng này
-                        val isMine = (chat.lastMessageSenderId == currentUser.id)
-                        var senderSignKey: String? = null
-
-                        // Nếu không phải mình gửi, phải tìm Public Sign Key của người kia để soi mộc
-                        if (!isMine && chat.lastMessageSenderId != null) {
-                            try {
-                                val senderProfile = userRepository.getCurrentUser(chat.lastMessageSenderId!!)
-                                senderSignKey = senderProfile?.publicSignKey
-                            } catch (e: Exception) {
-                                // Lỗi lấy profile thì Sign Key = null,
+                        if (chat.isGroup) {
+                            if (!previewJson.contains("group_ciphertext") || chat.encryptedGroupKey.isNullOrBlank()) {
+                                return@async chat
                             }
-                        }
+                            try {
+                                val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, currentUser.id, chat.encryptedGroupKey)
+                                if (groupKeysetBase64.isNotEmpty()) {
+                                    val groupKeysetHandle = CryptoHelper.importKeysetFromBase64(groupKeysetBase64)
+                                    val clearText = CryptoHelper.decryptGroupMessage(previewJson, groupKeysetHandle)
+                                    return@async chat.copy(lastMessagePreview = clearText)
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("ChatListViewModel", "Lỗi giải mã group preview ${chat.conversationId}: ${e.message}")
+                            }
+                            return@async chat
+                        } else {
+                            if (!previewJson.contains("for_sender")) {
+                                return@async chat
+                            }
 
-                        try {
-                            // Gọi cỗ máy Tink giải mã
-                            val clearText = CryptoHelper.decryptMessage(
-                                context = context,
-                                encryptedJson = previewJson,
-                                senderPublicSignKeyBase64 = senderSignKey,
-                                isMyMessage = isMine
-                            )
-                            chat.copy(lastMessagePreview = clearText)
-                        } catch (e: Exception) {
-                            android.util.Log.e("ChatListViewModel", "Lỗi giải mã preview cho conversation ${chat.conversationId}: ${e.message}")
-                            chat // Trả về chat gốc nếu lỗi giải mã để không treo cả list
+                            // Kiểm tra xem ai là người gửi tin nhắn cuối cùng này
+                            val isMine = (chat.lastMessageSenderId == currentUser.id)
+                            var senderSignKey: String? = null
+
+                            // Nếu không phải mình gửi, phải tìm Public Sign Key của người kia để soi mộc
+                            if (!isMine && chat.lastMessageSenderId != null) {
+                                try {
+                                    val senderProfile = userRepository.getCurrentUser(chat.lastMessageSenderId)
+                                    senderSignKey = senderProfile?.publicSignKey
+                                } catch (e: Exception) {
+                                    // Lỗi lấy profile thì Sign Key = null,
+                                }
+                            }
+
+                            try {
+                                // Gọi cỗ máy Tink giải mã
+                                val clearText = CryptoHelper.decryptMessage(
+                                    context = context,
+                                    userId = currentUser.id,
+                                    encryptedJson = previewJson,
+                                    senderPublicSignKeyBase64 = senderSignKey,
+                                    isMyMessage = isMine
+                                )
+                                return@async chat.copy(lastMessagePreview = clearText)
+                            } catch (e: Exception) {
+                                android.util.Log.e("ChatListViewModel", "Lỗi giải mã preview cho conversation ${chat.conversationId}: ${e.message}")
+                                return@async chat // Trả về chat gốc nếu lỗi giải mã để không treo cả list
+                            }
                         }
                     }
                 }.awaitAll()

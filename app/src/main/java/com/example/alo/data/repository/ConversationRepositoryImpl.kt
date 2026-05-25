@@ -90,7 +90,7 @@ class ConversationRepositoryImpl @Inject constructor(
             dto.toDomain()
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Lỗi createGroupConversation: ${e.message}", e)
-            null
+            throw Exception("Lỗi Server: ${e.message}")
         }
     }
 

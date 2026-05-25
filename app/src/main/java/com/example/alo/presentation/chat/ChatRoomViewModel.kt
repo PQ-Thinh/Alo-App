@@ -123,7 +123,7 @@ class ChatRoomViewModel @Inject constructor(
                             val myParticipant = participantRepository.getParticipant(conversationId, user.id)
                             myParticipant?.encryptedGroupKey?.let { wrappedKey ->
                                 Log.d("ChatRoomVM", "Đang giải mã Group Key cho conversation: $conversationId")
-                                val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, wrappedKey)
+                                val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, user.id, wrappedKey)
                                 if (groupKeysetBase64.isNotEmpty()) {
                                     Log.d("ChatRoomVM", "Giải mã Group Key THÀNH CÔNG")
                                     groupKeysetHandle = CryptoHelper.importKeysetFromBase64(groupKeysetBase64)
@@ -250,6 +250,7 @@ class ChatRoomViewModel @Inject constructor(
 
         val clearText = CryptoHelper.decryptMessage(
             context = context,
+            userId = _currentUserId.value,
             encryptedJson = msg.encryptedContent,
             senderPublicSignKeyBase64 = senderSignKey,
             isMyMessage = isMine
@@ -285,6 +286,7 @@ class ChatRoomViewModel @Inject constructor(
                 }
                 CryptoHelper.encryptMessage(
                     context = context,
+                    userId = senderId,
                     plaintext = content,
                     receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
                     myPublicEncryptKeyBase64 = myPublicEncryptKey
@@ -347,6 +349,7 @@ class ChatRoomViewModel @Inject constructor(
                 } else {
                     CryptoHelper.encryptMessage(
                         context = context,
+                        userId = _currentUserId.value,
                         plaintext = fallbackText,
                         receiverPublicEncryptKeyBase64 = partnerPublicEncryptKey,
                         myPublicEncryptKeyBase64 = myPublicEncryptKey

@@ -171,6 +171,7 @@ c.last_message_preview,
 c.last_message_time,
 c.last_message_sender_id,
 p1.unread_count,
+p1.encrypted_group_key,
 -- Tên và ảnh
 CASE
 WHEN c.is_group THEN c.name

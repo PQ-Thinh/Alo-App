@@ -78,7 +78,7 @@ class UserViewModel @Inject constructor(
                 var finalAvatarUrl: String? = existingProfile?.avatarUrl ?: authUser.avatarUrl
                 var finalAvatarId: String? = existingProfile?.avatarId
                     ?: if (authUser.avatarUrl != null) "google_oauth_avatar" else "default_id"
-                val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context)
+                val (encryptKeyStr, signKeyStr) = CryptoHelper.generateAndGetPublicKeys(context, authUser.id)
                 if (currentState.avatarBytes != null) {
                     val uploadedUrl = userRepository.uploadAvatar(currentState.avatarBytes, "jpg")
                     if (uploadedUrl.isNotBlank()) {

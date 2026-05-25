@@ -12,5 +12,6 @@ data class ChatList(
     val chatAvatar: String?,
     val targetUserId: String? = null,
     val targetLastSeen: String? = null,
-    val status: String? = null
+    val status: String? = null,
+    val encryptedGroupKey: String? = null
 )
