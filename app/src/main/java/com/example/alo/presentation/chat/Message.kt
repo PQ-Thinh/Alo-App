@@ -1,8 +1,10 @@
 package com.example.alo.presentation.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -51,10 +54,12 @@ import com.example.alo.presentation.theme.ErrorColor
 import com.example.alo.presentation.theme.TextPrimaryColor
 import com.example.alo.presentation.theme.TextSecondaryColor
 import com.example.alo.presentation.theme.primaryColor
+import com.example.alo.presentation.components.PinSetupDialog
+import com.example.alo.presentation.components.PinAuthDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Message(
     viewModel: ChatListViewModel = hiltViewModel(),
@@ -74,6 +79,13 @@ fun Message(
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
+    // States cho tính năng Khóa chat
+    var showChatOptions by remember { mutableStateOf<ChatList?>(null) }
+    var showPinSetupForChat by remember { mutableStateOf<ChatList?>(null) }
+    var showPinAuthForChat by remember { mutableStateOf<ChatList?>(null) }
+    var pinAuthError by remember { mutableStateOf<String?>(null) }
+    var pendingNavigationChatId by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) {
         while (isActive) {
             delay(30_000L)
@@ -84,6 +96,79 @@ fun Message(
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.fetchChatList(isSilentRefresh = true)
         }
+    }
+
+    if (showChatOptions != null) {
+        val chat = showChatOptions!!
+        AlertDialog(
+            onDismissRequest = { showChatOptions = null },
+            title = { Text("Tùy chọn trò chuyện", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    if (chat.hiddenPinHash == null) {
+                        TextButton(onClick = {
+                            showChatOptions = null
+                            showPinSetupForChat = chat
+                        }) { Text("🔒 Khóa trò chuyện", color = TextPrimaryColor, fontSize = 16.sp) }
+                    } else {
+                        TextButton(onClick = {
+                            showChatOptions = null
+                            // Yêu cầu nhập PIN trước khi bỏ khóa
+                            pendingNavigationChatId = null
+                            showPinAuthForChat = chat
+                        }) { Text("🔓 Bỏ khóa trò chuyện", color = TextPrimaryColor, fontSize = 16.sp) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showChatOptions = null }) {
+                    Text("Đóng", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    if (showPinSetupForChat != null) {
+        PinSetupDialog(
+            onDismissRequest = { showPinSetupForChat = null },
+            onPinConfirmed = { pin ->
+                viewModel.setChatLock(showPinSetupForChat!!.conversationId, pin)
+                showPinSetupForChat = null
+            }
+        )
+    }
+
+    if (showPinAuthForChat != null) {
+        PinAuthDialog(
+            onDismissRequest = { 
+                showPinAuthForChat = null
+                pinAuthError = null
+            },
+            onPinValidated = { pin ->
+                val hashed = com.example.alo.core.crypto.CryptoHelper.hashPin(pin)
+                if (hashed == showPinAuthForChat!!.hiddenPinHash) {
+                    com.example.alo.core.utils.ChatLockManager.unlockChat(showPinAuthForChat!!.conversationId)
+                    val navId = pendingNavigationChatId
+                    val isRemovingLock = navId == null
+                    
+                    showPinAuthForChat = null
+                    pinAuthError = null
+                    
+                    if (isRemovingLock) {
+                        // Thao tác bỏ khóa
+                        viewModel.setChatLock(showPinAuthForChat!!.conversationId, null)
+                    } else {
+                        // Thao tác mở khóa để vào phòng
+                        onNavigateToChatRoom(navId!!)
+                        pendingNavigationChatId = null
+                    }
+                } else {
+                    pinAuthError = "Mã PIN không chính xác"
+                }
+            },
+            externalError = pinAuthError
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize().background(AppBackgroundColor)) {
@@ -265,7 +350,16 @@ fun Message(
                             val userStatus = getUserStatus(chat.targetLastSeen)
                             ChatItem(
                                 chat = chat,
-                                onClick = { onNavigateToChatRoom(chat.conversationId) },
+                                onClick = { 
+                                    if (chat.hiddenPinHash != null && !com.example.alo.core.utils.ChatLockManager.isChatUnlocked(chat.conversationId)) {
+                                        pendingNavigationChatId = chat.conversationId
+                                        pinAuthError = null
+                                        showPinAuthForChat = chat
+                                    } else {
+                                        onNavigateToChatRoom(chat.conversationId)
+                                    }
+                                },
+                                onLongClick = { showChatOptions = chat },
                                 userStatus = userStatus,
                                 currentTimeTrigger = currentTimeTrigger
                             )
@@ -277,10 +371,12 @@ fun Message(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatItem(
     chat: ChatList,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     userStatus: UserStatus,
     currentTimeTrigger: Long
 ) {
@@ -309,7 +405,10 @@ fun ChatItem(
             .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor)
             .border(borderWidth, borderColor, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -430,12 +529,21 @@ fun ChatItem(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.height(50.dp)
         ) {
-            Text(
-                text = formatRelativeTime(chat.lastMessageTime.toString()),
-                fontSize = 12.sp,
-                color = if (hasUnread) Color(0xFF6C63FF) else TextSecondaryColor,
-                fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.Normal
-            )
+            if (chat.hiddenPinHash != null) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Locked",
+                    modifier = Modifier.size(16.dp),
+                    tint = TextSecondaryColor
+                )
+            } else {
+                Text(
+                    text = formatRelativeTime(chat.lastMessageTime.toString()),
+                    fontSize = 12.sp,
+                    color = if (hasUnread) Color(0xFF6C63FF) else TextSecondaryColor,
+                    fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.Normal
+                )
+            }
 
             Spacer(modifier = Modifier.height(6.dp))
 

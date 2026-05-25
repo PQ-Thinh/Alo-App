@@ -215,6 +215,7 @@ class AuthViewModel @Inject constructor(
 
             // Clear crypto cache TRƯỚC KHI đăng xuất (key vẫn còn trên disk cho lần login sau)
             CryptoHelper.clearCachedKeys()
+            com.example.alo.core.utils.ChatLockManager.clearAll()
 
             withContext(NonCancellable) {
                 try {

@@ -184,4 +184,27 @@ class ChatListViewModel @Inject constructor(
         super.onCleared()
         usersStatusJob?.cancel()
     }
+
+    fun setChatLock(conversationId: String, pin: String?) {
+        viewModelScope.launch {
+            try {
+                val hashedPin = pin?.let { CryptoHelper.hashPin(it) }
+                conversationRepository.setChatLockPin(conversationId, hashedPin)
+                // Cập nhật lại danh sách local
+                _state.update { currentState ->
+                    val updatedList = currentState.chatList.map {
+                        if (it.conversationId == conversationId) it.copy(hiddenPinHash = hashedPin) else it
+                    }
+                    currentState.copy(chatList = updatedList)
+                }
+                if (pin == null) {
+                    com.example.alo.core.utils.ChatLockManager.lockChat(conversationId) // Xóa khỏi danh sách mở khóa
+                } else {
+                    com.example.alo.core.utils.ChatLockManager.unlockChat(conversationId) // Vừa tạo khóa thì mặc định mở
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Không thể lưu cài đặt bảo mật: ${e.message}") }
+            }
+        }
+    }
 }

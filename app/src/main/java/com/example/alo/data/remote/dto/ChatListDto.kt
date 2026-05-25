@@ -22,7 +22,9 @@ data class ChatListDto(
     @SerialName("status")
     val status: String? = null,
     @SerialName("encrypted_group_key")
-    val encryptedGroupKey: String? = null
+    val encryptedGroupKey: String? = null,
+    @SerialName("hidden_pin_hash")
+    val hiddenPinHash: String? = null
 ) {
     fun toDomain(): ChatList {
         return ChatList(
@@ -38,7 +40,8 @@ data class ChatListDto(
             targetUserId = targetUserId,
             targetLastSeen = targetLastSeen,
             status = status,
-            encryptedGroupKey = encryptedGroupKey
+            encryptedGroupKey = encryptedGroupKey,
+            hiddenPinHash = hiddenPinHash
         )
     }
 }

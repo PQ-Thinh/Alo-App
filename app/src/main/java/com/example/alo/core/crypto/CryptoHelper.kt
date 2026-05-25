@@ -379,5 +379,10 @@ object CryptoHelper {
         } catch (e: Exception) {
             return ""
         }
+    fun hashPin(pin: String): String {
+        val bytes = pin.toByteArray(Charsets.UTF_8)
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(bytes)
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

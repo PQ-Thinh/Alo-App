@@ -160,4 +160,21 @@ class ConversationRepositoryImpl @Inject constructor(
             throw e
         }
     }
+
+    override suspend fun setChatLockPin(conversationId: String, pinHash: String?) {
+        try {
+            val params = buildJsonObject {
+                put("p_conversation_id", conversationId)
+                if (pinHash != null) {
+                    put("p_pin_hash", pinHash)
+                } else {
+                    put("p_pin_hash", JsonNull)
+                }
+            }
+            supabaseClient.postgrest.rpc("update_chat_pin", params)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Lỗi setChatLockPin: ${e.message}", e)
+            throw e
+        }
+    }
 }

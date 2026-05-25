@@ -13,5 +13,6 @@ data class ChatList(
     val targetUserId: String? = null,
     val targetLastSeen: String? = null,
     val status: String? = null,
-    val encryptedGroupKey: String? = null
+    val encryptedGroupKey: String? = null,
+    val hiddenPinHash: String? = null
 )

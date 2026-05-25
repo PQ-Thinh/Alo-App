@@ -18,4 +18,5 @@ interface ConversationRepository {
     fun subscribeToChatListUpdates(currentUserId: String): Flow<Unit>
     suspend fun updateGroupMetadata(conversationId: String, name: String?, avatarUrl: String?, status: String?)
     suspend fun deleteConversation(conversationId: String)
+    suspend fun setChatLockPin(conversationId: String, pinHash: String?)
 }
