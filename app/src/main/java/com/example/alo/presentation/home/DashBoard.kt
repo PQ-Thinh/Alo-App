@@ -1,5 +1,6 @@
 package com.example.alo.presentation.home
 
+import android.R.attr.scaleY
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -43,8 +44,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
 import android.graphics.drawable.AnimatedVectorDrawable
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.graphics.res.animatedVectorResource
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.alo.R
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi::class)
