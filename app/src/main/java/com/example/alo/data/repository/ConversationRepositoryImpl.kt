@@ -85,9 +85,15 @@ class ConversationRepositoryImpl @Inject constructor(
                     }
                 }
             }
+            Log.d("ConversationRepo", "createGroup params: userIds=$userIds, encryptedKeys.keys=${encryptedKeys.keys}")
             val response = supabaseClient.postgrest.rpc("create_group_conversation", params)
-            val dto = response.decodeSingle<ChatListDto>()
-            dto.toDomain()
+            val dtoList = response.decodeList<ChatListDto>()
+            if (dtoList.isEmpty()) {
+                Log.e("ConversationRepo", "createGroupConversation: Server trả về danh sách rỗng")
+                null
+            } else {
+                dtoList.first().toDomain()
+            }
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Lỗi createGroupConversation: ${e.message}", e)
             throw Exception("Lỗi Server: ${e.message}")

@@ -16,6 +16,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,9 +30,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -108,6 +114,32 @@ fun ChatRoomScreen(
     val memberProfiles by viewModel.memberProfiles.collectAsState()
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    // Search state
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResultIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var currentSearchIndex by remember { mutableIntStateOf(0) }
+
+    // Compute search results
+    LaunchedEffect(searchQuery, messages) {
+        if (searchQuery.length >= 2) {
+            searchResultIndices = messages.mapIndexedNotNull { index, msg ->
+                if (msg.encryptedContent.contains(searchQuery, ignoreCase = true)) index else null
+            }
+            currentSearchIndex = 0
+            // Auto scroll to first result
+            if (searchResultIndices.isNotEmpty()) {
+                highlightedMessageId = messages[searchResultIndices[0]].id
+                listState.animateScrollToItem(searchResultIndices[0])
+            } else {
+                highlightedMessageId = null
+            }
+        } else {
+            searchResultIndices = emptyList()
+            highlightedMessageId = null
+        }
+    }
 
 
     val permissionsToRequest = remember {
@@ -429,6 +461,32 @@ fun ChatRoomScreen(
                     
                     IconButton(
                         onClick = {
+                            isSearchActive = !isSearchActive
+                            if (!isSearchActive) {
+                                searchQuery = ""
+                                highlightedMessageId = null
+                            }
+                        },
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSearchActive) primaryColor.copy(alpha = 0.15f) else primaryColor.copy(alpha = 0.05f),
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Tìm kiếm",
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    IconButton(
+                        onClick = {
                             if (!isGroup) startCallAction() else Toast.makeText(context, "Tính năng gọi nhóm đang phát triển", Toast.LENGTH_SHORT).show()
                         }, 
                         modifier = Modifier.size(42.dp),
@@ -456,6 +514,87 @@ fun ChatRoomScreen(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(vertical = 6.dp)
                         )
+                    }
+                }
+                // Search Bar
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        shadowElevation = 4.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("Tìm tin nhắn...", fontSize = 14.sp) },
+                                modifier = Modifier.weight(1f).heightIn(max = 44.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondaryColor, modifier = Modifier.size(18.dp)) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = Color(0xFFEEEEEE),
+                                    focusedContainerColor = Color(0xFFF5F5F5),
+                                    unfocusedContainerColor = Color(0xFFF5F5F5)
+                                ),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
+                            )
+                            if (searchResultIndices.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "${currentSearchIndex + 1}/${searchResultIndices.size}",
+                                    fontSize = 12.sp,
+                                    color = TextSecondaryColor,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(
+                                    onClick = {
+                                        if (searchResultIndices.isNotEmpty()) {
+                                            currentSearchIndex = (currentSearchIndex - 1 + searchResultIndices.size) % searchResultIndices.size
+                                            val idx = searchResultIndices[currentSearchIndex]
+                                            highlightedMessageId = messages[idx].id
+                                            coroutineScope.launch { listState.animateScrollToItem(idx) }
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Trước", tint = primaryColor, modifier = Modifier.size(20.dp))
+                                }
+                                IconButton(
+                                    onClick = {
+                                        if (searchResultIndices.isNotEmpty()) {
+                                            currentSearchIndex = (currentSearchIndex + 1) % searchResultIndices.size
+                                            val idx = searchResultIndices[currentSearchIndex]
+                                            highlightedMessageId = messages[idx].id
+                                            coroutineScope.launch { listState.animateScrollToItem(idx) }
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Sau", tint = primaryColor, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    isSearchActive = false
+                                    searchQuery = ""
+                                    highlightedMessageId = null
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Đóng", tint = TextSecondaryColor, modifier = Modifier.size(18.dp))
+                            }
+                        }
                     }
                 }
             }

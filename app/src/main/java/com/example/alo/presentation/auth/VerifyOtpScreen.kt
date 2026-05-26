@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.example.alo.presentation.helper.UserState
 import com.example.alo.presentation.navigation.Screen
 import com.example.alo.presentation.auth.AuthViewModel
+import com.example.alo.presentation.components.GlobalLoadingOverlay
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -189,7 +190,6 @@ fun OtpVerificationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // NÚT XÁC NHẬN CHÍNH
             Button(
                 onClick = { viewModel.verifyOtp(email, otpValue) },
                 modifier = Modifier
@@ -199,12 +199,13 @@ fun OtpVerificationScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
                 enabled = otpValue.length == 6 && userState !is UserState.Loading
             ) {
-                if (userState is UserState.Loading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Xác nhận", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
+                Text("Xác nhận", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
+        
+        GlobalLoadingOverlay(
+            isLoading = userState is UserState.Loading,
+            message = "Đang xác thực mã..."
+        )
     }
 }

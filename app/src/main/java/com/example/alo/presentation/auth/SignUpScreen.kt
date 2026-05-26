@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.alo.R
 import com.example.alo.presentation.helper.UserState
+import com.example.alo.presentation.components.GlobalLoadingOverlay
 import com.example.alo.presentation.navigation.Screen
 import com.example.alo.presentation.auth.AuthViewModel
 
@@ -193,11 +194,7 @@ fun SignUpScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
                     enabled = userState !is UserState.Loading
                 ) {
-                    if (userState is UserState.Loading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text("Đăng Ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
+                    Text("Đăng Ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -211,5 +208,10 @@ fun SignUpScreen(
                 }
             }
         }
+        
+        GlobalLoadingOverlay(
+            isLoading = userState is UserState.Loading,
+            message = "Đang gửi mã xác nhận..."
+        )
     }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.domain.model.SharedTask
 import com.example.alo.domain.model.User
+import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
 import com.example.alo.domain.repository.ConversationRepository
 import com.example.alo.domain.repository.ParticipantRepository
@@ -29,9 +30,12 @@ data class GroupDetailState(
     val error: String? = null,
     val successMessage: String? = null,
     val isLeaving: Boolean = false,
+    val isDissolvingGroup: Boolean = false,
     val currentUserId: String = "",
     val tasks: List<SharedTask> = emptyList(),
-    val groupStatus: String? = null
+    val groupStatus: String? = null,
+    val mediaCount: Int = 0,
+    val fileCount: Int = 0
 )
 
 data class UserWithRole(
@@ -46,7 +50,8 @@ class GroupDetailViewModel @Inject constructor(
     private val participantRepository: ParticipantRepository,
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
-    private val sharedTaskRepository: SharedTaskRepository
+    private val sharedTaskRepository: SharedTaskRepository,
+    private val attachmentRepository: AttachmentRepository
 ) : ViewModel() {
 
     private val conversationId: String = checkNotNull(savedStateHandle["conversationId"])
@@ -103,6 +108,7 @@ class GroupDetailViewModel @Inject constructor(
 
                 loadTasks()
                 observeTaskUpdates()
+                loadMediaCounts()
 
             } catch (e: Exception) {
                 Log.e("GroupDetailVM", "Lỗi tải thông tin nhóm: ${e.message}")
@@ -231,6 +237,35 @@ class GroupDetailViewModel @Inject constructor(
                 _state.update { it.copy(isLeaving = false, successMessage = "Đã rời nhóm") }
             } catch (e: Exception) {
                 _state.update { it.copy(isLeaving = false, error = e.message) }
+            }
+        }
+    }
+
+    fun dissolveGroup() {
+        if (!_state.value.isAdmin) {
+            _state.update { it.copy(error = "Chỉ trưởng nhóm mới có quyền giải tán") }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(isDissolvingGroup = true) }
+            try {
+                conversationRepository.deleteConversation(conversationId)
+                _state.update { it.copy(isDissolvingGroup = false, successMessage = "Đã giải tán nhóm") }
+            } catch (e: Exception) {
+                _state.update { it.copy(isDissolvingGroup = false, error = "Lỗi giải tán nhóm: ${e.message}") }
+            }
+        }
+    }
+
+    fun loadMediaCounts() {
+        viewModelScope.launch {
+            try {
+                val attachments = attachmentRepository.getAttachmentsByConversation(conversationId)
+                val media = attachments.count { it.fileType == "IMAGE" }
+                val files = attachments.count { it.fileType == "FILE" }
+                _state.update { it.copy(mediaCount = media, fileCount = files) }
+            } catch (e: Exception) {
+                Log.e("GroupDetailVM", "Lỗi load media counts: ${e.message}")
             }
         }
     }

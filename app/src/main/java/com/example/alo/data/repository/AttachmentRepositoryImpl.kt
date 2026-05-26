@@ -52,6 +52,20 @@ class AttachmentRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getAttachmentsByConversation(conversationId: String): List<Attachment> {
+        return try {
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_ATTACHMENTS]
+                .select(columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, messages!inner(conversation_id)")) {
+                    filter { eq("messages.conversation_id", conversationId) }
+                }
+                .decodeList<AttachmentDto>()
+            dtos.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("AttachmentRepo", "Lỗi lấy attachments by conversation: ${e.message}")
+            emptyList()
+        }
+    }
+
     override suspend fun uploadDocument(
         byteArray: ByteArray,
         fileName: String
