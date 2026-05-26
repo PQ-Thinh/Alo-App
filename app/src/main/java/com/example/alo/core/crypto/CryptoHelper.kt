@@ -373,16 +373,19 @@ object CryptoHelper {
     fun unwrapGroupKey(context: Context, userId: String, wrappedKeyBase64: String): String {
         try {
             val ciphertext = Base64.decode(wrappedKeyBase64, Base64.NO_WRAP)
-            val hybridDecrypt = getDecryptHandle(context, userId).getPrimitive(HybridDecrypt::class.java)
+            val hybridDecrypt =
+                getDecryptHandle(context, userId).getPrimitive(HybridDecrypt::class.java)
             val plaintext = hybridDecrypt.decrypt(ciphertext, ByteArray(0))
             return String(plaintext, Charsets.UTF_8)
         } catch (e: Exception) {
             return ""
         }
+    }
     fun hashPin(pin: String): String {
         val bytes = pin.toByteArray(Charsets.UTF_8)
         val md = java.security.MessageDigest.getInstance("SHA-256")
         val digest = md.digest(bytes)
         return digest.joinToString("") { "%02x".format(it) }
     }
+
 }

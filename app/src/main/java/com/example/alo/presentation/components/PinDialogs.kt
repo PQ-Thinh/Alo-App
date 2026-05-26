@@ -96,7 +96,7 @@ fun PinAuthDialog(
 ) {
     var pin by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
-    val errorMessage = externalError ?: localError
+    var errorMessage = externalError ?: localError
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
