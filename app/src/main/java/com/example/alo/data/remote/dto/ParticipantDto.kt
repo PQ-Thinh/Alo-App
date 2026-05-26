@@ -11,9 +11,10 @@ data class ParticipantDto(
     @SerialName("role") val role: String = "member",
     @SerialName("unread_count") val unreadCount: Int = 0,
     @SerialName("encrypted_group_key") val encryptedGroupKey: String? = null,
+    @SerialName("needs_key_rewrap") val needsKeyRewrap: Boolean = false,
     @SerialName("joined_at") val joinedAt: String? = null
 ) {
     fun toDomain(): Participant = Participant(
-        conversationId, userId, role, unreadCount, encryptedGroupKey, joinedAt ?: ""
+        conversationId, userId, role, unreadCount, encryptedGroupKey, needsKeyRewrap, joinedAt ?: ""
     )
 }

@@ -102,7 +102,7 @@ class TaskDetailViewModel @Inject constructor(
                 val updatedTask = currentTask.copy(
                     title = title,
                     description = description,
-                    dueDate = dueDate,
+                    dueDate = com.example.alo.presentation.utils.parseTaskDueDateToIso(dueDate),
                     priority = priority,
                     assigneeId = assigneeId
                 )

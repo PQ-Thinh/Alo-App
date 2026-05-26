@@ -92,4 +92,69 @@ class ParticipantRepositoryImpl @Inject constructor(
             throw e
         }
     }
+
+    override suspend fun updateEncryptedGroupKey(conversationId: String, userId: String, encryptedGroupKey: String) {
+        try {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS].update({
+                set("encrypted_group_key", encryptedGroupKey)
+                set("needs_key_rewrap", false)
+            }) {
+                filter {
+                    and {
+                        eq("conversation_id", conversationId)
+                        eq("user_id", userId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ParticipantRepo", "Lỗi cập nhật encrypted_group_key: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun setNeedsKeyRewrap(conversationId: String, userId: String, needsRewrap: Boolean) {
+        try {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS].update({
+                set("needs_key_rewrap", needsRewrap)
+            }) {
+                filter {
+                    and {
+                        eq("conversation_id", conversationId)
+                        eq("user_id", userId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ParticipantRepo", "Lỗi cập nhật needs_key_rewrap: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun getParticipantsNeedingRewrap(userId: String): List<Participant> {
+        return try {
+            // Bước 1: Lấy tất cả conversation_id mà userId tham gia
+            val myConversations = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS]
+                .select(columns = io.github.jan.supabase.postgrest.query.Columns.raw("conversation_id")) {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeList<ParticipantDto>()
+                .map { it.conversationId }
+
+            if (myConversations.isEmpty()) return emptyList()
+
+            // Bước 2: Tìm participant có needs_key_rewrap = true trong các nhóm đó
+            val dtos = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS]
+                .select {
+                    filter {
+                        eq("needs_key_rewrap", true)
+                        isIn("conversation_id", myConversations)
+                    }
+                }
+                .decodeList<ParticipantDto>()
+            dtos.map { it.toDomain() }
+        } catch (e: Exception) {
+            Log.e("ParticipantRepo", "Lỗi getParticipantsNeedingRewrap: ${e.message}")
+            emptyList()
+        }
+    }
 }

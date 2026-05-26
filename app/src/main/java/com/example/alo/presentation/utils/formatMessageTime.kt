@@ -77,3 +77,28 @@ fun formatMessageTime(utcTimeString: String?): String {
         ""
     }
 }
+
+fun formatTaskDueDate(utcTimeString: String?): String {
+    if (utcTimeString.isNullOrEmpty()) return ""
+    return try {
+        val instant = Instant.parse(utcTimeString)
+        val zoneId = ZoneId.systemDefault()
+        val localTime = LocalDateTime.ofInstant(instant, zoneId)
+        val formatter = DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy")
+        localTime.format(formatter)
+    } catch (e: Exception) {
+        utcTimeString
+    }
+}
+
+fun parseTaskDueDateToIso(displayString: String?): String {
+    if (displayString.isNullOrBlank() || displayString == "Chưa thiết lập") return ""
+    return try {
+        val formatter = DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy")
+        val localTime = LocalDateTime.parse(displayString, formatter)
+        val instant = localTime.atZone(ZoneId.systemDefault()).toInstant()
+        instant.toString()
+    } catch (e: Exception) {
+        displayString
+    }
+}

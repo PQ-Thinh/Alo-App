@@ -6,5 +6,6 @@ data class Participant(
     val role: String,
     val unreadCount: Int,
     val encryptedGroupKey: String?,
+    val needsKeyRewrap: Boolean = false,
     val joinedAt: String
 )

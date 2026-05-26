@@ -8,4 +8,7 @@ interface ParticipantRepository {
     suspend fun addParticipant(conversationId: String, userId: String, role: String = "member", encryptedGroupKey: String? = null)
     suspend fun removeParticipant(conversationId: String, userId: String)
     suspend fun updateParticipantRole(conversationId: String, userId: String, role: String)
+    suspend fun updateEncryptedGroupKey(conversationId: String, userId: String, encryptedGroupKey: String)
+    suspend fun setNeedsKeyRewrap(conversationId: String, userId: String, needsRewrap: Boolean)
+    suspend fun getParticipantsNeedingRewrap(userId: String): List<Participant>
 }

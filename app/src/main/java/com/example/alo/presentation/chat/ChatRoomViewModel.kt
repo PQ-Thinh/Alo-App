@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alo.core.crypto.CryptoHelper
+import com.example.alo.core.crypto.GroupKeyRewrapHelper
 import com.example.alo.domain.model.Message
 import com.example.alo.domain.repository.AttachmentRepository
 import com.example.alo.domain.repository.AuthRepository
@@ -91,6 +92,9 @@ class ChatRoomViewModel @Inject constructor(
     
     private var groupKeysetHandle: KeysetHandle? = null
 
+    private val _needsKeyRewrap = MutableStateFlow(false)
+    val needsKeyRewrap: StateFlow<Boolean> = _needsKeyRewrap.asStateFlow()
+
     private var typingJob: Job? = null
     private var lastTypingTime = 0L
     private var partnerStatusJob: Job? = null
@@ -127,8 +131,29 @@ class ChatRoomViewModel @Inject constructor(
                                 if (groupKeysetBase64.isNotEmpty()) {
                                     Log.d("ChatRoomVM", "Giải mã Group Key THÀNH CÔNG")
                                     groupKeysetHandle = CryptoHelper.importKeysetFromBase64(groupKeysetBase64)
+                                    // Mình có Group Key hợp lệ → Kiểm tra xem có ai cần re-wrap không
+                                    viewModelScope.launch {
+                                        GroupKeyRewrapHelper.scanAndProcessPendingRewraps(
+                                            context, user.id, participantRepository, userRepository
+                                        )
+                                    }
                                 } else {
-                                    Log.e("ChatRoomVM", "Giải mã Group Key THẤT BẠI (chuỗi rỗng)")
+                                    Log.e("ChatRoomVM", "Giải mã Group Key THẤT BẠI → Yêu cầu re-wrap")
+                                    _needsKeyRewrap.value = true
+                                    viewModelScope.launch {
+                                        GroupKeyRewrapHelper.requestKeyRewrap(
+                                            participantRepository, conversationId, user.id
+                                        )
+                                    }
+                                }
+                            } ?: run {
+                                // Không có encrypted_group_key (participant mới hoặc dữ liệu lỗi)
+                                Log.e("ChatRoomVM", "Participant không có encrypted_group_key")
+                                _needsKeyRewrap.value = true
+                                viewModelScope.launch {
+                                    GroupKeyRewrapHelper.requestKeyRewrap(
+                                        participantRepository, conversationId, user.id
+                                    )
                                 }
                             }
                             
@@ -177,9 +202,6 @@ class ChatRoomViewModel @Inject constructor(
 
                 } catch (e: Exception) {
                     Log.e("ChatRoomVM", "Error basic data load: ${e.message}")
-                }
-            }
-
             val historyMessages = messageRepository.getMessages(conversationId)
             val decryptedHistory = historyMessages.map { msg ->
                 decryptMessageObj(msg)
@@ -220,6 +242,37 @@ class ChatRoomViewModel @Inject constructor(
                         currentList.map { if (it.id == decryptedNewMsg.id) decryptedNewMsg else it }
                     }
                 }
+            }
+        }
+    }
+
+    fun retryLoadGroupKey() {
+        if (!_isGroup.value) return
+        val userId = _currentUserId.value
+        if (userId.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                val myParticipant = participantRepository.getParticipant(conversationId, userId)
+                myParticipant?.encryptedGroupKey?.let { wrappedKey ->
+                    val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, userId, wrappedKey)
+                    if (groupKeysetBase64.isNotEmpty()) {
+                        Log.d("ChatRoomVM", "Retry giải mã Group Key THÀNH CÔNG")
+                        groupKeysetHandle = CryptoHelper.importKeysetFromBase64(groupKeysetBase64)
+                        _needsKeyRewrap.value = false
+
+                        // Giải mã lại toàn bộ tin nhắn lịch sử đang có
+                        val currentMsgs = _messages.value
+                        val redecrypted = currentMsgs.map { msg ->
+                            decryptMessageObj(msg.copy(encryptedContent = msg.rawEncryptedContent ?: msg.encryptedContent))
+                        }
+                        _messages.value = redecrypted
+                    } else {
+                        Log.e("ChatRoomVM", "Retry giải mã Group Key VẪN THẤT BẠI")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ChatRoomVM", "Lỗi retryLoadGroupKey: ${e.message}")
             }
         }
     }

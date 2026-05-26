@@ -149,7 +149,7 @@ fun TaskItemCard(task: SharedTask, onClick: () -> Unit) {
                     Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Hạn chót: ${task.dueDate}",
+                        text = "Hạn chót: ${com.example.alo.presentation.utils.formatTaskDueDate(task.dueDate)}",
                         fontSize = 12.sp,
                         color = Color.Gray
                     )

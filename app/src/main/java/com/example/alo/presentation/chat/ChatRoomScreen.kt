@@ -112,6 +112,7 @@ fun ChatRoomScreen(
     val isFriend by viewModel.isFriend.collectAsState()
     val isGroup by viewModel.isGroup.collectAsState()
     val memberProfiles by viewModel.memberProfiles.collectAsState()
+    val needsKeyRewrap by viewModel.needsKeyRewrap.collectAsState()
 
     var currentTimeTrigger by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -630,6 +631,58 @@ fun ChatRoomScreen(
                 //.padding(paddingValues)
                 .background(AppBackgroundColor)
         ) {
+            // Banner cảnh báo khi Group Key cần re-wrap
+            if (needsKeyRewrap && isGroup) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF3E0),
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFFE65100),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "\uD83D\uDD11 Đang chờ đồng bộ khóa nhóm từ thành viên khác...",
+                                fontSize = 13.sp,
+                                color = Color(0xFFE65100),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        
+                        TextButton(
+                            onClick = { viewModel.retryLoadGroupKey() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                "Thử lại",
+                                fontSize = 12.sp,
+                                color = Color(0xFFE65100),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
             // THÊM KIỂM TRA Ở ĐÂY
             if (messages.isEmpty()) {
                 EmptyChatGreeting(

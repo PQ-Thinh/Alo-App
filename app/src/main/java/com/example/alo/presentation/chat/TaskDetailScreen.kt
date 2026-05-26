@@ -54,7 +54,7 @@ fun TaskDetailScreen(
         task?.let {
             title = it.title
             description = it.description ?: ""
-            dueDate = it.dueDate ?: ""
+            dueDate = com.example.alo.presentation.utils.formatTaskDueDate(it.dueDate)
             priority = it.priority
             assigneeId = it.assigneeId ?: ""
         }
