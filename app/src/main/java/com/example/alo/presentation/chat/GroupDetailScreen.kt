@@ -92,7 +92,7 @@ fun GroupDetailScreen(
 
     GlobalLoadingOverlay(
         isLoading = state.isDissolvingGroup,
-        text = "Đang giải tán nhóm..."
+       message =  "Đang giải tán nhóm..."
     )
 
     Scaffold(

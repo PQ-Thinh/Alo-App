@@ -44,6 +44,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
 import android.graphics.drawable.AnimatedVectorDrawable
 import androidx.compose.animation.graphics.res.animatedVectorResource
+import androidx.compose.foundation.shape.CircleShape
 import com.example.alo.R
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi::class)
@@ -242,7 +243,6 @@ fun DashboardScreen(
             }
         }
     }
-}
 }
 data class NavItem(
     val title: String,
