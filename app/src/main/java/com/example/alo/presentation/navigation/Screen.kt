@@ -57,6 +57,12 @@ sealed class Screen(val route: String) {
     object CreateTask : Screen("create_task/{conversationId}") {
         fun createRoute(conversationId: String) = "create_task/$conversationId"
     }
+    
+    object MyTasks : Screen("my_tasks")
+    
+    object TaskDetail : Screen("task_detail/{taskId}/{conversationId}") {
+        fun createRoute(taskId: String, conversationId: String) = "task_detail/$taskId/$conversationId"
+    }
 }
 
 private fun String.encodeUrl(): String =

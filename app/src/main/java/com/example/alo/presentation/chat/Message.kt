@@ -15,6 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -28,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.PlatformTextStyle
@@ -58,8 +62,9 @@ import com.example.alo.presentation.components.PinSetupDialog
 import com.example.alo.presentation.components.PinAuthDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Message(
     viewModel: ChatListViewModel = hiltViewModel(),
@@ -100,33 +105,189 @@ fun Message(
 
     if (showChatOptions != null) {
         val chat = showChatOptions!!
-        AlertDialog(
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val scope = rememberCoroutineScope()
+
+        ModalBottomSheet(
             onDismissRequest = { showChatOptions = null },
-            title = { Text("Tùy chọn trò chuyện", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    if (chat.hiddenPinHash == null) {
-                        TextButton(onClick = {
-                            showChatOptions = null
-                            showPinSetupForChat = chat
-                        }) { Text("🔒 Khóa trò chuyện", color = TextPrimaryColor, fontSize = 16.sp) }
-                    } else {
-                        TextButton(onClick = {
-                            showChatOptions = null
-                            // Yêu cầu nhập PIN trước khi bỏ khóa
-                            pendingNavigationChatId = null
-                            showPinAuthForChat = chat
-                        }) { Text("🔓 Bỏ khóa trò chuyện", color = TextPrimaryColor, fontSize = 16.sp) }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showChatOptions = null }) {
-                    Text("Đóng", color = Color.Gray)
+            sheetState = sheetState,
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE2E8F0))
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
-        )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                // Header: Avatar + Tên chat
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE8EAF6)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!chat.chatAvatar.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = chat.chatAvatar,
+                                contentDescription = "Avatar",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = chat.chatName?.firstOrNull()?.uppercase() ?: "?",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = primaryColor
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = chat.chatName ?: "Cuộc trò chuyện",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                        Text(
+                            text = "Tùy chọn bảo mật",
+                            fontSize = 13.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Option: Khóa / Bỏ khóa
+                if (chat.hiddenPinHash == null) {
+                    // Khóa chat
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable {
+                                scope.launch {
+                                    sheetState.hide()
+                                    showChatOptions = null
+                                    showPinSetupForChat = chat
+                                }
+                            }
+                            .background(Color(0xFFF8F7FF))
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(primaryColor, Color(0xFF8B83FF))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = "Khóa trò chuyện",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFF1E293B)
+                            )
+                            Text(
+                                text = "Bảo vệ bằng mã PIN 6 số",
+                                fontSize = 12.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                        }
+                    }
+                } else {
+                    // Bỏ khóa chat
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable {
+                                scope.launch {
+                                    sheetState.hide()
+                                    showChatOptions = null
+                                    pendingNavigationChatId = null
+                                    showPinAuthForChat = chat
+                                }
+                            }
+                            .background(Color(0xFFFFF5F5))
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(0xFFFF6B6B), Color(0xFFEE5A24))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.LockOpen,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = "Bỏ khóa trò chuyện",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFF1E293B)
+                            )
+                            Text(
+                                text = "Yêu cầu xác thực mã PIN hiện tại",
+                                fontSize = 12.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showPinSetupForChat != null) {
@@ -147,8 +308,9 @@ fun Message(
             },
             onPinValidated = { pin ->
                 val hashed = com.example.alo.core.crypto.CryptoHelper.hashPin(pin)
-                if (hashed == showPinAuthForChat!!.hiddenPinHash) {
-                    com.example.alo.core.utils.ChatLockManager.unlockChat(showPinAuthForChat!!.conversationId)
+                val chatToAuth = showPinAuthForChat ?: return@PinAuthDialog
+                if (hashed == chatToAuth.hiddenPinHash) {
+                    com.example.alo.core.utils.ChatLockManager.unlockChat(chatToAuth.conversationId)
                     val navId = pendingNavigationChatId
                     val isRemovingLock = navId == null
                     
@@ -157,7 +319,7 @@ fun Message(
                     
                     if (isRemovingLock) {
                         // Thao tác bỏ khóa
-                        viewModel.setChatLock(showPinAuthForChat!!.conversationId, null)
+                        viewModel.setChatLock(chatToAuth.conversationId, null)
                     } else {
                         // Thao tác mở khóa để vào phòng
                         onNavigateToChatRoom(navId!!)
@@ -436,17 +598,6 @@ fun ChatItem(
                         color = Color(0xFF6C63FF)
                     )
                 }
-            }
-
-            if (userStatus.isOnline) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .border(2.dp, backgroundColor, CircleShape)
-                )
             }
         }
 

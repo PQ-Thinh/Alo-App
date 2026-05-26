@@ -96,25 +96,37 @@ class MainActivity : ComponentActivity() {
 
             AloTheme {
                 val startDestination by splashViewModel.startDestination.collectAsState()
-
                 val conversationIdToNavigate by pushConversationId
                 val callIdToNavigate by pushCallId
                 val callerNameToNavigate by pushCallerName
 
-                if (startDestination != null) {
-                    AppNavigation(
-                        startDestination = startDestination!!,
-                        pushConversationId = conversationIdToNavigate,
-                        pushCallId = callIdToNavigate,
-                        pushCallerName = callerNameToNavigate,
-                        pushCallAction = pushCallAction.value,
-                        onClearPushDetails = {
-                            pushConversationId.value = null
-                            pushCallId.value = null
-                            pushCallerName.value = null
-                            pushCallAction.value = null
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val networkObserver = androidx.compose.runtime.remember { com.example.alo.core.utils.NetworkConnectivityObserver(context) }
+                val networkStatus by networkObserver.status.collectAsState(initial = com.example.alo.core.utils.NetworkStatus.Available)
+                val isOffline = networkStatus == com.example.alo.core.utils.NetworkStatus.Unavailable || networkStatus == com.example.alo.core.utils.NetworkStatus.Lost
+
+                androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.layout.Column {
+                        com.example.alo.presentation.components.NetworkStatusBanner(isOffline = isOffline)
+                        
+                        androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+                            if (startDestination != null) {
+                                AppNavigation(
+                                    startDestination = startDestination!!,
+                                    pushConversationId = conversationIdToNavigate,
+                                    pushCallId = callIdToNavigate,
+                                    pushCallerName = callerNameToNavigate,
+                                    pushCallAction = pushCallAction.value,
+                                    onClearPushDetails = {
+                                        pushConversationId.value = null
+                                        pushCallId.value = null
+                                        pushCallerName.value = null
+                                        pushCallAction.value = null
+                                    }
+                                )
+                            }
                         }
-                    )
+                    }
                 }
             }
         }

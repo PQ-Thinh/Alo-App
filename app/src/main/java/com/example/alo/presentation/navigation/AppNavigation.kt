@@ -33,6 +33,8 @@ import com.example.alo.presentation.home.AnimatedSplashScreen
 import com.example.alo.presentation.home.CreateGroupScreen
 import com.example.alo.presentation.home.DashboardScreen
 import com.example.alo.presentation.home.IntroScreen
+import com.example.alo.presentation.home.MyTasksScreen
+import com.example.alo.presentation.chat.TaskDetailScreen
 import com.example.alo.presentation.profile.EditProfileScreen
 import com.example.alo.presentation.profile.ProfileScreen
 import com.example.alo.presentation.profile.ProfileSetupScreen
@@ -290,6 +292,26 @@ fun AppNavigation(
             arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
         ) {
             CreateTaskScreen(navController = navController)
+        }
+
+        composable(route = Screen.MyTasks.route) {
+            MyTasksScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.TaskDetail.route,
+            arguments = listOf(
+                navArgument("taskId") { type = NavType.StringType },
+                navArgument("conversationId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
+            val conversationId = backStackEntry.arguments?.getString("conversationId") ?: ""
+            TaskDetailScreen(
+                navController = navController,
+                taskId = taskId,
+                conversationId = conversationId
+            )
         }
 
         // ──────────────────────────────────────────

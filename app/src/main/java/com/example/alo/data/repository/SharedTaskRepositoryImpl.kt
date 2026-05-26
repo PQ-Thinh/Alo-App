@@ -32,6 +32,33 @@ class SharedTaskRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getTaskById(taskId: String): SharedTask? {
+        return try {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
+                .select { filter { eq("id", taskId) } }
+                .decodeSingleOrNull<SharedTask>()
+        } catch (e: Exception) {
+            Log.e("SharedTaskRepo", "Lỗi lấy task theo ID: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun getAssignedTasks(userId: String): List<SharedTask> {
+        return try {
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
+                .select(columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, conversations(name)")) {
+                    filter { 
+                        eq("assignee_id", userId)
+                        eq("is_completed", false)
+                    }
+                }
+                .decodeList<SharedTask>()
+        } catch (e: Exception) {
+            Log.e("SharedTaskRepo", "Lỗi lấy danh sách task được giao: ${e.message}")
+            emptyList()
+        }
+    }
+
     override suspend fun createTask(task: SharedTask): SharedTask? {
         return try {
             supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]

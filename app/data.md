@@ -444,50 +444,7 @@ BEGIN
         );
     END IF;
 END$$;
---3.13. Create Group
-CREATE OR REPLACE FUNCTION create_group_conversation(
-    p_name TEXT, 
-    p_avatar_url TEXT, 
-    p_user_ids JSONB, 
-    p_encrypted_keys JSONB
-)
-RETURNS SETOF public.chat_list_view
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_conversation_id UUID;
-    v_user_id TEXT;
-    v_creator_id UUID := auth.uid();
-BEGIN
-    IF v_creator_id IS NULL THEN
-        RAISE EXCEPTION 'Chưa đăng nhập';
-    END IF;
-
-    -- 1. Tạo bản ghi cuộc hội thoại
-    INSERT INTO public.conversations (is_group, name, avatar_url)
-    VALUES (true, p_name, p_avatar_url)
-    RETURNING id INTO v_conversation_id;
-
-    -- 2. Thêm người tạo với vai trò 'admin'
-    INSERT INTO public.participants (conversation_id, user_id, role, encrypted_group_key)
-    VALUES (v_conversation_id, v_creator_id, 'admin', (p_encrypted_keys->>v_creator_id::TEXT));
-
-    -- 3. Thêm các người tham gia khác (tránh trường hợp người tạo bị lặp lại trong danh sách)
-    FOR v_user_id IN SELECT jsonb_array_elements_text(p_user_ids)
-    LOOP
-        IF v_user_id::UUID != v_creator_id THEN
-            INSERT INTO public.participants (conversation_id, user_id, role, encrypted_group_key)
-            VALUES (v_conversation_id, v_user_id::UUID, 'member', (p_encrypted_keys->>v_user_id));
-        END IF;
-    END LOOP;
-
-    -- 4. Trả về kết quả
-    RETURN QUERY
-    SELECT * FROM public.chat_list_view
-    WHERE conversation_id = v_conversation_id AND current_user_id = v_creator_id;
-END;
-$$;
+-- 3.13. Create Group (Xem phiên bản mới nhất ở cuối file - dòng ~879)
 -- 3.14. Tạo hàm RPC mới để update mã PIN
 CREATE OR REPLACE FUNCTION update_chat_pin(p_conversation_id UUID, p_pin_hash TEXT)
 RETURNS void
@@ -592,6 +549,20 @@ CREATE POLICY "Users can update their own participant info"
 ON public.participants FOR UPDATE
 TO authenticated
 USING ( user_id = auth.uid() );
+
+-- Cho phép admin xoá thành viên, hoặc user tự rời nhóm
+CREATE POLICY "Allow admin to remove members or self-leave"
+ON public.participants FOR DELETE
+TO authenticated
+USING (
+    user_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.participants admin_check
+        WHERE admin_check.conversation_id = participants.conversation_id
+        AND admin_check.user_id = auth.uid()
+        AND admin_check.role = 'admin'
+    )
+);
 
 -- --- POLICY CHO BẢNG MESSAGES ---
 CREATE POLICY "Users can view messages in their conversations" 
@@ -889,6 +860,7 @@ AS $$
 DECLARE
     v_conversation_id UUID;
     v_participant_id UUID;
+    v_user_id_text TEXT;
     i INT;
     v_creator_id UUID := auth.uid();
 BEGIN
@@ -898,7 +870,8 @@ BEGIN
     RETURNING id INTO v_conversation_id;
     -- 2. Thêm từng participant từ mảng p_user_ids
     FOR i IN 0 .. jsonb_array_length(p_user_ids) - 1 LOOP
-        v_participant_id := (p_user_ids->>i)::UUID;
+        v_user_id_text := p_user_ids->>i;
+        v_participant_id := v_user_id_text::UUID;
         INSERT INTO public.participants (
             conversation_id, 
             user_id, 
@@ -909,7 +882,7 @@ BEGIN
             v_conversation_id, 
             v_participant_id, 
             CASE WHEN v_participant_id = v_creator_id THEN 'admin' ELSE 'member' END,
-            p_encrypted_keys->>i
+            p_encrypted_keys->>v_user_id_text
         );
     END LOOP;
     -- 3. Trả về thông tin nhóm mới tạo

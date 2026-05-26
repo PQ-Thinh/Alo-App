@@ -132,11 +132,12 @@ class CreateGroupViewModel @Inject constructor(
                     }
                 }
                 
-                // 3. Gọi RPC tạo nhóm
+                // 3. Gọi RPC tạo nhóm (bao gồm cả admin trong danh sách thành viên)
+                val allUserIds = listOf(currentUser.id) + selectedIds
                 val chatList = conversationRepository.createGroupConversation(
                     name = groupName,
                     avatarUrl = avatarUrl, 
-                    userIds = selectedIds,
+                    userIds = allUserIds,
                     encryptedKeys = encryptedKeysMap
                 )
                 
