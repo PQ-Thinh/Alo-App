@@ -537,7 +537,7 @@ fun ChatRoomScreen(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
                                 placeholder = { Text("Tìm tin nhắn...", fontSize = 14.sp) },
-                                modifier = Modifier.weight(1f).heightIn(max = 44.dp),
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(22.dp),
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondaryColor, modifier = Modifier.size(18.dp)) },

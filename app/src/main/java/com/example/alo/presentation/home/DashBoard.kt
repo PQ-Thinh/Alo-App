@@ -173,57 +173,54 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
-        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-        
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-        ) { page ->
-            when (page) {
-                0 -> Message(
-                    onNavigateToChatRoom = { conversationId ->
-                        onNavigateToChatRoom(conversationId)
-                        Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
-                    })
-                1 -> Contact(
-                    onNavigateToChatRoom = { conversationId ->
-                        onNavigateToChatRoom(conversationId)
-                    }
-                )
-                2 -> {
-                    if (currentUserId != null) {
-                        ProfileScreen(
-                            userId = currentUserId!!,
-                            onNavigateToEditProfile = { userId ->
-                                navController.navigate(Screen.EditProfile.createRoute(userId))
-                            },
-                            onLogoutSuccess = {
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0) { inclusive = true }
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> Message(
+                        onNavigateToChatRoom = { conversationId ->
+                            onNavigateToChatRoom(conversationId)
+                            Log.e("DashboardScreen", "Mở phòng chat: $conversationId")
+                        })
+                    1 -> Contact(
+                        onNavigateToChatRoom = { conversationId ->
+                            onNavigateToChatRoom(conversationId)
+                        }
+                    )
+                    2 -> {
+                        if (currentUserId != null) {
+                            ProfileScreen(
+                                userId = currentUserId!!,
+                                onNavigateToEditProfile = { userId ->
+                                    navController.navigate(Screen.EditProfile.createRoute(userId))
+                                },
+                                onLogoutSuccess = {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = primaryColor)
                             }
-                        )
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = primaryColor)
                         }
                     }
                 }
             }
-            
-            // Animation FAB for Assigned Tasks
+
             if (hasAssignedTasks) {
                 FloatingActionButton(
                     onClick = { navController.navigate(Screen.MyTasks.route) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = screenHeight * 0.18f),
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = FloatingActionButtonDefaults.elevation(8.dp)
+                        .padding(end = 24.dp, bottom = 24.dp),
+                    containerColor = primaryColor,
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(12.dp)
                 ) {
                     val animatedImage = androidx.compose.animation.graphics.vector.AnimatedImageVector.animatedVectorResource(R.drawable.avd_work_anim)
                     var atEnd by remember { mutableStateOf(false) }
@@ -231,14 +228,15 @@ fun DashboardScreen(
                     LaunchedEffect(Unit) {
                         while (true) {
                             atEnd = !atEnd
-                            kotlinx.coroutines.delay(600)
+                            kotlinx.coroutines.delay(800)
                         }
                     }
 
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter(animatedImage, atEnd),
                         contentDescription = "Work Tasks",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
                     )
                 }
             }

@@ -39,6 +39,7 @@ import com.example.alo.presentation.navigation.Screen
 import com.example.alo.presentation.chat.GroupDetailViewModel
 import com.example.alo.presentation.chat.UserWithRole
 import kotlinx.coroutines.launch
+import com.example.alo.presentation.components.GlobalLoadingOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +89,11 @@ fun GroupDetailScreen(
             viewModel.clearMessages()
         }
     }
+
+    GlobalLoadingOverlay(
+        isLoading = state.isDissolvingGroup,
+        text = "Đang giải tán nhóm..."
+    )
 
     Scaffold(
         topBar = {

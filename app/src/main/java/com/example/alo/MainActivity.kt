@@ -108,16 +108,18 @@ class MainActivity : ComponentActivity() {
 
                 var showNetworkPrompt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
                 var showOfflineWarning by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-                var hasCheckedInitialNetwork by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                var hasPromptedForOffline by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
                 androidx.compose.runtime.LaunchedEffect(isOffline) {
-                    if (isOffline && !hasCheckedInitialNetwork) {
-                        showNetworkPrompt = true
-                        hasCheckedInitialNetwork = true
-                    } else if (!isOffline) {
+                    if (isOffline) {
+                        if (!hasPromptedForOffline) {
+                            showNetworkPrompt = true
+                            hasPromptedForOffline = true
+                        }
+                    } else {
                         showNetworkPrompt = false
                         showOfflineWarning = false
-                        hasCheckedInitialNetwork = true
+                        hasPromptedForOffline = false // Sẵn sàng prompt lại cho lần rớt mạng tiếp theo
                     }
                 }
 

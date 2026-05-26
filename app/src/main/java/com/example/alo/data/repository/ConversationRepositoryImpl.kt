@@ -157,10 +157,20 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun deleteConversation(conversationId: String) {
         try {
+            // Xoá các dữ liệu phụ thuộc (khóa ngoại) trước khi xoá conversation
+            // 1. Xoá tin nhắn
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
+                .delete { filter { eq("conversation_id", conversationId) } }
+            // 2. Xoá công việc
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_SHARED_TASKS]
+                .delete { filter { eq("conversation_id", conversationId) } }
+            // 3. Xoá thành viên
+            supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_PARTICIPANTS]
+                .delete { filter { eq("conversation_id", conversationId) } }
+
+            // 4. Xoá cuộc hội thoại (nhóm)
             supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_CONVERSATIONS]
-                .delete {
-                    filter { eq("id", conversationId) }
-                }
+                .delete { filter { eq("id", conversationId) } }
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Lỗi deleteConversation: ${e.message}", e)
             throw e
