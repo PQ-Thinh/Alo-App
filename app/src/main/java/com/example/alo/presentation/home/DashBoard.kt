@@ -37,8 +37,13 @@ import com.example.alo.presentation.chat.Contact
 import com.example.alo.presentation.navigation.Screen
 import com.example.alo.presentation.profile.ProfileScreen
 import com.example.alo.presentation.profile.UserViewModel
+import com.example.alo.presentation.home.DashboardViewModel
 import kotlinx.coroutines.launch
-
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.ImageView
+import android.graphics.drawable.AnimatedVectorDrawable
+import com.example.alo.R
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -46,9 +51,11 @@ fun DashboardScreen(
     navController: NavController,
     onNavigateToChatRoom: (String) -> Unit,
     onNavigateToProfile: (String) -> Unit,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel()
 ) {
     val currentUserId by userViewModel.currentUserId.collectAsState()
+    val hasAssignedTasks by dashboardViewModel.hasAssignedTasks.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
 
@@ -165,12 +172,14 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
         ) { page ->
             when (page) {
                 0 -> Message(
@@ -201,6 +210,29 @@ fun DashboardScreen(
                             CircularProgressIndicator(color = primaryColor)
                         }
                     }
+                }
+            }
+            
+            // Animation FAB for Assigned Tasks
+            if (hasAssignedTasks) {
+                FloatingActionButton(
+                    onClick = { navController.navigate(Screen.MyTasks.route) },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = screenHeight * 0.18f),
+                    containerColor = Color.White,
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(8.dp)
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            ImageView(ctx).apply {
+                                setBackgroundResource(R.drawable.avd_work_anim)
+                                (background as? AnimatedVectorDrawable)?.start()
+                            }
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }

@@ -335,69 +335,76 @@ fun GroupDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Shared Tasks
-            item {
-                SectionHeader("Công việc chung (Beta)")
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.03f)),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.1f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                modifier = Modifier.size(36.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                color = primaryColor.copy(alpha = 0.1f)
-                            ) {
-                                Icon(Icons.Default.Assignment, contentDescription = null, tint = primaryColor, modifier = Modifier.padding(8.dp))
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Việc cần làm của nhóm", fontWeight = FontWeight.Bold, color = TextPrimaryColor, fontSize = 15.sp)
-                            Spacer(modifier = Modifier.weight(1f))
-                            IconButton(onClick = { navController.navigate(Screen.CreateTask.createRoute(state.conversationId)) }) {
-                                Icon(Icons.Default.AddCircle, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
-                            }
-                        }
-                        
-                        if (state.tasks.isEmpty()) {
-                            Text(
-                                "Chưa có công việc nào. Hãy thêm công việc đầu tiên!",
-                                fontSize = 13.sp,
-                                color = TextSecondaryColor,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        } else {
-                            state.tasks.forEach { task ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+            // Shared Tasks - Chỉ hiển thị cho Admin
+            if (state.isAdmin) {
+                item {
+                    SectionHeader("Công việc chung (Beta)")
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.03f)),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.1f))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    modifier = Modifier.size(36.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = primaryColor.copy(alpha = 0.1f)
                                 ) {
-                                    Checkbox(
-                                        checked = task.isCompleted,
-                                        onCheckedChange = { viewModel.toggleTaskCompletion(task) },
-                                        colors = CheckboxDefaults.colors(checkedColor = primaryColor, uncheckedColor = TextSecondaryColor.copy(alpha = 0.5f))
-                                    )
-                                    Text(
-                                        text = task.title,
-                                        fontSize = 14.sp,
-                                        color = if (task.isCompleted) TextSecondaryColor else TextPrimaryColor,
-                                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                                        modifier = Modifier.weight(1f),
-                                        fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.Medium
-                                    )
-                                    IconButton(onClick = { viewModel.deleteTask(task.id) }) {
-                                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextSecondaryColor.copy(alpha = 0.5f))
+                                    Icon(Icons.Default.Assignment, contentDescription = null, tint = primaryColor, modifier = Modifier.padding(8.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Việc cần làm của nhóm", fontWeight = FontWeight.Bold, color = TextPrimaryColor, fontSize = 15.sp)
+                                Spacer(modifier = Modifier.weight(1f))
+                                IconButton(onClick = { navController.navigate(Screen.CreateTask.createRoute(state.conversationId)) }) {
+                                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
+                                }
+                            }
+                            
+                            if (state.tasks.isEmpty()) {
+                                Text(
+                                    "Chưa có công việc nào. Hãy thêm công việc đầu tiên!",
+                                    fontSize = 13.sp,
+                                    color = TextSecondaryColor,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            } else {
+                                state.tasks.forEach { task ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                navController.navigate(Screen.TaskDetail.createRoute(task.id, state.conversationId))
+                                            }
+                                            .padding(vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = task.isCompleted,
+                                            onCheckedChange = { viewModel.toggleTaskCompletion(task) },
+                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor, uncheckedColor = TextSecondaryColor.copy(alpha = 0.5f))
+                                        )
+                                        Text(
+                                            text = task.title,
+                                            fontSize = 14.sp,
+                                            color = if (task.isCompleted) TextSecondaryColor else TextPrimaryColor,
+                                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                                            modifier = Modifier.weight(1f),
+                                            fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.Medium
+                                        )
+                                        IconButton(onClick = { viewModel.deleteTask(task.id) }) {
+                                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextSecondaryColor.copy(alpha = 0.5f))
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
             // Member Header / Navigation

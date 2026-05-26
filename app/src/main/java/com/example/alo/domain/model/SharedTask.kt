@@ -14,5 +14,11 @@ data class SharedTask(
     @SerialName("is_completed") val isCompleted: Boolean = false,
     @SerialName("priority") val priority: String = "medium",
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("creator_id") val creatorId: String? = null
+    @SerialName("creator_id") val creatorId: String? = null,
+    @SerialName("conversations") val conversations: ConversationRef? = null // Nested resource for group name
+)
+
+@Serializable
+data class ConversationRef(
+    @SerialName("name") val name: String? = null
 )
