@@ -599,17 +599,6 @@ fun ChatItem(
                     )
                 }
             }
-
-            if (userStatus.isOnline) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .border(2.dp, backgroundColor, CircleShape)
-                )
-            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
