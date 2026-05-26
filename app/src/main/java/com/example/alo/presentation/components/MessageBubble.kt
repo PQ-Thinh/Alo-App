@@ -103,7 +103,8 @@ fun MessageBubble(
     onMessageLongClick: () -> Unit,
     onSwipeToReply: () -> Unit = {},
     onReplyClick: (String) -> Unit = {},
-    onAvatarClick: (String) -> Unit = {}
+    onAvatarClick: (String) -> Unit = {},
+    onImageClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -326,7 +327,17 @@ fun MessageBubble(
                         }
 
                         // 2. NỘI DUNG TIN NHẮN CHÍNH (TEXT, IMAGE, FILE)
-                        if (isImageMessage) {
+                        if (message.messageType == "UPLOADING") {
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(120.dp)
+                                    .background(if (isMine) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.05f), bubbleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = if (isMine) Color.White else primaryColor, strokeWidth = 3.dp)
+                            }
+                        } else if (isImageMessage) {
                             // --- HIỂN THỊ HÌNH ẢNH ---
                             val imageUrl = message.attachments.first().fileUrl
                             Box(contentAlignment = Alignment.Center) {
@@ -339,7 +350,8 @@ fun MessageBubble(
                                         // Bo ảnh theo shape của bong bóng chat
                                         .clip(bubbleShape)
                                         // Viền mỏng mờ để chặn ảnh hoà vào nền nếu ảnh màu trắng
-                                        .border(0.5.dp, Color.Black.copy(alpha = 0.05f), bubbleShape),
+                                        .border(0.5.dp, Color.Black.copy(alpha = 0.05f), bubbleShape)
+                                        .clickable { onImageClick(imageUrl) },
                                     contentScale = ContentScale.Crop
                                 )
                                 if (MessageUiModel(message, false).isUploading) {

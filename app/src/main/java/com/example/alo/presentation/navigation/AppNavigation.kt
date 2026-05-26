@@ -276,6 +276,20 @@ fun AppNavigation(
             GroupMembersScreen(navController = navController)
         }
 
+        composable(
+            route = Screen.SharedMedia.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType },
+                navArgument("tabIndex") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val tabIndex = backStackEntry.arguments?.getInt("tabIndex") ?: 0
+            com.example.alo.presentation.chat.SharedMediaScreen(
+                navController = navController,
+                initialTab = tabIndex
+            )
+        }
+
         composable(route = Screen.CreateGroup.route) {
            CreateGroupScreen(navController = navController)
         }

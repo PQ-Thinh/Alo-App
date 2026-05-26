@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -104,11 +105,7 @@ fun GroupDetailScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextPrimaryColor)
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* More actions */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More", tint = TextPrimaryColor)
-                    }
-                },
+                actions = {},
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     titleContentColor = TextPrimaryColor
@@ -125,199 +122,228 @@ fun GroupDetailScreen(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             // Header: Group Info with Premium Look
-            // GROUP HEADER (AVATAR, NAME, STATUS, STATS)
+            // GROUP HEADER & ACTIONS
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    // 1. AVATAR AREA
-                    Box(contentAlignment = Alignment.BottomEnd) {
-                        Surface(
-                            modifier = Modifier
-                                .size(110.dp)
-                                .shadow(20.dp, CircleShape, spotColor = primaryColor.copy(alpha = 0.5f)),
-                            shape = CircleShape,
-                            color = Color.White,
-                            border = BorderStroke(3.dp, Color.White)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .clickable { imagePickerLauncher.launch("image/*") },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!state.groupAvatar.isNullOrEmpty()) {
-                                    AsyncImage(
-                                        model = state.groupAvatar,
-                                        contentDescription = "Group Avatar",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
+                            // Avatar
+                            Box(contentAlignment = Alignment.BottomEnd) {
+                                Surface(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .shadow(10.dp, CircleShape, spotColor = primaryColor.copy(alpha = 0.5f)),
+                                    shape = CircleShape,
+                                    color = Color.White,
+                                    border = BorderStroke(2.dp, Color.White)
+                                ) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .background(
-                                                brush = Brush.linearGradient(
-                                                    colors = listOf(primaryColor, primaryColor.copy(alpha = 0.7f))
-                                                )
-                                            ),
+                                            .clip(CircleShape)
+                                            .clickable { imagePickerLauncher.launch("image/*") },
                                         contentAlignment = Alignment.Center
                                     ) {
+                                        if (!state.groupAvatar.isNullOrEmpty()) {
+                                            AsyncImage(
+                                                model = state.groupAvatar,
+                                                contentDescription = "Group Avatar",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        brush = Brush.linearGradient(
+                                                            colors = listOf(primaryColor, primaryColor.copy(alpha = 0.7f))
+                                                        )
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = state.groupName.firstOrNull()?.uppercase() ?: "?",
+                                                    fontSize = 32.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Color.White
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Surface(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .offset(x = (-2).dp, y = (-2).dp),
+                                    shape = CircleShape,
+                                    color = Color.White,
+                                    tonalElevation = 6.dp,
+                                    shadowElevation = 6.dp
+                                ) {
+                                    Icon(
+                                        Icons.Default.CameraAlt,
+                                        contentDescription = "Sửa ảnh",
+                                        tint = primaryColor,
+                                        modifier = Modifier.padding(4.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            // Name & Status
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = state.groupName,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = TextPrimaryColor,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    IconButton(
+                                        onClick = { 
+                                            newGroupName = state.groupName
+                                            showEditNameDialog = true 
+                                        },
+                                        modifier = Modifier.size(28.dp).padding(start = 4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Edit, 
+                                            contentDescription = "Sửa tên", 
+                                            modifier = Modifier.size(16.dp), 
+                                            tint = TextSecondaryColor.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                if (!state.groupStatus.isNullOrEmpty()) {
+                                    Surface(
+                                        modifier = Modifier.clickable { 
+                                            newGroupStatus = state.groupStatus ?: ""
+                                            showEditStatusDialog = true 
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color.Transparent,
+                                        border = BorderStroke(1.dp, Color.Black)
+                                    ) {
                                         Text(
-                                            text = state.groupName.firstOrNull()?.uppercase() ?: "?",
-                                            fontSize = 44.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color.White
+                                            text = state.groupStatus ?: "",
+                                            fontSize = 12.sp,
+                                            color = TextPrimaryColor,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                } else if (state.isAdmin) {
+                                    Surface(
+                                        modifier = Modifier.clickable { 
+                                            newGroupStatus = ""
+                                            showEditStatusDialog = true 
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color.Transparent,
+                                        border = BorderStroke(1.dp, Color.Black)
+                                    ) {
+                                        Text(
+                                            text = "+ Thêm trạng thái",
+                                            fontSize = 12.sp,
+                                            color = TextPrimaryColor,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.People,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${state.members.size} thành viên",
+                                        fontSize = 12.sp,
+                                        color = TextSecondaryColor,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    if (state.isLoading) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(10.dp), 
+                                            strokeWidth = 1.5.dp, 
+                                            color = primaryColor
                                         )
                                     }
                                 }
                             }
                         }
-                        
-                        // Edit Badge
-                        Surface(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .offset(x = (-2).dp, y = (-2).dp),
-                            shape = CircleShape,
-                            color = Color.White,
-                            tonalElevation = 6.dp,
-                            shadowElevation = 6.dp
-                        ) {
-                            Icon(
-                                Icons.Default.CameraAlt,
-                                contentDescription = "Sửa ảnh",
-                                tint = primaryColor,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                    // 2. NAME & EDIT
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    ) {
-                        Text(
-                            text = state.groupName,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimaryColor,
-                            textAlign = TextAlign.Center
-                        )
-                        IconButton(
-                            onClick = { 
-                                newGroupName = state.groupName
-                                showEditNameDialog = true 
-                            },
-                            modifier = Modifier.size(36.dp).padding(start = 6.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit, 
-                                contentDescription = "Sửa tên", 
-                                modifier = Modifier.size(18.dp), 
-                                tint = TextSecondaryColor.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    // 3. STATUS / BIO
-                    if (!state.groupStatus.isNullOrEmpty()) {
-                        Surface(
-                            modifier = Modifier
-                                .padding(
-                                top = 10.dp)
-                                .padding(horizontal = 40.dp)
-                                .clickable { 
-                                    newGroupStatus = state.groupStatus ?: ""
-                                    showEditStatusDialog = true 
-                                }
-                               ,
-                            shape = RoundedCornerShape(12.dp),
-                            color = primaryColor.copy(alpha = 0.05f)
-                        ) {
-                            Text(
-                                text = "“${state.groupStatus}”",
-                                fontSize = 14.sp,
-                                color = TextPrimaryColor.copy(alpha = 0.7f),
-                                fontWeight = FontWeight.Normal,
-                                fontStyle = FontStyle.Italic,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    } else if (state.isAdmin) {
-                        TextButton(
-                            onClick = { 
-                                newGroupStatus = ""
-                                showEditStatusDialog = true 
-                            },
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Text("+ Thêm trạng thái nhóm", fontSize = 13.sp, color = primaryColor, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 4. STATS PILL (Member Count)
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = AppBackgroundColor,
-                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.1f))
-                    ) {
+                        // Quick Actions in bordered boxes
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.People,
-                                contentDescription = null,
-                                tint = primaryColor,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "${state.members.size} thành viên",
-                                fontSize = 13.sp,
-                                color = TextPrimaryColor,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                                    .clickable { 
+                                        Log.d("UI_CLICK", "User click vào nút Thêm TV - ID: ${state.conversationId}")
+                                        navController.navigate(Screen.AddMember.createRoute(state.conversationId))
+                                    }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = "Thêm tv", modifier = Modifier.size(18.dp), tint = TextPrimaryColor)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Thêm thành viên", fontSize = 13.sp, color = TextPrimaryColor, fontWeight = FontWeight.Medium)
+                                }
+                            }
                             
-                            if (state.isLoading) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp), 
-                                    strokeWidth = 2.dp, 
-                                    color = primaryColor
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                                    .clickable { 
+                                        navController.popBackStack() 
+                                    }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Search, contentDescription = "Tìm kiếm", modifier = Modifier.size(18.dp), tint = TextPrimaryColor)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Tìm kiếm", fontSize = 13.sp, color = TextPrimaryColor, fontWeight = FontWeight.Medium)
+                                }
                             }
                         }
-                    }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-
-            // Quick Actions with Modern Styling
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    QuickActionItem(Icons.Default.PersonAdd, "Thêm tv") { 
-                        Log.d("UI_CLICK", "User click vào nút Thêm TV - ID: ${state.conversationId}")
-                        navController.navigate(Screen.AddMember.createRoute(state.conversationId))
-                    }
-                    QuickActionItem(Icons.Default.Search, "Tìm kiếm") {
-                        navController.popBackStack() // Quay về ChatRoom để tìm kiếm
                     }
                 }
                 Spacer(modifier = Modifier.height(32.dp))
@@ -333,9 +359,13 @@ fun GroupDetailScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        MediaRowItem(Icons.Default.Image, "Ảnh, video", "${state.mediaCount}") {}
+                        MediaRowItem(Icons.Default.Image, "Ảnh, video", "${state.mediaCount}") {
+                            navController.navigate(Screen.SharedMedia.createRoute(state.conversationId, 0))
+                        }
                         HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = AppBackgroundColor, thickness = 1.dp)
-                        MediaRowItem(Icons.Default.InsertDriveFile, "File, tài liệu", "${state.fileCount}") {}
+                        MediaRowItem(Icons.Default.InsertDriveFile, "File, tài liệu", "${state.fileCount}") {
+                            navController.navigate(Screen.SharedMedia.createRoute(state.conversationId, 1))
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))

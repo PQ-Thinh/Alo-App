@@ -102,6 +102,7 @@ fun ChatRoomScreen(
     var selectedMessageForOverlay by remember { mutableStateOf<Message?>(null) }
     val clipboardManager = LocalClipboardManager.current
     var replyingToMessage by remember { mutableStateOf<Message?>(null) }
+    var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -812,7 +813,8 @@ fun ChatRoomScreen(
                                             }
                                         }
                                     }
-                                }
+                                },
+                                onImageClick = { fullScreenImageUrl = it }
                             )
                             Spacer(modifier = Modifier.height(if (isLastInGroup) 16.dp else 4.dp))
                         }
@@ -839,5 +841,42 @@ fun ChatRoomScreen(
                 selectedMessageForOverlay = null
             }
         )
+    }
+
+    if (fullScreenImageUrl != null) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { fullScreenImageUrl = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { fullScreenImageUrl = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = fullScreenImageUrl,
+                    contentDescription = "Full Screen Image",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
+                )
+                IconButton(
+                    onClick = { fullScreenImageUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Đóng", tint = Color.White)
+                }
+            }
+        }
     }
 }

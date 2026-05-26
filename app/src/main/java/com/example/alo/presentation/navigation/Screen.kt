@@ -50,6 +50,10 @@ sealed class Screen(val route: String) {
         fun createRoute(conversationId: String) = "group_members/$conversationId"
     }
 
+    object SharedMedia : Screen("shared_media/{conversationId}/{tabIndex}") {
+        fun createRoute(conversationId: String, tabIndex: Int) = "shared_media/$conversationId/$tabIndex"
+    }
+
     object AddMember : Screen("add_member/{conversationId}") {
         fun createRoute(conversationId: String) = "add_member/$conversationId"
     }
