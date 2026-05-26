@@ -135,7 +135,7 @@ class MainActivity : ComponentActivity() {
                             androidx.compose.material3.TextButton(
                                 onClick = {
                                     showNetworkPrompt = false
-                                    context.startActivity(Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS))
+                                    context.startActivity(Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
                                 }
                             ) {
                                 androidx.compose.material3.Text("Cài đặt")

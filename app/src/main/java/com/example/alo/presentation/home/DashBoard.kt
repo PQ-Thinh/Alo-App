@@ -223,21 +223,27 @@ fun DashboardScreen(
                     shape = CircleShape,
                     elevation = FloatingActionButtonDefaults.elevation(12.dp)
                 ) {
-                    val animatedImage = androidx.compose.animation.graphics.vector.AnimatedImageVector.animatedVectorResource(R.drawable.avd_work_anim)
-                    var atEnd by remember { mutableStateOf(false) }
+                    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "work_icon_transition")
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.2f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = androidx.compose.animation.core.tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                        ),
+                        label = "work_icon_scale"
+                    )
 
-                    LaunchedEffect(Unit) {
-                        while (true) {
-                            atEnd = !atEnd
-                            kotlinx.coroutines.delay(800)
-                        }
-                    }
-
-                    androidx.compose.foundation.Image(
-                        painter = androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter(animatedImage, atEnd),
+                    Icon(
+                        imageVector = Icons.Default.Work,
                         contentDescription = "Work Tasks",
-                        modifier = Modifier.size(28.dp),
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                        modifier = Modifier
+                            .size(28.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            },
+                        tint = Color.White
                     )
                 }
             }

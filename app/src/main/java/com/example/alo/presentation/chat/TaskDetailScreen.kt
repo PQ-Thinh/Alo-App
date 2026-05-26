@@ -160,18 +160,43 @@ fun TaskDetailScreen(
                     maxLines = 4
                 )
 
+                val calendar = remember { java.util.Calendar.getInstance() }
+                val dateFormat = remember { java.text.SimpleDateFormat("HH:mm, dd/MM/yyyy", java.util.Locale.getDefault()) }
+
                 OutlinedTextField(
-                    value = dueDate,
-                    onValueChange = { dueDate = it },
-                    label = { Text("Ngày hết hạn (VD: 2024-12-31)") },
+                    value = if (dueDate.isNotBlank()) dueDate else "Chưa thiết lập",
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Hạn hoàn thành") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = isAdmin,
+                    trailingIcon = { Icon(Icons.Default.Event, contentDescription = "Chọn ngày giờ", tint = if (isAdmin) primaryColor else Color.Gray) },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledBorderColor = MaterialTheme.colorScheme.surfaceVariant,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { interactionSource ->
+                        LaunchedEffect(interactionSource) {
+                            interactionSource.interactions.collect {
+                                if (it is androidx.compose.foundation.interaction.PressInteraction.Release && isAdmin) {
+                                    android.app.DatePickerDialog(context, { _, year, month, dayOfMonth ->
+                                        calendar.set(java.util.Calendar.YEAR, year)
+                                        calendar.set(java.util.Calendar.MONTH, month)
+                                        calendar.set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
+                                        
+                                        android.app.TimePickerDialog(context, { _, hourOfDay, minute ->
+                                            calendar.set(java.util.Calendar.HOUR_OF_DAY, hourOfDay)
+                                            calendar.set(java.util.Calendar.MINUTE, minute)
+                                            dueDate = dateFormat.format(calendar.time)
+                                        }, calendar.get(java.util.Calendar.HOUR_OF_DAY), calendar.get(java.util.Calendar.MINUTE), true).show()
+                                        
+                                    }, calendar.get(java.util.Calendar.YEAR), calendar.get(java.util.Calendar.MONTH), calendar.get(java.util.Calendar.DAY_OF_MONTH)).show()
+                                }
+                            }
+                        }
+                    }
                 )
 
                 // Hiển thị Người tạo và Người nhận

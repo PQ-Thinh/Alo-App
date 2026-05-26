@@ -166,12 +166,22 @@ fun Message(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(
-                            text = chat.chatName ?: "Cuộc trò chuyện",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            color = Color(0xFF1E293B)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (chat.isGroup) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = "Nhóm",
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(20.dp).padding(end = 6.dp)
+                                )
+                            }
+                            Text(
+                                text = chat.chatName ?: "Cuộc trò chuyện",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = Color(0xFF1E293B)
+                            )
+                        }
                         Text(
                             text = "Tùy chọn bảo mật",
                             fontSize = 13.sp,
@@ -605,6 +615,14 @@ fun ChatItem(
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (chat.isGroup) {
+                    Icon(
+                        imageVector = Icons.Default.Group,
+                        contentDescription = "Nhóm",
+                        tint = primaryColor,
+                        modifier = Modifier.size(20.dp).padding(end = 6.dp)
+                    )
+                }
                 Text(
                     text = chat.chatName ?: "Người dùng ẩn danh",
                     fontWeight = if (hasUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
