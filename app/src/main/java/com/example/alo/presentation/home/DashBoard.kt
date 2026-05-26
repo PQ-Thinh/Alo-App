@@ -135,7 +135,7 @@ fun DashboardScreen(
                 containerColor = CardBackgroundColor,
                 tonalElevation = 0.dp
             ) {
-                val items = listOf(
+                val items = listOf<NavItem>(
                     NavItem("Tin nhắn", Icons.Outlined.Email, Icons.Default.Email, 0),
                     NavItem("Danh bạ", Icons.Outlined.AccountBox, Icons.Default.AccountBox, 1),
                     NavItem("Cá nhân", Icons.Outlined.Person, Icons.Default.Person, 2)
@@ -238,7 +238,8 @@ fun DashboardScreen(
         }
     }
 }
-private data class NavItem(
+}
+data class NavItem(
     val title: String,
     val outlined: ImageVector,
     val filled: ImageVector,
