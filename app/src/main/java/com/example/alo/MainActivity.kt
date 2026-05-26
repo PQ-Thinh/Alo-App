@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -104,6 +105,65 @@ class MainActivity : ComponentActivity() {
                 val networkObserver = androidx.compose.runtime.remember { com.example.alo.core.utils.NetworkConnectivityObserver(context) }
                 val networkStatus by networkObserver.status.collectAsState(initial = com.example.alo.core.utils.NetworkStatus.Available)
                 val isOffline = networkStatus == com.example.alo.core.utils.NetworkStatus.Unavailable || networkStatus == com.example.alo.core.utils.NetworkStatus.Lost
+
+                var showNetworkPrompt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                var showOfflineWarning by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                var hasCheckedInitialNetwork by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+
+                androidx.compose.runtime.LaunchedEffect(isOffline) {
+                    if (isOffline && !hasCheckedInitialNetwork) {
+                        showNetworkPrompt = true
+                        hasCheckedInitialNetwork = true
+                    } else if (!isOffline) {
+                        showNetworkPrompt = false
+                        showOfflineWarning = false
+                        hasCheckedInitialNetwork = true
+                    }
+                }
+
+                if (showNetworkPrompt) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { 
+                            showNetworkPrompt = false 
+                            showOfflineWarning = true
+                        },
+                        title = { androidx.compose.material3.Text("Không có kết nối mạng") },
+                        text = { androidx.compose.material3.Text("Ứng dụng cần kết nối Internet để hoạt động đầy đủ tính năng. Bạn có muốn bật kết nối mạng không?") },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    showNetworkPrompt = false
+                                    context.startActivity(Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS))
+                                }
+                            ) {
+                                androidx.compose.material3.Text("Cài đặt")
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    showNetworkPrompt = false
+                                    showOfflineWarning = true
+                                }
+                            ) {
+                                androidx.compose.material3.Text("Bỏ qua")
+                            }
+                        }
+                    )
+                }
+
+                if (showOfflineWarning) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showOfflineWarning = false },
+                        title = { androidx.compose.material3.Text("Cảnh báo ngoại tuyến") },
+                        text = { androidx.compose.material3.Text("Bạn đang mở ứng dụng ở chế độ ngoại tuyến. Dữ liệu sẽ không được đồng bộ cho đến khi kết nối lại mạng.") },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = { showOfflineWarning = false }) {
+                                androidx.compose.material3.Text("Đã hiểu")
+                            }
+                        }
+                    )
+                }
 
                 androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
                     androidx.compose.foundation.layout.Column {

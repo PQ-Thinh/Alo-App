@@ -43,9 +43,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
 import android.graphics.drawable.AnimatedVectorDrawable
+import androidx.compose.animation.graphics.res.animatedVectorResource
 import com.example.alo.R
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi::class)
 @Composable
 fun DashboardScreen(
     navController: NavController,
@@ -224,13 +225,19 @@ fun DashboardScreen(
                     shape = RoundedCornerShape(16.dp),
                     elevation = FloatingActionButtonDefaults.elevation(8.dp)
                 ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            ImageView(ctx).apply {
-                                setBackgroundResource(R.drawable.avd_work_anim)
-                                (background as? AnimatedVectorDrawable)?.start()
-                            }
-                        },
+                    val animatedImage = androidx.compose.animation.graphics.vector.AnimatedImageVector.animatedVectorResource(R.drawable.avd_work_anim)
+                    var atEnd by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            atEnd = !atEnd
+                            kotlinx.coroutines.delay(600)
+                        }
+                    }
+
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter(animatedImage, atEnd),
+                        contentDescription = "Work Tasks",
                         modifier = Modifier.size(24.dp)
                     )
                 }
