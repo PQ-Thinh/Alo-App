@@ -11,7 +11,7 @@ interface VideoCallRepository {
     fun logoutStreamClient()
     
     // Lưu Metadata chuyên sâu vào bảng video_calls
-    suspend fun saveCallMetadata(
+    suspend fun sendCallLog(
         messageId: String,
         durationSec: Int,
         direction: String,

@@ -71,40 +71,6 @@ class MessageRepositoryImpl @Inject constructor(
         return insertedMessage.id
     }
 
-    override suspend fun sendCallLog(
-        conversationId: String,
-        senderId: String,
-        messageType: String,
-        content: String,
-        durationSec: Int?,
-        direction: String?,
-        reason: String?,
-        isVideo: Boolean
-    ): String {
-        // 1. Tạo Message trước
-        val messageBody = mapOf(
-            "conversation_id" to conversationId,
-            "sender_id" to senderId,
-            "message_type" to messageType,
-            "encrypted_content" to content
-        )
-        val insertedMessage = supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_MESSAGES]
-            .insert(messageBody) { select() }
-            .decodeSingle<MessageDto>()
-
-        // 2. Tạo Video Call Log liên kết với message vừa tạo
-        val callLogBody = mapOf(
-            "message_id" to insertedMessage.id,
-            "duration_sec" to (durationSec ?: 0),
-            "direction" to (direction ?: "outgoing"),
-            "is_video" to isVideo,
-            "end_reason" to (reason ?: "ended")
-        )
-        supabaseClient.postgrest[com.example.alo.core.utils.Constant.TABLE_VIDEO_CALLS].insert(callLogBody)
-
-        return insertedMessage.id
-    }
-
     override suspend fun addReaction(messageId: String, userId: String, reactionIcon: String) {
         try {
             val params = mapOf(

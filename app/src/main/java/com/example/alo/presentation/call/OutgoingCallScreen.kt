@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,7 +69,7 @@ fun OutgoingCallScreen(
                         }
                     },
                     onRejectedContent = {
-                        // Bị từ chối → hiển thị overlay thông báo rồi đóng
+                        // Bị từ chối → hiển thị overlay thông báo rồi tự đóng sau 2s
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -89,9 +90,14 @@ fun OutgoingCallScreen(
                                 }
                             }
                         }
+                        // Tự động đóng sau 2 giây
+                        LaunchedEffect(Unit) {
+                            delay(2000)
+                            onCallEnded()
+                        }
                     },
                     onNoAnswerContent = {
-                        // Không trả lời → hiển thị thông báo rồi đóng
+                        // Không trả lời → hiển thị thông báo rồi tự đóng sau 2s
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -111,6 +117,11 @@ fun OutgoingCallScreen(
                                     Icon(Icons.Default.CallEnd, contentDescription = "Đóng", tint = Color.White)
                                 }
                             }
+                        }
+                        // Tự động đóng sau 2 giây
+                        LaunchedEffect(Unit) {
+                            delay(2000)
+                            onCallEnded()
                         }
                     }
                 )

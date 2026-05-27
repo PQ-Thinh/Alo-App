@@ -160,17 +160,10 @@ fun ChatRoomScreen(
     ) { permissionsMap ->
         val areGranted = permissionsMap.values.all { it }
         if (areGranted) {
-            // Permissions granted → start the call
+            // Permissions granted → start the call (navigate sẽ do LaunchedEffect observe)
             callViewModel.startCall(
-                callId = conversationId,
+                conversationId = conversationId,
                 memberIds = listOf(partnerId)
-            )
-            navController.navigate(
-                Screen.OutgoingCall.createRoute(
-                    callId = conversationId,
-                    calleeName = partnerName,
-                    calleeAvatar = partnerAvatar
-                )
             )
         } else {
             Toast.makeText(context, "Vui lòng cấp quyền Camera và Mic để gọi video!", Toast.LENGTH_SHORT).show()
@@ -183,19 +176,25 @@ fun ChatRoomScreen(
         }
         if (areAllGranted) {
             callViewModel.startCall(
-                callId = conversationId,
+                conversationId = conversationId,
                 memberIds = listOf(partnerId)
-            )
-            navController.navigate(
-                Screen.OutgoingCall.createRoute(
-                    callId = conversationId,
-                    calleeName = partnerName,
-                    calleeAvatar = partnerAvatar
-                )
             )
         } else {
             permissionLauncher.launch(permissionsToRequest)
         }
+    }
+
+    // Observe callId mới từ CallViewModel → navigate đến OutgoingCallScreen
+    val outgoingCallId by callViewModel.currentCallIdFlow.collectAsState()
+    LaunchedEffect(outgoingCallId) {
+        val callId = outgoingCallId ?: return@LaunchedEffect
+        navController.navigate(
+            Screen.OutgoingCall.createRoute(
+                callId = callId,
+                calleeName = partnerName,
+                calleeAvatar = partnerAvatar
+            )
+        )
     }
 
     LaunchedEffect(Unit) {

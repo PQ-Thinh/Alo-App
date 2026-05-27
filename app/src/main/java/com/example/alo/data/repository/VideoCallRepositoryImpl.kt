@@ -133,7 +133,7 @@ class VideoCallRepositoryImpl @Inject constructor(
 
     /**
      * Tạo cuộc gọi mới, ring tới các members.
-     * [callId] nên là conversationId hoặc UUID duy nhất của cuộc gọi.
+     * [callId] là unique ID cho cuộc gọi (format: {conversationId}_{timestamp}).
      * [memberIds] là danh sách userId (Supabase auth UID) của người nhận.
      */
     override suspend fun createAndJoinCall(
@@ -145,6 +145,16 @@ class VideoCallRepositoryImpl @Inject constructor(
                 throw IllegalStateException("Video Call System chưa được khởi tạo. Vui lòng đăng xuất và đăng nhập lại.")
             }
             val call = StreamVideo.instance().call(type = CALL_TYPE, id = callId)
+
+            // Defensive guard: nếu channel đã tồn tại (edge case hiếm gặp), leave trước
+            try {
+                val existingState = call.state.ringingState.value
+                if (existingState != null) {
+                    Log.w(TAG, "Channel $callId đã tồn tại (state=$existingState), leaving first...")
+                    call.leave()
+                }
+            } catch (_: Exception) {}
+
             call.create(memberIds = memberIds, ring = true)
             call
         }
@@ -189,7 +199,7 @@ class VideoCallRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun saveCallMetadata(
+    override suspend fun sendCallLog(
         messageId: String,
         durationSec: Int,
         direction: String,

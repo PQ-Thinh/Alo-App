@@ -59,6 +59,7 @@ class CallViewModel @Inject constructor(
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var activeCall: Call? = null
     private var currentCallId: String? = null
+    private var currentConversationId: String? = null
     private var currentMemberIds: List<String> = emptyList()
     private var isCaller: Boolean = false
     private var callTimeoutJob: Job? = null
@@ -69,6 +70,23 @@ class CallViewModel @Inject constructor(
     private var initJob: Job? = null
     private var _isEndingCall: Boolean = false
     val isEndingCall: Boolean get() = _isEndingCall
+    private var callEventSubscription: kotlinx.coroutines.DisposableHandle? = null
+
+    // StateFlow để UI observe callId mới → navigate đến OutgoingCallScreen
+    private val _currentCallIdFlow = MutableStateFlow<String?>(null)
+    val currentCallIdFlow: StateFlow<String?> = _currentCallIdFlow.asStateFlow()
+
+    // Tạo callId unique cho mỗi cuộc gọi — format dễ debug
+    private fun generateCallId(conversationId: String): String {
+        return "${conversationId}_${System.currentTimeMillis()}"
+    }
+
+    // Trích xuất conversationId từ unique callId
+    // Format: "{conversationId}_{timestamp}" → lấy phần trước "_" cuối cùng
+    private fun extractConversationId(callId: String): String {
+        val lastUnderscore = callId.lastIndexOf('_')
+        return if (lastUnderscore > 0) callId.substring(0, lastUnderscore) else callId
+    }
 
     fun initStreamClient() {
         if (initJob?.isActive == true) return
@@ -105,20 +123,26 @@ class CallViewModel @Inject constructor(
         }
     }
 
-    fun startCall(callId: String, memberIds: List<String>) {
+    fun startCall(conversationId: String, memberIds: List<String>) {
         viewModelScope.launch {
-            if (currentCallId == callId && (_uiState.value is CallUiState.Calling || _uiState.value is CallUiState.InCall)) {
+            // Guard: không gọi trùng khi đang có cuộc gọi
+            if (_uiState.value is CallUiState.Calling || _uiState.value is CallUiState.InCall) {
                 return@launch
             }
+
+            val callId = generateCallId(conversationId)
             currentCallId = callId
+            currentConversationId = conversationId
             currentMemberIds = memberIds
             isCaller = true
             cancelPushSent = false
             callStartTimestamp = null
             isCallLogged = false
+            _currentCallIdFlow.value = callId  // UI observe để navigate
+
             try {
                 _uiState.value = CallUiState.Initializing
-                ensureStreamInitialized() // Phải đợi khởi tạo xong
+                ensureStreamInitialized()
                 
                 if (!StreamVideo.isInstalled) {
                     throw Exception("Không thể khởi tạo StreamVideo. Vui lòng kiểm tra lại cấu hình API Key hoặc mạng.")
@@ -129,11 +153,10 @@ class CallViewModel @Inject constructor(
                 activeCall = call
                 startNetworkMonitor()
                 startCallTimeoutWatcher()
-                // GetStream SDK tự gửi Push Notification cho người nhận
-                // KHÔNG cần gọi pushIncomingCall() nữa
 
-                // Lắng nghe sự kiện kết thúc
-                call.subscribe { event ->
+                // Cleanup subscription cũ trước khi subscribe mới
+                callEventSubscription?.dispose()
+                callEventSubscription = call.subscribe { event ->
                     try {
                         when (event) {
                             is CallRejectedEvent, is CallEndedEvent -> {
@@ -141,10 +164,7 @@ class CallViewModel @Inject constructor(
                                 val reason = if (event is CallRejectedEvent) Constant.EVENT_CALL_REJECTED else Constant.EVENT_CALL_ENDED
                                 logCallMessage(reason)
                                 _uiState.value = CallUiState.Ended
-                                stopNetworkMonitor()
-                                callTimeoutJob?.cancel()
-                                activeCall = null
-                                CallForegroundService.stop(appContext)
+                                cleanupCallResources()
                             }
                             else -> Unit
                         }
@@ -155,15 +175,17 @@ class CallViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Lỗi tạo cuộc gọi nghiêm trọng: ${e.message}", e)
                 _uiState.value = CallUiState.Error("Lỗi hệ thống: ${e.message}")
+                _currentCallIdFlow.value = null
             }
         }
     }
 
     fun acceptCall(callId: String) {
         viewModelScope.launch {
-            if (currentCallId == callId && (_uiState.value is CallUiState.Calling || _uiState.value is CallUiState.InCall)) return@launch
+            if (_uiState.value is CallUiState.InCall || _uiState.value is CallUiState.Calling) return@launch
             isCaller = false
             currentCallId = callId
+            currentConversationId = extractConversationId(callId)  // Trích xuất conversationId cho logCallMessage
             callStartTimestamp = null
             isCallLogged = false
             try {
@@ -176,17 +198,16 @@ class CallViewModel @Inject constructor(
                 callStartTimestamp = System.currentTimeMillis()
                 CallForegroundService.notifyConnected(appContext, callId)
 
-                call.subscribe { event ->
+                // Cleanup subscription cũ trước khi subscribe mới
+                callEventSubscription?.dispose()
+                callEventSubscription = call.subscribe { event ->
                     try {
                         when (event) {
                             is CallEndedEvent, is CallRejectedEvent -> {
                                 if (isCallLogged) return@subscribe
-                                logCallMessage(if (event is CallRejectedEvent) "CALL_REJECTED" else "CALL_ENDED")
+                                logCallMessage(if (event is CallRejectedEvent) Constant.EVENT_CALL_REJECTED else Constant.EVENT_CALL_ENDED)
                                 _uiState.value = CallUiState.Ended
-                                stopNetworkMonitor()
-                                callTimeoutJob?.cancel()
-                                activeCall = null
-                                CallForegroundService.stop(appContext)
+                                cleanupCallResources()
                             }
                             else -> Unit
                         }
@@ -234,38 +255,32 @@ class CallViewModel @Inject constructor(
             try {
                 when (current) {
                     is CallUiState.Calling -> {
+                        // Đang ring → reject + leave (gửi tín hiệu hủy cho đối phương)
                         if (isCaller) {
                             val reason = if (!cancelPushSent) Constant.EVENT_CALL_CANCELLED else Constant.EVENT_CALL_ENDED
                             logCallMessage(reason)
                         } else {
                             logCallMessage(Constant.EVENT_CALL_ENDED)
                         }
-                        // end() thay vì leave() để đối phương cũng nhận được CallEndedEvent
-                        try {
-                            current.call.end()
-                        } catch (_: Exception) {
-                            // Fallback nếu end() thất bại (vd: không phải creator)
-                            current.call.leave()
-                        }
+                        try { current.call.reject() } catch (_: Exception) {}
+                        try { current.call.leave() } catch (_: Exception) {}
                     }
                     is CallUiState.InCall -> {
-                        // end() kết thúc cho CẢ HAI phía
+                        // Đang active → end() kết thúc cho CẢ HAI (an toàn với unique callId)
+                        logCallMessage(Constant.EVENT_CALL_ENDED)
                         try {
                             current.call.end()
                         } catch (_: Exception) {
-                            current.call.leave()
+                            // Fallback nếu không phải creator
+                            try { current.call.leave() } catch (_: Exception) {}
                         }
-                        logCallMessage(Constant.EVENT_CALL_ENDED)
                     }
                     else -> Unit
                 }
             } catch (_: Exception) {
             } finally {
-                stopNetworkMonitor()
-                callTimeoutJob?.cancel()
-                activeCall = null
+                cleanupCallResources()
                 _uiState.value = CallUiState.Ended
-                CallForegroundService.stop(appContext)
             }
         }
     }
@@ -274,6 +289,8 @@ class CallViewModel @Inject constructor(
         _uiState.value = CallUiState.Idle
         cancelPushSent = false
         currentCallId = null
+        currentConversationId = null
+        _currentCallIdFlow.value = null
         currentMemberIds = emptyList()
         isCaller = false
         callStartTimestamp = null
@@ -283,9 +300,16 @@ class CallViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        cleanupCallResources()
+    }
+
+    private fun cleanupCallResources() {
+        callEventSubscription?.dispose()
+        callEventSubscription = null
         stopNetworkMonitor()
         callTimeoutJob?.cancel()
         activeCall = null
+        CallForegroundService.stop(appContext)
     }
 
     private fun startNetworkMonitor() {
@@ -341,7 +365,7 @@ class CallViewModel @Inject constructor(
 
     private fun logCallMessage(reason: String, durationMs: Long? = null) {
         if (isCallLogged) return
-        val conversationId = currentCallId ?: return
+        val conversationId = currentConversationId ?: return
         isCallLogged = true
         viewModelScope.launch {
             try {
@@ -356,12 +380,15 @@ class CallViewModel @Inject constructor(
                     "CALL_CANCELLED" -> "\uD83D\uDCDE Cuộc gọi đã hủy"
                     else -> "\uD83D\uDCF9 Cuộc gọi video - ${formattedDuration ?: "--:--"}"
                 }
-                messageRepository.sendCallLog(
+                val messageId = messageRepository.sendMessage(
                     conversationId = conversationId,
                     senderId = authUser.id,
                     messageType = reason,
-                    content = preview,
-                    durationSec = measuredMs?.let { (it / 1000).toInt() },
+                    content = preview
+                )
+                videoCallRepository.sendCallLog(
+                    messageId = messageId,
+                    durationSec = measuredMs?.let { (it / 1000).toInt() } ?: 0,
                     direction = if (isCaller) "outgoing" else "incoming",
                     reason = reason,
                     isVideo = true

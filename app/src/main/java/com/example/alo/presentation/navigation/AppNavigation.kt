@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -13,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.alo.core.service.CallForegroundService
 import com.example.alo.core.utils.Constant
 import com.example.alo.presentation.helper.CallUiState
 import com.example.alo.presentation.auth.CreateNewPasswordScreen
@@ -42,6 +44,8 @@ import com.example.alo.presentation.auth.AuthViewModel
 import com.example.alo.presentation.call.CallViewModel
 import com.example.alo.presentation.profile.UserViewModel
 import io.getstream.video.android.core.StreamVideo
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URLDecoder
 
 @Composable
@@ -100,13 +104,19 @@ fun AppNavigation(
             StreamVideo.instance().state.ringingCall.collect { ringingCall ->
                 if (ringingCall != null) {
                     val callId = ringingCall.id
-                    // QUAN TRỌNG: Kiểm tra xem mình có phải người tạo cuộc gọi không
-                    // Nếu mình là CALLER → KHÔNG hiện IncomingCall (vì đã ở OutgoingCall rồi)
-                    val createdById = ringingCall.state.createdBy.value?.id
+
+                    // REACTIVE: Chờ createdBy populated (tối đa 2 giây)
+                    // Thay vì đọc trực tiếp .value (có thể null lúc mới emit)
+                    val createdById = withTimeoutOrNull(2000L) {
+                        snapshotFlow { ringingCall.state.createdBy.value?.id }
+                            .first { it != null }
+                    }
+
                     Log.d("NAV_DEBUG", "ringingCall detected: $callId, createdBy=$createdById, me=$currentUserId")
 
-                    if (createdById != null && createdById == currentUserId) {
-                        Log.d("NAV_DEBUG", "Bỏ qua — mình là người gọi, không hiện IncomingCall")
+                    // Nếu vẫn null hoặc là chính mình → BỎ QUA
+                    if (createdById == null || createdById == currentUserId) {
+                        Log.d("NAV_DEBUG", "Bỏ qua — mình là người gọi hoặc createdBy chưa sẵn sàng")
                         return@collect
                     }
 
@@ -114,6 +124,12 @@ fun AppNavigation(
                     if (currentState !is CallUiState.InCall && currentState !is CallUiState.Calling) {
                         val callerName = ringingCall.state.createdBy.value?.name ?: "Cuộc gọi đến"
                         Log.d("NAV_DEBUG", "Navigating to IncomingCall: $callId from $callerName")
+
+                        // Start foreground service để có chuông/rung và giữ process sống
+                        CallForegroundService.startIncoming(
+                            navController.context, callId, callerName
+                        )
+
                         navController.navigate(
                             Screen.IncomingCall.createRoute(callId, callerName)
                         )
@@ -397,6 +413,7 @@ fun NavGraphBuilder.videoCallGraph(
         // Tự động thoát nếu người gọi hủy cuộc gọi trước khi mình bắt máy
         LaunchedEffect(state) {
             if (state is CallUiState.Ended || state is CallUiState.Idle) {
+                CallForegroundService.stop(navController.context)
                 navController.popBackStack()
             }
         }
