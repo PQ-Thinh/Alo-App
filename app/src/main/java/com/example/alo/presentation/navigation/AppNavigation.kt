@@ -99,43 +99,47 @@ fun AppNavigation(
     // ĐÂY LÀ PHẦN CHÍNH: Lắng nghe ringingCall từ GetStream SDK
     // Khi SDK nhận cuộc gọi đến (qua WebSocket hoặc Push), nó cập nhật state này
     LaunchedEffect(Unit) {
-        if (StreamVideo.isInstalled) {
-            val currentUserId = StreamVideo.instance().user.id
-            StreamVideo.instance().state.ringingCall.collect { ringingCall ->
-                if (ringingCall != null) {
-                    val callId = ringingCall.id
+        while (true) {
+            if (StreamVideo.isInstalled) {
+                try {
+                    val currentUserId = StreamVideo.instance().user.id
+                    StreamVideo.instance().state.ringingCall.collect { ringingCall ->
+                        if (ringingCall != null) {
+                            val callId = ringingCall.id
 
-                    // REACTIVE: Chờ createdBy populated (tối đa 2 giây)
-                    // Thay vì đọc trực tiếp .value (có thể null lúc mới emit)
-                    val createdById = withTimeoutOrNull(2000L) {
-                        snapshotFlow { ringingCall.state.createdBy.value?.id }
-                            .first { it != null }
+                            val createdById = withTimeoutOrNull(2000L) {
+                                snapshotFlow { ringingCall.state.createdBy.value?.id }
+                                    .first { it != null }
+                            }
+
+                            Log.d("NAV_DEBUG", "ringingCall detected: $callId, createdBy=$createdById, me=$currentUserId")
+
+                            if (createdById == null || createdById == currentUserId) {
+                                Log.d("NAV_DEBUG", "Bỏ qua — mình là người gọi hoặc createdBy chưa sẵn sàng")
+                                return@collect
+                            }
+
+                            val currentState = callViewModel.uiState.value
+                            if (currentState is CallUiState.Idle || currentState is CallUiState.Ended || currentState is CallUiState.Error) {
+                                val callerName = ringingCall.state.createdBy.value?.name ?: "Cuộc gọi đến"
+                                Log.d("NAV_DEBUG", "Navigating to IncomingCall: $callId from $callerName")
+
+                                CallForegroundService.startIncoming(
+                                    navController.context, callId, callerName
+                                )
+
+                                navController.navigate(
+                                    Screen.IncomingCall.createRoute(callId, callerName)
+                                )
+                            }
+                        }
                     }
-
-                    Log.d("NAV_DEBUG", "ringingCall detected: $callId, createdBy=$createdById, me=$currentUserId")
-
-                    // Nếu vẫn null hoặc là chính mình → BỎ QUA
-                    if (createdById == null || createdById == currentUserId) {
-                        Log.d("NAV_DEBUG", "Bỏ qua — mình là người gọi hoặc createdBy chưa sẵn sàng")
-                        return@collect
-                    }
-
-                    val currentState = callViewModel.uiState.value
-                    if (currentState !is CallUiState.InCall && currentState !is CallUiState.Calling) {
-                        val callerName = ringingCall.state.createdBy.value?.name ?: "Cuộc gọi đến"
-                        Log.d("NAV_DEBUG", "Navigating to IncomingCall: $callId from $callerName")
-
-                        // Start foreground service để có chuông/rung và giữ process sống
-                        CallForegroundService.startIncoming(
-                            navController.context, callId, callerName
-                        )
-
-                        navController.navigate(
-                            Screen.IncomingCall.createRoute(callId, callerName)
-                        )
-                    }
+                } catch (e: Exception) {
+                    Log.e("NAV_DEBUG", "Lỗi lắng nghe cuộc gọi", e)
                 }
+                break
             }
+            kotlinx.coroutines.delay(500)
         }
     }
 

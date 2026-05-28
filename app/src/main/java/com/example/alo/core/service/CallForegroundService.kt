@@ -39,6 +39,7 @@ class CallForegroundService : LifecycleService() {
     private var timeoutJob: Job? = null
     private var currentCallId: String? = null
     private var currentPeerName: String? = null
+    private var isIncomingCall: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
@@ -53,6 +54,7 @@ class CallForegroundService : LifecycleService() {
                 val peer = intent.getStringExtra(Constant.EXTRA_PEER_NAME) ?: "Đang gọi..."
                 currentCallId = callId
                 currentPeerName = peer
+                isIncomingCall = false
                 startForeground(
                     callId.hashCode(),
                     buildNotification(
@@ -69,6 +71,7 @@ class CallForegroundService : LifecycleService() {
                 val peer = intent.getStringExtra(Constant.EXTRA_PEER_NAME) ?: "Cuộc gọi đến"
                 currentCallId = callId
                 currentPeerName = peer
+                isIncomingCall = true
                 startForeground(
                     callId.hashCode(),
                     buildNotification(
@@ -164,7 +167,7 @@ class CallForegroundService : LifecycleService() {
             flag or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        return NotificationCompat.Builder(this, Constant.CALL_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, Constant.CALL_CHANNEL_ID)
             .setSmallIcon(R.mipmap.maloi_icon)
             .setContentTitle(title)
             .setContentText(text)
@@ -173,9 +176,26 @@ class CallForegroundService : LifecycleService() {
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(contentPendingIntent)
-            .addAction(android.R.drawable.ic_menu_call, "Nhấc máy", acceptPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Từ chối", declinePendingIntent)
-            .build()
+
+        if (isIncomingCall) {
+            builder.addAction(android.R.drawable.ic_menu_call, "Nhấc máy", acceptPendingIntent)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Từ chối", declinePendingIntent)
+        } else {
+            val cancelIntent = Intent(this, CallActionReceiver::class.java).apply {
+                action = Constant.ACTION_INCOMING_CALL_DECLINE
+                putExtra("callId", callId)
+                putExtra("callerName", currentPeerName)
+            }
+            val cancelPendingIntent = PendingIntent.getBroadcast(
+                this,
+                (callId + "_cancel").hashCode(),
+                cancelIntent,
+                flag or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Hủy cuộc gọi", cancelPendingIntent)
+        }
+
+        return builder.build()
     }
 
     private fun createChannel() {
@@ -223,10 +243,8 @@ class CallForegroundService : LifecycleService() {
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, CallForegroundService::class.java).apply {
-                action = Constant.ACTION_STOP
-            }
-            ContextCompat.startForegroundService(context, intent)
+            val intent = Intent(context, CallForegroundService::class.java)
+            context.stopService(intent)
         }
     }
 }

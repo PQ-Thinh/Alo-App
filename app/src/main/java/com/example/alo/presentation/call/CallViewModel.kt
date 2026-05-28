@@ -70,7 +70,15 @@ class CallViewModel @Inject constructor(
     private var initJob: Job? = null
     private var _isEndingCall: Boolean = false
     val isEndingCall: Boolean get() = _isEndingCall
-    private var callEventSubscription: kotlinx.coroutines.DisposableHandle? = null
+    private var callEventSubscription: Any? = null
+    
+    private fun disposeSubscription() {
+        callEventSubscription?.let { sub ->
+            try { sub.javaClass.getMethod("dispose").invoke(sub) } catch (_: Exception) {}
+            try { sub.javaClass.getMethod("cancel").invoke(sub) } catch (_: Exception) {}
+            try { sub.javaClass.getMethod("unsubscribe").invoke(sub) } catch (_: Exception) {}
+        }
+    }
 
     // StateFlow để UI observe callId mới → navigate đến OutgoingCallScreen
     private val _currentCallIdFlow = MutableStateFlow<String?>(null)
@@ -155,7 +163,7 @@ class CallViewModel @Inject constructor(
                 startCallTimeoutWatcher()
 
                 // Cleanup subscription cũ trước khi subscribe mới
-                callEventSubscription?.dispose()
+                disposeSubscription()
                 callEventSubscription = call.subscribe { event ->
                     try {
                         when (event) {
@@ -199,7 +207,7 @@ class CallViewModel @Inject constructor(
                 CallForegroundService.notifyConnected(appContext, callId)
 
                 // Cleanup subscription cũ trước khi subscribe mới
-                callEventSubscription?.dispose()
+                disposeSubscription()
                 callEventSubscription = call.subscribe { event ->
                     try {
                         when (event) {
@@ -223,6 +231,10 @@ class CallViewModel @Inject constructor(
 
     fun rejectCall(callId: String) {
         viewModelScope.launch {
+            if (isCaller) {
+                endCall()
+                return@launch
+            }
             try {
                 // Chỉ cố gắng khởi tạo nếu chưa có, không block quá lâu khi reject
                 if (!StreamVideo.isInstalled) {
@@ -259,11 +271,12 @@ class CallViewModel @Inject constructor(
                         if (isCaller) {
                             val reason = if (!cancelPushSent) Constant.EVENT_CALL_CANCELLED else Constant.EVENT_CALL_ENDED
                             logCallMessage(reason)
+                            try { current.call.end() } catch (_: Exception) {}
                         } else {
                             logCallMessage(Constant.EVENT_CALL_ENDED)
+                            try { current.call.reject() } catch (_: Exception) {}
+                            try { current.call.leave() } catch (_: Exception) {}
                         }
-                        try { current.call.reject() } catch (_: Exception) {}
-                        try { current.call.leave() } catch (_: Exception) {}
                     }
                     is CallUiState.InCall -> {
                         // Đang active → end() kết thúc cho CẢ HAI (an toàn với unique callId)
@@ -304,7 +317,7 @@ class CallViewModel @Inject constructor(
     }
 
     private fun cleanupCallResources() {
-        callEventSubscription?.dispose()
+        disposeSubscription()
         callEventSubscription = null
         stopNetworkMonitor()
         callTimeoutJob?.cancel()
