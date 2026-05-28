@@ -103,7 +103,7 @@ class MessageRepositoryImpl @Inject constructor(
         conversationId: String, 
         onTyping: (String) -> Unit,
         onRewrapRequest: (String) -> Unit,
-        onRewrapDone: (String) -> Unit
+        onRewrapDone: (String, String) -> Unit
     ): Flow<Message> = callbackFlow {
         activeChannel?.unsubscribe()
         supabaseClient.realtime.connect()
@@ -188,7 +188,7 @@ class MessageRepositoryImpl @Inject constructor(
         }
         val jobRewrapDone = launch {
             rewrapDoneFlow.collect { payload ->
-                onRewrapDone(payload.targetId)
+                onRewrapDone(payload.targetId, payload.newWrappedKey)
             }
         }
 
@@ -234,8 +234,8 @@ class MessageRepositoryImpl @Inject constructor(
         activeChannel?.broadcast(event = "rewrap_request", message = RewrapRequestPayload(userId))
     }
 
-    override suspend fun sendKeyRewrapDone(targetUserId: String) {
-        activeChannel?.broadcast(event = "rewrap_done", message = RewrapDonePayload(targetUserId))
+    override suspend fun sendKeyRewrapDone(targetUserId: String, newWrappedKey: String) {
+        activeChannel?.broadcast(event = "rewrap_done", message = RewrapDonePayload(targetUserId, newWrappedKey))
     }
 }
 
@@ -243,4 +243,4 @@ class MessageRepositoryImpl @Inject constructor(
 data class RewrapRequestPayload(val requesterId: String)
 
 @Serializable
-data class RewrapDonePayload(val targetId: String)
+data class RewrapDonePayload(val targetId: String, val newWrappedKey: String)

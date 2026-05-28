@@ -254,20 +254,25 @@ class ChatRoomViewModel @Inject constructor(
                         onRewrapRequest = { requesterId ->
                             if (_needsKeyRewrap.value == false && groupKeysetHandle != null) {
                                 viewModelScope.launch(Dispatchers.IO) {
-                                    val success = GroupKeyRewrapHelper.processRewrapForUser(
+                                    val newWrappedKey = GroupKeyRewrapHelper.processRewrapForUser(
                                         context, user.id, requesterId, conversationId, participantRepository, userRepository
                                     )
-                                    if (success) {
-                                        messageRepository.sendKeyRewrapDone(requesterId)
+                                    if (newWrappedKey != null) {
+                                        messageRepository.sendKeyRewrapDone(requesterId, newWrappedKey)
                                     }
                                 }
                             }
                         },
-                        onRewrapDone = { targetId ->
+                        onRewrapDone = { targetId, newWrappedKey ->
                             if (targetId == user.id) {
-                                _needsKeyRewrap.value = false
                                 viewModelScope.launch {
-                                    retryLoadGroupKey()
+                                    try {
+                                        participantRepository.updateEncryptedGroupKey(conversationId, user.id, newWrappedKey)
+                                        _needsKeyRewrap.value = false
+                                        retryLoadGroupKey()
+                                    } catch (e: Exception) {
+                                        Log.e("ChatRoomVM", "Lỗi cập nhật khóa mới vào DB: ${e.message}")
+                                    }
                                 }
                             }
                         }

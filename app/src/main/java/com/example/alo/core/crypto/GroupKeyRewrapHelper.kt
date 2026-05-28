@@ -55,7 +55,7 @@ object GroupKeyRewrapHelper {
         conversationId: String,
         participantRepository: ParticipantRepository,
         userRepository: UserRepository
-    ): Boolean {
+    ): String? {
         return try {
             Log.d(TAG, "🔄 Bắt đầu re-wrap key cho user=$targetUserId trong group=$conversationId")
 
@@ -64,14 +64,14 @@ object GroupKeyRewrapHelper {
             val helperWrappedKey = helperParticipant?.encryptedGroupKey
             if (helperWrappedKey.isNullOrEmpty()) {
                 Log.e(TAG, "Helper không có encrypted_group_key!")
-                return false
+                return null
             }
 
             // 2. Giải mã Group Key bằng Private Key của helper
             val groupKeysetBase64 = CryptoHelper.unwrapGroupKey(context, helperUserId, helperWrappedKey)
             if (groupKeysetBase64.isEmpty()) {
                 Log.e(TAG, "Helper không thể giải mã Group Key!")
-                return false
+                return null
             }
 
             // 3. Lấy Public Key MỚI của target user (A) từ Supabase
@@ -79,24 +79,21 @@ object GroupKeyRewrapHelper {
             val targetPublicEncryptKey = targetProfile?.publicEncryptKey
             if (targetPublicEncryptKey.isNullOrEmpty()) {
                 Log.e(TAG, "Không tìm thấy Public Key của user=$targetUserId")
-                return false
+                return null
             }
 
             // 4. Wrap lại Group Key bằng Public Key MỚI của A
             val newWrappedKey = CryptoHelper.wrapGroupKey(groupKeysetBase64, targetPublicEncryptKey)
             if (newWrappedKey.isEmpty()) {
                 Log.e(TAG, "Wrap Group Key thất bại!")
-                return false
+                return null
             }
 
-            // 5. Update lên DB (cũng tự động set needs_key_rewrap = false)
-            participantRepository.updateEncryptedGroupKey(conversationId, targetUserId, newWrappedKey)
-
-            Log.i(TAG, "✅ Re-wrap key THÀNH CÔNG cho user=$targetUserId trong group=$conversationId")
-            true
+            Log.i(TAG, "✅ Re-wrap key THÀNH CÔNG cho user=$targetUserId trong group=$conversationId. Bỏ qua cập nhật DB để tránh lỗi RLS, gửi trực tiếp qua Broadcast.")
+            return newWrappedKey
         } catch (e: Exception) {
             Log.e(TAG, "❌ Lỗi processRewrapForUser: ${e.message}", e)
-            false
+            return null
         }
     }
 
