@@ -260,7 +260,7 @@ class ChatRoomViewModel @Inject constructor(
                             if (targetId == user.id) {
                                 _needsKeyRewrap.value = false
                                 viewModelScope.launch {
-                                    loadGroupKey(conversationId, user.id)
+                                    retryLoadGroupKey()
                                 }
                             }
                         }
