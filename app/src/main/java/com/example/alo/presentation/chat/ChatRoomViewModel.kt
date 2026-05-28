@@ -153,10 +153,6 @@ class ChatRoomViewModel @Inject constructor(
                                         GroupKeyRewrapHelper.requestKeyRewrap(
                                             participantRepository, conversationId, user.id
                                         )
-                                        // Chờ 2 giây để Supabase Realtime channel kết nối xong (dòng 233) 
-                                        // trước khi bắn broadcast, nếu không channel sẽ bị null.
-                                        delay(2000)
-                                        messageRepository.sendKeyRewrapRequest(user.id)
                                     }
                                 }
                             } ?: run {
@@ -167,9 +163,6 @@ class ChatRoomViewModel @Inject constructor(
                                     GroupKeyRewrapHelper.requestKeyRewrap(
                                         participantRepository, conversationId, user.id
                                     )
-                                    // Chờ 2 giây để Supabase Realtime channel kết nối xong
-                                    delay(2000)
-                                    messageRepository.sendKeyRewrapRequest(user.id)
                                 }
                             }
 
@@ -237,6 +230,15 @@ class ChatRoomViewModel @Inject constructor(
                             }
                         }
                     }
+                    
+                    if (_needsKeyRewrap.value) {
+                        viewModelScope.launch {
+                            // Chờ 2 giây để Supabase kết nối channel xong rồi mới bắn sự kiện
+                            delay(2000)
+                            messageRepository.sendKeyRewrapRequest(user.id)
+                        }
+                    }
+                    
                     messageRepository.subscribeToNewMessages(
                         conversationId,
                         onTyping = { typingUserId ->

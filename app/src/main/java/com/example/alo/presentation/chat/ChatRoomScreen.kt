@@ -633,7 +633,7 @@ fun ChatRoomScreen(
         ) {
             // Banner cảnh báo khi Group Key cần re-wrap
             if (needsKeyRewrap && isGroup) {
-                androidx.compose.ui.window.Dialog(onDismissRequest = { /* Không cho tắt */ }) {
+                androidx.compose.ui.window.Dialog(onDismissRequest = { navController.popBackStack() }) {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = Color.White,
@@ -667,6 +667,12 @@ fun ChatRoomScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Thử lại thủ công", color = Color(0xFFE65100), fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(
+                                onClick = { navController.popBackStack() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Thoát", color = Color.Gray, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
