@@ -153,6 +153,9 @@ class ChatRoomViewModel @Inject constructor(
                                         GroupKeyRewrapHelper.requestKeyRewrap(
                                             participantRepository, conversationId, user.id
                                         )
+                                        // Chờ 2 giây để Supabase Realtime channel kết nối xong (dòng 233) 
+                                        // trước khi bắn broadcast, nếu không channel sẽ bị null.
+                                        delay(2000)
                                         messageRepository.sendKeyRewrapRequest(user.id)
                                     }
                                 }
@@ -164,6 +167,8 @@ class ChatRoomViewModel @Inject constructor(
                                     GroupKeyRewrapHelper.requestKeyRewrap(
                                         participantRepository, conversationId, user.id
                                     )
+                                    // Chờ 2 giây để Supabase Realtime channel kết nối xong
+                                    delay(2000)
                                     messageRepository.sendKeyRewrapRequest(user.id)
                                 }
                             }
@@ -317,6 +322,7 @@ class ChatRoomViewModel @Inject constructor(
                                 _messages.value = redecrypted
                             } else {
                                 Log.e("ChatRoomVM", "Retry giải mã Group Key VẪN THẤT BẠI")
+                                messageRepository.sendKeyRewrapRequest(userId)
                             }
                         }
                     } catch (e: Exception) {
