@@ -153,6 +153,7 @@ class ChatRoomViewModel @Inject constructor(
                                         GroupKeyRewrapHelper.requestKeyRewrap(
                                             participantRepository, conversationId, user.id
                                         )
+                                        messageRepository.sendKeyRewrapRequest(user.id)
                                     }
                                 }
                             } ?: run {
@@ -163,6 +164,7 @@ class ChatRoomViewModel @Inject constructor(
                                     GroupKeyRewrapHelper.requestKeyRewrap(
                                         participantRepository, conversationId, user.id
                                     )
+                                    messageRepository.sendKeyRewrapRequest(user.id)
                                 }
                             }
 
@@ -239,6 +241,26 @@ class ChatRoomViewModel @Inject constructor(
                                     _isPartnerTyping.value = true
                                     delay(3000)
                                     _isPartnerTyping.value = false
+                                }
+                            }
+                        },
+                        onRewrapRequest = { requesterId ->
+                            if (_needsKeyRewrap.value == false && groupKeysetHandle != null) {
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    val success = GroupKeyRewrapHelper.processRewrapForUser(
+                                        context, user.id, requesterId, conversationId, participantRepository, userRepository
+                                    )
+                                    if (success) {
+                                        messageRepository.sendKeyRewrapDone(requesterId)
+                                    }
+                                }
+                            }
+                        },
+                        onRewrapDone = { targetId ->
+                            if (targetId == user.id) {
+                                _needsKeyRewrap.value = false
+                                viewModelScope.launch {
+                                    loadGroupKey(conversationId, user.id)
                                 }
                             }
                         }

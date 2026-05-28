@@ -9,9 +9,16 @@ interface MessageRepository {
 
     suspend fun addReaction(messageId: String, userId: String, reactionIcon: String)
     suspend fun removeReaction(messageId: String, userId: String)
-    fun subscribeToNewMessages(conversationId: String, onTyping: (String) -> Unit): Flow<Message>
+    fun subscribeToNewMessages(
+        conversationId: String, 
+        onTyping: (String) -> Unit,
+        onRewrapRequest: (String) -> Unit = {},
+        onRewrapDone: (String) -> Unit = {}
+    ): Flow<Message>
     suspend fun markMessageAsSeen(messageId: String, userId: String)
     suspend fun sendTypingEvent(conversationId: String, userId: String)
+    suspend fun sendKeyRewrapRequest(userId: String)
+    suspend fun sendKeyRewrapDone(targetUserId: String)
 
 
 }

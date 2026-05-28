@@ -13,6 +13,7 @@ import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
@@ -98,7 +99,12 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
 
-    override fun subscribeToNewMessages(conversationId: String, onTyping: (String) -> Unit): Flow<Message> = callbackFlow {
+    override fun subscribeToNewMessages(
+        conversationId: String, 
+        onTyping: (String) -> Unit,
+        onRewrapRequest: (String) -> Unit,
+        onRewrapDone: (String) -> Unit
+    ): Flow<Message> = callbackFlow {
         activeChannel?.unsubscribe()
         supabaseClient.realtime.connect()
 
@@ -120,6 +126,8 @@ class MessageRepositoryImpl @Inject constructor(
             filter("conversation_id", FilterOperator.EQ, conversationId)
         }
         val typingFlow = channel.broadcastFlow<TypingPayload>(event = "typing")
+        val rewrapReqFlow = channel.broadcastFlow<RewrapRequestPayload>(event = "rewrap_request")
+        val rewrapDoneFlow = channel.broadcastFlow<RewrapDonePayload>(event = "rewrap_done")
 
         val job = launch {
             insertFlow.collect { action ->
@@ -173,6 +181,16 @@ class MessageRepositoryImpl @Inject constructor(
                 onTyping(payload.user_id)
             }
         }
+        val jobRewrapReq = launch {
+            rewrapReqFlow.collect { payload ->
+                onRewrapRequest(payload.requesterId)
+            }
+        }
+        val jobRewrapDone = launch {
+            rewrapDoneFlow.collect { payload ->
+                onRewrapDone(payload.targetId)
+            }
+        }
 
         channel.subscribe()
 
@@ -180,6 +198,8 @@ class MessageRepositoryImpl @Inject constructor(
             job.cancel()
             jobUpdate.cancel()
             jobTyping.cancel()
+            jobRewrapReq.cancel()
+            jobRewrapDone.cancel()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     supabaseClient.realtime.removeChannel(channel)
@@ -210,4 +230,17 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun sendKeyRewrapRequest(userId: String) {
+        activeChannel?.broadcast(event = "rewrap_request", message = RewrapRequestPayload(userId))
+    }
+
+    override suspend fun sendKeyRewrapDone(targetUserId: String) {
+        activeChannel?.broadcast(event = "rewrap_done", message = RewrapDonePayload(targetUserId))
+    }
 }
+
+@Serializable
+data class RewrapRequestPayload(val requesterId: String)
+
+@Serializable
+data class RewrapDonePayload(val targetId: String)
